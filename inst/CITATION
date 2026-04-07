@@ -1,0 +1,13 @@
+bibentry(
+  bibtype  = "Manual",
+  title    = "toolero: A Toolkit for Research Workflows in R",
+  author   = person(
+    given  = "Erwin",
+    family = "Lares",
+    role   = c("aut", "cre"),
+    email  = "erwin.lares@wisc.edu"
+  ),
+  year     = format(Sys.Date(), "%Y"),
+  note     = paste("R package version", meta$Version),
+  url      = "https://github.com/erwinlares/toolero"
+)
