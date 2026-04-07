@@ -20,5 +20,5 @@ Imports:
     readr,
     renv,
     usethis
-URL: https://github.com/erwinlares/toolero
+URL: https://github.com/erwinlares/toolero, https://erwinlares.github.io/toolero/
 BugReports: https://github.com/erwinlares/toolero/issues
