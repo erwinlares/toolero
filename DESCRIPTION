@@ -1,15 +1,20 @@
 Package: toolero
-Title: What the Package Does (One Line, Title Case)
+Title: A Toolkit for Research Workflows in R
 Version: 0.0.0.9000
 Authors@R: 
     person("Erwin", "Lares", , "erwin.lares@wisc.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-3284-828X"))
-Description: What the package does (one paragraph).
+Description: Provides utility functions to help researchers implement best
+    practices for their coding projects. Includes tools for reading and
+    cleaning CSV files and initializing R projects with a standard folder
+    structure.
 License: MIT + file LICENSE
 Encoding: UTF-8
+Language: en-US
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Suggests: 
+    spelling,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 Imports: 
