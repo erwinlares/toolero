@@ -9,5 +9,6 @@ bibentry(
   ),
   year     = format(Sys.Date(), "%Y"),
   note     = paste("R package version", meta$Version),
-  url      = "https://github.com/erwinlares/toolero"
+  url      = "https://github.com/erwinlares/toolero",
+  doi      = "10.5281/zenodo.19457647"
 )
