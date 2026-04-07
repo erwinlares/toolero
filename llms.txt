@@ -1,5 +1,7 @@
 # toolero
 
+![](reference/figures/logo.png)
+
 `toolero` is an R package designed to help researchers implement best
 practices for their coding projects. It provides a small set of
 opinionated, practical functions that reduce friction at the start of a
