@@ -14,6 +14,8 @@ Language: en-US
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
 Suggests: 
+    knitr,
+    rmarkdown,
     spelling,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
@@ -27,3 +29,4 @@ Imports:
     usethis
 URL: https://github.com/erwinlares/toolero, https://erwinlares.github.io/toolero/
 BugReports: https://github.com/erwinlares/toolero/issues
+VignetteBuilder: knitr
