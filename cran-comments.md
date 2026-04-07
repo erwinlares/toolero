@@ -2,22 +2,17 @@
 
 0 errors | 0 warnings | 1 note
 
-* checking for future file timestamps ... NOTE
-  unable to verify current time
-  
-  This NOTE is environmental — it occurs because the machine running the check 
-  cannot reach an internet time server. It does not appear on CRAN's servers.
+* Version contains large components (0.0.0.9000)
+
+  The development version suffix has been removed. Version is now 0.1.0.
 
 ## Windows
 
-Checked with `devtools::check_win_devel()`. Result: 1 NOTE (same timestamp 
-note as above).
+Checked with `devtools::check_win_devel()`. Status: OK.
 
 ## rhub
 
-Checked with `rhub::rhub_check()` on linux and windows platforms. Both passed 
-cleanly. macOS platform was skipped due to a rhub infrastructure issue 
-(macos-13 runner no longer available on GitHub Actions).
+Checked with `rhub::rhub_check()` on linux, macos-arm64, and windows platforms.
 
 ## Downstream dependencies
 
