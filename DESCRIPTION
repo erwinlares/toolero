@@ -18,6 +18,7 @@ Imports:
     janitor,
     purrr,
     readr,
+    renv,
     usethis
 URL: https://github.com/erwinlares/toolero
 BugReports: https://github.com/erwinlares/toolero/issues
