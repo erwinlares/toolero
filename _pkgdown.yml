@@ -2,3 +2,6 @@ url: https://erwinlares.github.io/toolero/
 template:
   bootstrap: 5
 
+navbar:
+  title: toolero
+  logo: man/figures/logo.png
