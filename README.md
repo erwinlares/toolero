@@ -5,6 +5,8 @@
 <!-- badges: start -->
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19457647.svg)](https://doi.org/10.5281/zenodo.19457647)
 [![R-CMD-check](https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml)
+[![CRAN status](https://www.r-pkg.org/badges/version/toolero)](https://CRAN.R-project.org/package=toolero)
+[![CRAN downloads](https://cranlogs.r-pkg.org/badges/toolero)](https://cran.r-project.org/package=toolero)
 <!-- badges: end -->
 
 `toolero` is an R package designed to help researchers implement best practices
