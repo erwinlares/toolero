@@ -1,6 +1,11 @@
 # toolero
 
-![](reference/figures/logo.png)
+![](reference/figures/logo.png)[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19457647.svg)](https://doi.org/10.5281/zenodo.19457647)
+[![R-CMD-check](https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/toolero)](https://CRAN.R-project.org/package=toolero)
+[![CRAN
+downloads](https://cranlogs.r-pkg.org/badges/toolero)](https://cran.r-project.org/package=toolero)
 
 `toolero` is an R package designed to help researchers implement best
 practices for their coding projects. It provides a small set of
@@ -53,6 +58,66 @@ data <- read_clean_csv("path/to/file.csv")
 
 # Show column type messages
 data <- read_clean_csv("path/to/file.csv", verbose = TRUE)
+```
+
+### `detect_execution_context()`
+
+Identifies which of three execution environments the code is currently
+running in: an interactive R session, a `quarto render` call, or a plain
+`Rscript` invocation. Returns one of `"interactive"`, `"quarto"`, or
+`"rscript"`.
+
+``` r
+library(toolero)
+
+context <- detect_execution_context()
+
+input_file <- switch(context,
+  interactive = "data/sample.csv",
+  quarto      = params$input_file,
+  rscript     = commandArgs(trailingOnly = TRUE)[1]
+)
+```
+
+### `create_qmd()`
+
+Scaffolds a new Quarto document from a reproducible template, including
+a sample dataset and UW-Madison branded assets. Optionally pre-populates
+the YAML header from a user-supplied YAML config file.
+
+``` r
+library(toolero)
+
+# Create with placeholder YAML
+create_qmd(path = "~/Documents/my-project")
+
+# Create with a custom filename
+create_qmd(path = "~/Documents/my-project", filename = "report.qmd")
+
+# Pre-populate YAML from a personal config file
+create_qmd(path = "~/Documents/my-project", yaml_data = "~/my_config.yml")
+```
+
+### `write_by_group()`
+
+Splits a data frame by a single grouping column and writes each group to
+a separate CSV file. Filenames are derived from sanitized group values.
+Optionally writes a `manifest.csv` listing output files, group values,
+and row counts.
+
+``` r
+library(toolero)
+
+# Load the bundled sample dataset
+sample_path <- system.file("templates", "sample.csv", package = "toolero")
+penguins    <- read_clean_csv(sample_path)
+
+# Split by species
+write_by_group(penguins, group_col = "species", output_dir = tempdir())
+
+# Also write a manifest
+write_by_group(penguins, group_col = "species",
+               output_dir = tempdir(), manifest = TRUE)
 ```
 
 ## Citation

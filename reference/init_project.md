@@ -13,7 +13,8 @@ init_project(
   use_renv = TRUE,
   use_git = TRUE,
   extra_folders = NULL,
-  open = TRUE
+  open = TRUE,
+  uw_branding = FALSE
 )
 ```
 
@@ -44,6 +45,12 @@ init_project(
   Logical. If `TRUE`, opens the new project in RStudio after creation.
   Defaults to `TRUE`.
 
+- uw_branding:
+
+  Logical. If `TRUE`, creates an `assets/` folder and populates it with
+  UW-Madison RCI branding files (`styles.css`, `header.html`,
+  `rci-banner.png`). Defaults to `FALSE`.
+
 ## Value
 
 Called for its side effects. Does not return a value.
@@ -55,8 +62,11 @@ if (FALSE) { # \dontrun{
 # Create a project with the standard folder structure
 init_project("~/Documents/my-project")
 
+# Create a project with UW-Madison RCI branding files
+init_project("~/Documents/my-project", uw_branding = TRUE)
+
 # Create a project with an additional folder
-init_project("~/Documents/my-project", extra_folders = c("notebooks", "presentations"))
+init_project("~/Documents/my-project", extra_folders = c("notebooks"))
 
 # Create a project without renv or git
 init_project("~/Documents/my-project", use_renv = FALSE, use_git = FALSE)

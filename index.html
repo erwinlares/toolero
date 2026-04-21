@@ -5,14 +5,19 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>A Toolkit for Research Workflows in R • toolero</title>
+<title>A Toolkit for Research Workflows • toolero</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" sizes="any" href="favicon.ico">
+<link rel="manifest" href="site.webmanifest">
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="A Toolkit for Research Workflows in R">
-<meta name="description" content="Provides utility functions to help researchers implement best practices for their coding projects. Includes tools for reading and cleaning CSV files and initializing R projects with a standard folder structure.">
-<meta property="og:description" content="Provides utility functions to help researchers implement best practices for their coding projects. Includes tools for reading and cleaning CSV files and initializing R projects with a standard folder structure.">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="A Toolkit for Research Workflows">
+<meta name="description" content="Provides utility functions to help researchers implement best practices for their coding projects. Includes tools for reading and cleaning data files, initializing R projects with a standard folder structure, creating Quarto documents from a reproducible template, detecting the execution context across interactive, Quarto, and script-based workflows, and splitting data frames into group-level output files.">
+<meta property="og:description" content="Provides utility functions to help researchers implement best practices for their coding projects. Includes tools for reading and cleaning data files, initializing R projects with a standard folder structure, creating Quarto documents from a reproducible template, detecting the execution context across interactive, Quarto, and script-based workflows, and splitting data frames into group-level output files.">
 <meta property="og:image" content="https://erwinlares.github.io/toolero/logo.png">
 </head>
 <body>
@@ -23,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="index.html">toolero</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +38,12 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/toolero-intro.html">Getting started with toolero</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -52,9 +63,7 @@
 <img src="logo.png" class="logo" alt=""><h1 id="toolero">toolero<a class="anchor" aria-label="anchor" href="#toolero"></a>
 </h1>
 </div>
-<p><img src="reference/figures/logo.png" align="right" height="139"></p>
-<!-- badges: start -->
-
+<p><img src="reference/figures/logo.png" align="right" height="139"><!-- badges: start --><a href="https://doi.org/10.5281/zenodo.19457647" class="external-link"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.19457647.svg" alt="DOI"></a> <a href="https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://CRAN.R-project.org/package=toolero" class="external-link"><img src="https://www.r-pkg.org/badges/version/toolero" alt="CRAN status"></a> <a href="https://cran.r-project.org/package=toolero" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/toolero" alt="CRAN downloads"></a> <!-- badges: end --></p>
 <p><code>toolero</code> is an R package designed to help researchers implement best practices for their coding projects. It provides a small set of opinionated, practical functions that reduce friction at the start of a project and during day-to-day data work.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -98,12 +107,64 @@
 <span><span class="co"># Show column type messages</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"path/to/file.csv"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level3">
+<h3 id="detect_execution_context">
+<code>detect_execution_context()</code><a class="anchor" aria-label="anchor" href="#detect_execution_context"></a>
+</h3>
+<p>Identifies which of three execution environments the code is currently running in: an interactive R session, a <code>quarto render</code> call, or a plain <code>Rscript</code> invocation. Returns one of <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code>.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
+<span>  interactive <span class="op">=</span> <span class="st">"data/sample.csv"</span>,</span>
+<span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
+<span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="create_qmd">
+<code>create_qmd()</code><a class="anchor" aria-label="anchor" href="#create_qmd"></a>
+</h3>
+<p>Scaffolds a new Quarto document from a reproducible template, including a sample dataset and UW-Madison branded assets. Optionally pre-populates the YAML header from a user-supplied YAML config file.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create with placeholder YAML</span></span>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create with a custom filename</span></span>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Pre-populate YAML from a personal config file</span></span>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, yaml_data <span class="op">=</span> <span class="st">"~/my_config.yml"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="write_by_group">
+<code>write_by_group()</code><a class="anchor" aria-label="anchor" href="#write_by_group"></a>
+</h3>
+<p>Splits a data frame by a single grouping column and writes each group to a separate CSV file. Filenames are derived from sanitized group values. Optionally writes a <code>manifest.csv</code> listing output files, group values, and row counts.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Load the bundled sample dataset</span></span>
+<span><span class="va">sample_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"templates"</span>, <span class="st">"sample.csv"</span>, package <span class="op">=</span> <span class="st">"toolero"</span><span class="op">)</span></span>
+<span><span class="va">penguins</span>    <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="va">sample_path</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Split by species</span></span>
+<span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span><span class="va">penguins</span>, group_col <span class="op">=</span> <span class="st">"species"</span>, output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Also write a manifest</span></span>
+<span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span><span class="va">penguins</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span>
+<span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>To cite <code>toolero</code> in publications:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -143,13 +204,7 @@
 </ul>
 </div>
 
-<div class="dev-status">
-<h2 data-toc-skip>Dev status</h2>
-<ul class="list-unstyled">
-<li><a href="https://doi.org/10.5281/zenodo.19457647" class="external-link"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.19457647.svg" alt="DOI"></a></li>
-<li><a href="https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
-</ul>
-</div>
+
 
   </aside>
 </div>
