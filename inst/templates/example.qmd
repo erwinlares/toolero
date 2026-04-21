@@ -1,0 +1,139 @@
+---
+title: "Your Document Title"
+subtitle: "Your Subtitle"
+author:
+  - name: "Your Name"
+    affiliation: "Your Institution"
+    orcid: "Your ORCID"
+    email: "your.email@institution.edu"
+date: today
+date-modified: last-modified
+description: "A brief description of this document"
+abstract: |
+  A longer summary of the document's purpose and contents.
+  This can span multiple lines.
+categories:
+  - "add"
+  - "your"
+  - "categories"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    number-sections: true
+    css: assets/styles.css
+    include-before-body: assets/header.html
+params:
+  input_file: "data/sample.csv"
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+# ── Getting started ────────────────────────────────────────────────────────
+#
+# Welcome! Before you start working on your document, take a moment to
+# update the YAML header above with your own information.
+#
+# Required fields:
+#   - title       : replace "Your Document Title" with your actual title
+#   - author/name : replace "Your Name" with your name
+#   - author/email: replace with your institutional email
+#
+# Optional but recommended:
+#   - subtitle    : a short descriptor beneath the title
+#   - affiliation : your department or institution
+#   - orcid       : your ORCID identifier (https://orcid.org)
+#   - description : one sentence summary, used in search and previews
+#   - abstract    : longer summary of purpose and contents
+#   - categories  : keywords that describe your document
+#
+# Fields you don't need:
+#   Delete any YAML fields that are not relevant to your work.
+#   Quarto will ignore unknown fields, but keeping unused ones
+#   adds noise. When in doubt, less is more.
+#
+# ──────────────────────────────────────────────────────────────────────────
+
+library(readr)
+library(ggplot2)
+library(toolero)
+```
+
+## Input Resolution
+
+```{r}
+#| label: input-resolution
+
+# detect_execution_context() identifies which of three environments this
+# code is running in: interactive RStudio, quarto render, or Rscript.
+# Each context resolves the input file path differently.
+#
+#   interactive : you are running chunks in RStudio — path is hardcoded
+#                 to the local data file for development convenience
+#   quarto      : document is being rendered — path comes from params
+#                 defined in the YAML header above
+#   rscript     : document is running on a remote cluster — path comes
+#                 from the first command line argument
+
+context <- detect_execution_context()
+
+input_file <- switch(context,
+  interactive = "data/sample.csv",
+  quarto      = params$input_file,
+  rscript     = commandArgs(trailingOnly = TRUE)[1]
+)
+```
+
+## Load Data
+
+```{r}
+#| label: load-data
+
+# read_clean_csv() reads the file and standardizes column names
+# using janitor::clean_names() — spaces and special characters
+# are replaced with underscores and names are lowercased.
+
+penguins <- read_clean_csv(input_file)
+
+glimpse(penguins)
+```
+
+## Analysis
+
+```{r}
+#| label: summary
+
+# A simple grouped summary across species.
+# Replace this block with your own analysis.
+
+penguins |>
+  group_by(species) |>
+  summarise(
+    n            = n(),
+    mean_mass    = mean(body_mass_g, na.rm = TRUE),
+    mean_flipper = mean(flipper_length_mm, na.rm = TRUE)
+  )
+```
+
+```{r}
+#| label: plot
+
+# Relationship between flipper length and body mass by species.
+# Replace this block with your own plot.
+
+penguins |>
+  ggplot(aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title    = "Flipper Length vs Body Mass",
+    subtitle = "By species — Palmer Penguins dataset",
+    x        = "Flipper length (mm)",
+    y        = "Body mass (g)",
+    color    = "Species"
+  ) +
+  theme_minimal()
+```

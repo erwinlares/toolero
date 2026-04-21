@@ -1,14 +1,18 @@
 Package: toolero
-Title: A Toolkit for Research Workflows in R
-Version: 0.1.1
+Title: A Toolkit for Research Workflows
+Version: 0.2.0
 Authors@R: 
     person("Erwin", "Lares", , "erwin.lares@wisc.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-3284-828X"))
 Description: Provides utility functions to help researchers implement best
     practices for their coding projects. Includes tools for reading and
-    cleaning CSV files and initializing R projects with a standard folder
-    structure.
+    cleaning data files, initializing R projects with a standard folder
+    structure, creating Quarto documents from a reproducible template,
+    detecting the execution context across interactive, Quarto, and
+    script-based workflows, and splitting data frames into group-level
+    output files.
 License: MIT + file LICENSE
+Depends: R (>= 4.2.0)
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
@@ -17,16 +21,20 @@ Suggests:
     knitr,
     rmarkdown,
     spelling,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    withr
 Config/testthat/edition: 3
 Imports: 
+    cli,
     fs,
     glue,
     janitor,
     purrr,
     readr,
     renv,
-    usethis
+    tibble,
+    usethis,
+    yaml
 URL: https://github.com/erwinlares/toolero, https://erwinlares.github.io/toolero/
 BugReports: https://github.com/erwinlares/toolero/issues
 VignetteBuilder: knitr

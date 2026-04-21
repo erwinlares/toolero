@@ -1,4 +1,5 @@
 .Rproj.user
+.Rprofile
 .Rhistory
 .Rdata
 .httr-oauth
@@ -8,3 +9,4 @@ docs
 inst/doc
 /doc/
 /Meta/
+erwinlares.yaml
