@@ -40,7 +40,7 @@ in a portable way."><meta property="og:image" content="https://erwinlares.github
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Detect the current execution context</h1>
-      <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/R/detect_execution_context.R" class="external-link"><code>R/detect_execution_context.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/R/detect-execution-context.R" class="external-link"><code>R/detect-execution-context.R</code></a></small>
       <div class="d-none name"><code>detect_execution_context.Rd</code></div>
     </div>
 
@@ -82,7 +82,7 @@ returns <code>"quarto"</code>.</p></li>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu">detect_execution_context</span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span></span>
@@ -90,7 +90,7 @@ returns <code>"quarto"</code>.</p></li>
 <span class="r-in"><span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span></span>
 <span class="r-in"><span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

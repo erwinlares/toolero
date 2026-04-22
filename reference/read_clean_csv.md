@@ -34,11 +34,20 @@ A tibble with clean column names.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 # Read and clean a CSV file silently
-data <- read_clean_csv("path/to/file.csv")
+sample_path <- system.file("templates", "sample.csv", package = "toolero")
+data <- read_clean_csv(sample_path)
 
-# Read and clean a CSV file with column type messages displayed
-data <- read_clean_csv("path/to/file.csv", verbose = TRUE)
-} # }
+# Show column type messages
+data <- read_clean_csv(sample_path, verbose = TRUE)
+#> Rows: 344 Columns: 8
+#> ── Column specification ────────────────────────────────────────────────────────
+#> Delimiter: ","
+#> chr (3): species, island, sex
+#> dbl (5): bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, year
+#> 
+#> ℹ Use `spec()` to retrieve the full column specification for this data.
+#> ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+# }
 ```

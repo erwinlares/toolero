@@ -40,7 +40,7 @@ Detection follows a priority order:
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
+# \donttest{
 context <- detect_execution_context()
 
 input_file <- switch(context,
@@ -48,5 +48,5 @@ input_file <- switch(context,
   quarto      = params$input_file,
   rscript     = commandArgs(trailingOnly = TRUE)[1]
 )
-} # }
+# }
 ```

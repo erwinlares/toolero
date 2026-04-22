@@ -13,7 +13,7 @@ init_project(
   use_renv = TRUE,
   use_git = TRUE,
   extra_folders = NULL,
-  open = TRUE,
+  open = FALSE,
   uw_branding = FALSE
 )
 ```
@@ -58,17 +58,36 @@ Called for its side effects. Does not return a value.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Create a project with the standard folder structure
-init_project("~/Documents/my-project")
+# \donttest{
+init_project(file_path = file.path(tempdir(), "project1"),
+             use_renv = FALSE, use_git = FALSE)
+#> ✔ Creating /tmp/RtmpYumPDn/project1/.
+#> ✔ Setting active project to "/tmp/RtmpYumPDn/project1".
+#> ✔ Creating R/.
+#> ✔ Writing a sentinel file .here.
+#> ☐ Build robust paths within your project via `here::here()`.
+#> ℹ Learn more at <https://here.r-lib.org>.
+#> ✔ Setting active project to "<no active project>".
 
-# Create a project with UW-Madison RCI branding files
-init_project("~/Documents/my-project", uw_branding = TRUE)
+init_project(file_path = file.path(tempdir(), "project2"),
+             uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
+#> ✔ Creating /tmp/RtmpYumPDn/project2/.
+#> ✔ Setting active project to "/tmp/RtmpYumPDn/project2".
+#> ✔ Creating R/.
+#> ✔ Writing a sentinel file .here.
+#> ☐ Build robust paths within your project via `here::here()`.
+#> ℹ Learn more at <https://here.r-lib.org>.
+#> ✔ Setting active project to "<no active project>".
 
-# Create a project with an additional folder
-init_project("~/Documents/my-project", extra_folders = c("notebooks"))
-
-# Create a project without renv or git
-init_project("~/Documents/my-project", use_renv = FALSE, use_git = FALSE)
-} # }
+init_project(file_path = file.path(tempdir(), "project3"),
+             extra_folders = c("notebooks"),
+             use_renv = FALSE, use_git = FALSE)
+#> ✔ Creating /tmp/RtmpYumPDn/project3/.
+#> ✔ Setting active project to "/tmp/RtmpYumPDn/project3".
+#> ✔ Creating R/.
+#> ✔ Writing a sentinel file .here.
+#> ☐ Build robust paths within your project via `here::here()`.
+#> ℹ Learn more at <https://here.r-lib.org>.
+#> ✔ Setting active project to "<no active project>".
+# }
 ```
