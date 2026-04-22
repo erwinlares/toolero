@@ -1,26 +1,27 @@
 ## Resubmission
 
-This is a resubmission addressing feedback from Benjamin Altmann. Changes made:
+This is a second resubmission addressing feedback from Konstanze Lauseker. 
+Changes made:
 
-* Removed redundant "in R" from the package title
-* Replaced `\dontrun{}` with `\donttest{}` throughout
-* Removed default write paths in `create_qmd()` and `write_by_group()`;
-  both now default to `NULL` and require an explicit path
-* Replaced non-ASCII characters in `R/create_qmd.R`
-* Documented the new `interactive_fn` argument in `detect_execution_context()`
-* Added `Depends: R (>= 4.2.0)` to reflect use of the pipe placeholder
-  syntax introduced in R 4.2.0
-
-New functions added since the previous submission: `detect_execution_context()`,
-`create_qmd()`, and `write_by_group()`.
+* Replaced all remaining `\dontrun{}` with `\donttest{}` throughout
+* Fixed all examples to write to `tempdir()` instead of the user's home
+  filespace
+* Wrapped `init_project()` body with `withr::with_dir()` to prevent side
+  effects on the working directory
+* Ran `devtools::document()` to ensure all `.Rd` files are in sync with
+  roxygen2 source
+* Rewrote `inst/templates/sample.csv` using `readr::write_csv()` to
+  eliminate spurious row index column
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
+
+* This is a resubmission to CRAN. The NOTE about "New submission" is expected.
 
 ## Windows
 
-Checked with `devtools::check_win_devel()`. Status: OK.
+Checked with `devtools::check_win_devel()`. Status: OK, 1 note (new submission).
 
 ## rhub
 
