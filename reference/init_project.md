@@ -61,8 +61,8 @@ Called for its side effects. Does not return a value.
 # \donttest{
 init_project(file_path = file.path(tempdir(), "project1"),
              use_renv = FALSE, use_git = FALSE)
-#> ✔ Creating /tmp/RtmpYumPDn/project1/.
-#> ✔ Setting active project to "/tmp/RtmpYumPDn/project1".
+#> ✔ Creating /tmp/RtmpeDkVp3/project1/.
+#> ✔ Setting active project to "/tmp/RtmpeDkVp3/project1".
 #> ✔ Creating R/.
 #> ✔ Writing a sentinel file .here.
 #> ☐ Build robust paths within your project via `here::here()`.
@@ -71,8 +71,8 @@ init_project(file_path = file.path(tempdir(), "project1"),
 
 init_project(file_path = file.path(tempdir(), "project2"),
              uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
-#> ✔ Creating /tmp/RtmpYumPDn/project2/.
-#> ✔ Setting active project to "/tmp/RtmpYumPDn/project2".
+#> ✔ Creating /tmp/RtmpeDkVp3/project2/.
+#> ✔ Setting active project to "/tmp/RtmpeDkVp3/project2".
 #> ✔ Creating R/.
 #> ✔ Writing a sentinel file .here.
 #> ☐ Build robust paths within your project via `here::here()`.
@@ -82,8 +82,8 @@ init_project(file_path = file.path(tempdir(), "project2"),
 init_project(file_path = file.path(tempdir(), "project3"),
              extra_folders = c("notebooks"),
              use_renv = FALSE, use_git = FALSE)
-#> ✔ Creating /tmp/RtmpYumPDn/project3/.
-#> ✔ Setting active project to "/tmp/RtmpYumPDn/project3".
+#> ✔ Creating /tmp/RtmpeDkVp3/project3/.
+#> ✔ Setting active project to "/tmp/RtmpeDkVp3/project3".
 #> ✔ Creating R/.
 #> ✔ Writing a sentinel file .here.
 #> ☐ Build robust paths within your project via `here::here()`.

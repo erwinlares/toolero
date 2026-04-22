@@ -68,25 +68,25 @@ during testing or exploration.
 # \donttest{
 # Create with placeholder YAML in a temp directory
 create_qmd(path = tempdir())
-#> ✔ Created /tmp/RtmpYumPDn/data/sample.csv
-#> ✔ Created /tmp/RtmpYumPDn/assets/styles.css
-#> ✔ Created /tmp/RtmpYumPDn/assets/header.html
-#> ✔ Created /tmp/RtmpYumPDn/analysis.qmd
+#> ✔ Created /tmp/RtmpeDkVp3/data/sample.csv
+#> ✔ Created /tmp/RtmpeDkVp3/assets/styles.css
+#> ✔ Created /tmp/RtmpeDkVp3/assets/header.html
+#> ✔ Created /tmp/RtmpeDkVp3/analysis.qmd
 
 # Create with a custom filename
 create_qmd(path = tempdir(), filename = "report.qmd", overwrite = TRUE)
-#> ✔ Created /tmp/RtmpYumPDn/data/sample.csv
-#> ✔ Created /tmp/RtmpYumPDn/assets/styles.css
-#> ✔ Created /tmp/RtmpYumPDn/assets/header.html
-#> ✔ Created /tmp/RtmpYumPDn/report.qmd
+#> ✔ Created /tmp/RtmpeDkVp3/data/sample.csv
+#> ✔ Created /tmp/RtmpeDkVp3/assets/styles.css
+#> ✔ Created /tmp/RtmpeDkVp3/assets/header.html
+#> ✔ Created /tmp/RtmpeDkVp3/report.qmd
 
 # Create with pre-populated YAML
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpYumPDn/data/sample.csv
-#> ✔ Created /tmp/RtmpYumPDn/assets/styles.css
-#> ✔ Created /tmp/RtmpYumPDn/assets/header.html
-#> ✔ Created /tmp/RtmpYumPDn/analysis.qmd
+#> ✔ Created /tmp/RtmpeDkVp3/data/sample.csv
+#> ✔ Created /tmp/RtmpeDkVp3/assets/styles.css
+#> ✔ Created /tmp/RtmpeDkVp3/assets/header.html
+#> ✔ Created /tmp/RtmpeDkVp3/analysis.qmd
 # }
 ```
