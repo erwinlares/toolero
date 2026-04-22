@@ -147,6 +147,10 @@ create_qmd <- function(
 # -- Helper: substitute YAML values into template ----------------------------
 
 substitute_yaml <- function(qmd_content, user_yaml) {
+
+    # Normalize line endings to \n regardless of platform
+    qmd_content <- gsub("\r\n", "\n", qmd_content, fixed = TRUE)
+
     yaml_pattern <- "(?s)^---\\n(.+?)\\n---"
     yaml_match <- regmatches(
         qmd_content,
@@ -161,7 +165,7 @@ substitute_yaml <- function(qmd_content, user_yaml) {
     # Parse template YAML
     template_yaml <- yaml::yaml.load(yaml_match)
 
-    # Directly overwrite keys present in user_yaml - no deep merge
+    # Directly overwrite keys present in user_yaml
     for (key in names(user_yaml)) {
         template_yaml[[key]] <- user_yaml[[key]]
     }
