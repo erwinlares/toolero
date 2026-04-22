@@ -9,7 +9,7 @@ init_project(
   use_renv = TRUE,
   use_git = TRUE,
   extra_folders = NULL,
-  open = TRUE,
+  open = FALSE,
   uw_branding = FALSE
 )
 }
@@ -42,17 +42,15 @@ opinionated folder structure suited for research workflows. It optionally
 initializes \code{renv} for package management and git for version control.
 }
 \examples{
-\dontrun{
-# Create a project with the standard folder structure
-init_project("~/Documents/my-project")
+\donttest{
+init_project(file_path = file.path(tempdir(), "project1"),
+             use_renv = FALSE, use_git = FALSE)
 
-# Create a project with UW-Madison RCI branding files
-init_project("~/Documents/my-project", uw_branding = TRUE)
+init_project(file_path = file.path(tempdir(), "project2"),
+             uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
 
-# Create a project with an additional folder
-init_project("~/Documents/my-project", extra_folders = c("notebooks"))
-
-# Create a project without renv or git
-init_project("~/Documents/my-project", use_renv = FALSE, use_git = FALSE)
+init_project(file_path = file.path(tempdir(), "project3"),
+             extra_folders = c("notebooks"),
+             use_renv = FALSE, use_git = FALSE)
 }
 }

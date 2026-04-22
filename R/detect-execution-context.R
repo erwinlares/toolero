@@ -26,7 +26,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' context <- detect_execution_context()
 #'
 #' input_file <- switch(context,

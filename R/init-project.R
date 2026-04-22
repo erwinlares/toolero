@@ -22,60 +22,63 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' # Create a project with the standard folder structure
-#' init_project("~/Documents/my-project")
+#' \donttest{
+#' init_project(file_path = file.path(tempdir(), "project1"),
+#'              use_renv = FALSE, use_git = FALSE)
 #'
-#' # Create a project with UW-Madison RCI branding files
-#' init_project("~/Documents/my-project", uw_branding = TRUE)
+#' init_project(file_path = file.path(tempdir(), "project2"),
+#'              uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
 #'
-#' # Create a project with an additional folder
-#' init_project("~/Documents/my-project", extra_folders = c("notebooks"))
-#'
-#' # Create a project without renv or git
-#' init_project("~/Documents/my-project", use_renv = FALSE, use_git = FALSE)
+#' init_project(file_path = file.path(tempdir(), "project3"),
+#'              extra_folders = c("notebooks"),
+#'              use_renv = FALSE, use_git = FALSE)
 #' }
+
 init_project <- function(file_path,
                          use_renv = TRUE,
                          use_git = TRUE,
                          extra_folders = NULL,
-                         open = TRUE,
+                         open = FALSE,
                          uw_branding = FALSE) {
 
-    # 1. create the RStudio project
-    usethis::create_project(file_path, open = FALSE)
+    withr::with_dir(getwd(), {
 
-    # 2. create standard folders
-    standard_folders <- c("data", "data-raw", "images", "plots",
-                          "results", "scripts", "docs", "R")
-    purrr::walk(standard_folders,
-                \(folder) fs::dir_create(glue::glue("{file_path}/{folder}")))
+        # 1. create the RStudio project
+        usethis::create_project(file_path, open = FALSE)
 
-    # 3. create any extra folders
-    if (!is.null(extra_folders)) {
-        purrr::walk(extra_folders,
+        # 2. create standard folders
+        standard_folders <- c("data", "data-raw", "images", "plots",
+                              "results", "scripts", "docs", "R")
+        purrr::walk(standard_folders,
                     \(folder) fs::dir_create(glue::glue("{file_path}/{folder}")))
-    }
 
-    # 4. copy UW-Madison RCI branding files into assets/
-    if (uw_branding) {
-        assets_dir <- file.path(file_path, "assets")
-        fs::dir_create(assets_dir)
-        branding_files <- c("styles.css", "header.html", "rci-banner.png")
-        purrr::walk(branding_files, \(f) {
-            fs::file_copy(
-                system.file("extdata", f, package = "toolero"),
-                file.path(assets_dir, f)
-            )
-        })
-    }
+        # 3. create any extra folders
+        if (!is.null(extra_folders)) {
+            purrr::walk(extra_folders,
+                        \(folder) fs::dir_create(glue::glue("{file_path}/{folder}")))
+        }
 
-    # 5. initialize renv
-    if (use_renv) renv::init(project = file_path, restart = FALSE)
+        # 4. copy UW-Madison RCI branding files into assets/
+        if (uw_branding) {
+            assets_dir <- file.path(file_path, "assets")
+            fs::dir_create(assets_dir)
+            branding_files <- c("styles.css", "header.html", "rci-banner.png")
+            purrr::walk(branding_files, \(f) {
+                fs::file_copy(
+                    system.file("extdata", f, package = "toolero"),
+                    file.path(assets_dir, f)
+                )
+            })
+        }
 
-    # 6. initialize git
-    if (use_git) usethis::use_git(message = "initial commit")
+        # 5. initialize renv
+        if (use_renv) renv::init(project = file_path, restart = FALSE)
 
-    # 7. open the project in RStudio
-    if (open) usethis::proj_activate(file_path)
+        # 6. initialize git
+        if (use_git) usethis::use_git(message = "initial commit")
+
+        # 7. open the project in RStudio
+        if (open) usethis::proj_activate(file_path)
+
+    })
 }

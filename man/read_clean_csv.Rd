@@ -23,11 +23,12 @@ characters). By default, column type messages are suppressed. Set
 \code{verbose = TRUE} to display them.
 }
 \examples{
-\dontrun{
+\donttest{
 # Read and clean a CSV file silently
-data <- read_clean_csv("path/to/file.csv")
+sample_path <- system.file("templates", "sample.csv", package = "toolero")
+data <- read_clean_csv(sample_path)
 
-# Read and clean a CSV file with column type messages displayed
-data <- read_clean_csv("path/to/file.csv", verbose = TRUE)
+# Show column type messages
+data <- read_clean_csv(sample_path, verbose = TRUE)
 }
 }

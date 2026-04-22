@@ -14,12 +14,13 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Read and clean a CSV file silently
-#' data <- read_clean_csv("path/to/file.csv")
+#' sample_path <- system.file("templates", "sample.csv", package = "toolero")
+#' data <- read_clean_csv(sample_path)
 #'
-#' # Read and clean a CSV file with column type messages displayed
-#' data <- read_clean_csv("path/to/file.csv", verbose = TRUE)
+#' # Show column type messages
+#' data <- read_clean_csv(sample_path, verbose = TRUE)
 #' }
 read_clean_csv <- function(file_path, verbose = FALSE) {
     readr::read_csv(file_path, show_col_types = verbose) |>
