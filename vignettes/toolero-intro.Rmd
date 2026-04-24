@@ -1,3 +1,6 @@
+The vignette needs updating in three areas: the function list is stale (still shows only two functions), the content doesn't reflect any of the 0.3.0 additions, and some of the "what's next" items are now shipped. Here's the updated version:
+
+````markdown
 ---
 title: "Getting started with toolero"
 author: "Erwin Lares"
@@ -17,20 +20,29 @@ knitr::opts_chunk$set(
 
 ## What is toolero?
 
-`toolero` is a small, opinionated toolkit designed to make the first steps of 
-an R project faster and more consistent. It targets researchers and analysts 
+`toolero` is a small, opinionated toolkit designed to make the first steps of
+an R project faster and more consistent. It targets researchers and analysts
 who want to spend less time on setup and more time on the work itself.
 
-The package currently provides two functions:
+The package currently provides the following functions:
 
 - `init_project()` — creates a new R project with a standard folder structure,
   and optionally initializes `renv` and `git`
 - `read_clean_csv()` — reads a CSV file and cleans column names in one step
+- `create_qmd()` — scaffolds a new Quarto document from a reproducible
+  template, including sample data, UW-Madison branded assets, and an optional
+  post-render `purl` hook
+- `detect_execution_context()` — identifies whether code is running
+  interactively, via `quarto render`, or via `Rscript`
+- `write_by_group()` — splits a data frame by a grouping column and writes
+  each group to a separate CSV file
+- `generate_kb_xml()` — produces a UW-Madison Knowledge Base importable XML
+  file from a rendered Quarto document
 
-Both functions are designed around a simple idea: the decisions you make at the 
-start of a project — how it is organized, how data is read in, how dependencies 
-are tracked — have an outsized effect on how maintainable and reproducible that 
-project turns out to be. `toolero` tries to make the right defaults easy to 
+All functions are designed around a simple idea: the decisions you make at the
+start of a project — how it is organized, how data is read in, how dependencies
+are tracked — have an outsized effect on how maintainable and reproducible that
+project turns out to be. `toolero` tries to make the right defaults easy to
 reach for.
 
 ---
@@ -57,12 +69,12 @@ pak::pak("erwinlares/toolero")
 
 ### The problem
 
-Starting a new R project usually means the same manual steps every time: 
-create a folder, set up an RStudio project, create subdirectories for data and 
-scripts, initialize `renv`, initialize `git`. None of these steps is hard on 
-its own, but skipping any of them — especially early on — tends to create 
-friction later. A project without `renv` is harder to share. A project without 
-`git` is harder to recover. A project without a consistent folder structure is 
+Starting a new R project usually means the same manual steps every time:
+create a folder, set up an RStudio project, create subdirectories for data and
+scripts, initialize `renv`, initialize `git`. None of these steps is hard on
+its own, but skipping any of them — especially early on — tends to create
+friction later. A project without `renv` is harder to share. A project without
+`git` is harder to recover. A project without a consistent folder structure is
 harder to hand off.
 
 ### The solution
@@ -73,10 +85,10 @@ harder to hand off.
 #| eval: false
 library(toolero)
 
-init_project("~/Documents/my-project")
+init_project(path = "~/Documents/my-project")
 ```
 
-This creates a new RStudio project at the specified path with the following 
+This creates a new RStudio project at the specified path with the following
 folder structure already in place:
 
 ```
@@ -97,8 +109,8 @@ my-project/
 > encourages moving reusable logic into functions over time, which is a natural
 > step toward more maintainable code.
 
-By default, `init_project()` also initializes `renv` and `git` in the new 
-project. This means the project is reproducible and version-controlled from 
+By default, `init_project()` also initializes `renv` and `git` in the new
+project. This means the project is reproducible and version-controlled from
 the first commit.
 
 > **Why `renv` and `git` by default?** `renv` ensures that the packages your
@@ -110,13 +122,13 @@ the first commit.
 
 ### Adding extra folders
 
-If your project needs folders beyond the defaults, pass them as a character 
+If your project needs folders beyond the defaults, pass them as a character
 vector via `extra_folders`:
 
 ```{r}
 #| eval: false
 init_project(
-  "~/Documents/my-project",
+  path          = "~/Documents/my-project",
   extra_folders = c("notebooks", "presentations")
 )
 ```
@@ -128,7 +140,7 @@ If you need to skip one or both:
 ```{r}
 #| eval: false
 init_project(
-  "~/Documents/my-project",
+  path     = "~/Documents/my-project",
   use_renv = FALSE,
   use_git  = FALSE
 )
@@ -145,13 +157,13 @@ init_project(
 
 ### The problem
 
-Reading a CSV file into R is straightforward — until the column names come back 
-with spaces, mixed capitalization, or special characters. Cleaning them up is a 
+Reading a CSV file into R is straightforward — until the column names come back
+with spaces, mixed capitalization, or special characters. Cleaning them up is a
 small but recurring friction point.
 
 ### The solution
 
-`read_clean_csv()` combines `readr::read_csv()` and `janitor::clean_names()` 
+`read_clean_csv()` combines `readr::read_csv()` and `janitor::clean_names()`
 into a single call:
 
 ```{r}
@@ -159,12 +171,12 @@ into a single call:
 data <- read_clean_csv("data/my-file.csv")
 ```
 
-Column names are automatically converted to lowercase with underscores — 
-consistent, predictable, and tidyverse-friendly. A column called 
+Column names are automatically converted to lowercase with underscores —
+consistent, predictable, and tidyverse-friendly. A column called
 `First Name` becomes `first_name`. `Q1 Revenue ($)` becomes `q1_revenue`.
 
-By default, column type messages from `readr` are suppressed to keep the 
-output clean. If you want to see them — useful when reading an unfamiliar 
+By default, column type messages from `readr` are suppressed to keep the
+output clean. If you want to see them — useful when reading an unfamiliar
 dataset for the first time — set `verbose = TRUE`:
 
 ```{r}
@@ -179,19 +191,150 @@ data <- read_clean_csv("data/my-file.csv", verbose = TRUE)
 
 ---
 
-## What's next for toolero?
+## Scaffolding a Quarto document with `create_qmd()`
 
-`toolero` is intentionally small right now. The two functions it provides solve 
-a specific, recurring problem — getting a project started correctly. Future 
-versions may include:
+### The problem
 
-- Utilities for common data validation patterns
-- Helpers for writing reproducible reports
-- Functions that ease the transition from local analysis to running code on 
-  remote computing infrastructure
+Setting up a new Quarto document for a research workflow involves more than
+creating a blank file. You need a consistent YAML header, sample data to
+develop against, branded assets, and ideally a way to extract the R code from
+the document once it is rendered.
 
-The goal is not to be comprehensive. It is to make the right habits easy to 
-reach for from the first line of code.
+### The solution
+
+`create_qmd()` scaffolds a complete working environment in a single call:
+
+```{r}
+#| eval: false
+create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd")
+```
+
+This creates:
+
+- `analysis.qmd` — a Quarto document with a fully populated YAML header,
+  three-context input resolution via `detect_execution_context()`, and a
+  sample analysis using the Palmer Penguins dataset
+- `data/sample.csv` — sample data to develop against
+- `assets/styles.css` and `assets/header.html` — UW-Madison RCI branding files
+- `_quarto.yml` — a project file with a post-render hook that runs `purl.R`
+- `purl.R` — a script that extracts R code from the rendered document into a
+  companion `.R` file
+
+### The post-render purl hook
+
+By default (`use_purl = TRUE`), every time the document is rendered a clean
+`.R` script is automatically extracted from the code chunks and saved
+alongside the output. This is useful for sharing the analysis as a plain
+script, running it on a remote cluster, or archiving the code independently
+of the document.
+
+To opt out:
+
+```{r}
+#| eval: false
+create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd",
+           use_purl = FALSE)
+```
+
+### Pre-populating the YAML header
+
+If you have author metadata in a YAML file, you can pre-populate the document
+header automatically:
+
+```{r}
+#| eval: false
+create_qmd(
+  path      = "~/Documents/my-project",
+  filename  = "analysis.qmd",
+  yaml_data = "~/my-metadata.yml"
+)
+```
+
+---
+
+## Detecting the execution context with `detect_execution_context()`
+
+R code often needs to behave differently depending on where it is running —
+interactively in RStudio, during a `quarto render`, or as a batch `Rscript`
+job on a remote cluster. `detect_execution_context()` identifies which of
+these three environments is active and returns one of `"interactive"`,
+`"quarto"`, or `"rscript"`.
+
+The canonical use case is resolving input file paths portably:
+
+```{r}
+#| eval: false
+context <- detect_execution_context()
+
+input_file <- switch(context,
+  interactive = "data/sample.csv",
+  quarto      = params$input_file,
+  rscript     = commandArgs(trailingOnly = TRUE)[1]
+)
+```
+
+This pattern is built into the template scaffolded by `create_qmd()`.
+
+---
+
+## Splitting data by group with `write_by_group()`
+
+When a data frame contains multiple groups that need to be written to separate
+files — for instance, one CSV per species, site, or experimental condition —
+`write_by_group()` handles the split and the write in a single call:
+
+```{r}
+#| eval: false
+write_by_group(
+  data       = penguins,
+  group_col  = "species",
+  output_dir = "results/by-species"
+)
+```
+
+Output filenames are derived from the group values and sanitized for use as
+file names — converted to lowercase, with spaces and special characters
+replaced by dashes. A group called `Chinstrap` becomes `chinstrap.csv`.
+`Palmer Penguins` would become `palmer-penguins.csv`.
+
+To also write a manifest listing the output files, group values, and row
+counts:
+
+```{r}
+#| eval: false
+write_by_group(
+  data       = penguins,
+  group_col  = "species",
+  output_dir = "results/by-species",
+  manifest   = TRUE
+)
+```
+
+---
+
+## Exporting to the UW-Madison Knowledge Base with `generate_kb_xml()`
+
+If your workflow includes publishing Quarto documents to the UW-Madison
+Knowledge Base (KB), `generate_kb_xml()` automates the export step. It takes
+a rendered HTML file, re-renders the source `.qmd` with all assets embedded,
+extracts the body, and produces an XML file ready for KB import.
+
+```{r}
+#| eval: false
+generate_kb_xml(
+  html_path  = "docs/analysis.html",
+  output_dir = "exports"
+)
+```
+
+Metadata is drawn automatically from the `.qmd` YAML header:
+
+- `title` → `kb_title`
+- `description` → `kb_summary`
+- `categories` → `kb_keywords`
+
+> **When importing into the KB**, check the
+> *Decode HTML entity in body content* option.
 
 ---
 
@@ -203,3 +346,6 @@ If you use `toolero` in your work, please cite it:
 #| eval: false
 citation("toolero")
 ```
+````
+
+The main changes from the original: updated the function list at the top, added sections for `create_qmd()`, `detect_execution_context()`, `write_by_group()`, and `generate_kb_xml()`, updated `init_project()` examples to use `path =` instead of positional, and removed the "what's next" section since those items are now shipped.
