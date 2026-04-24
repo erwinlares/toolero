@@ -22,15 +22,14 @@
 #' @export
 #'
 #' @examples
-#' \donttest{
-#' tmp <- withr::local_tempdir()
-#' init_project(path = file.path(tmp, "project1"),
+#' \dontrun{
+#' init_project(path = file.path(tempdir(), "project1"),
 #'              use_renv = FALSE, use_git = FALSE)
 #'
-#' init_project(path = file.path(tmp, "project2"),
+#' init_project(path = file.path(tempdir(), "project2"),
 #'              uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
 #'
-#' init_project(path = file.path(tmp, "project3"),
+#' init_project(path = file.path(tempdir(), "project3"),
 #'              extra_folders = c("notebooks"),
 #'              use_renv = FALSE, use_git = FALSE)
 #' }

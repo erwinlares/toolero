@@ -42,7 +42,7 @@ opinionated folder structure suited for research workflows. It optionally
 initializes \code{renv} for package management and git for version control.
 }
 \examples{
-\donttest{
+\dontrun{
 tmp <- withr::local_tempdir()
 init_project(path = file.path(tmp, "project1"),
              use_renv = FALSE, use_git = FALSE)
