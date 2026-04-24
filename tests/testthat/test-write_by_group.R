@@ -128,7 +128,7 @@ test_that("errors informatively when group_col is not found in data", {
     )
 })
 
-test_that("sanitizes group values with spaces in filenames", {
+test_that("sanitizes group values with spaces using dashes in filenames", {
     tmp  <- withr::local_tempdir()
     data <- tibble::tibble(
         group = c("group one", "group one", "group two"),
@@ -136,11 +136,11 @@ test_that("sanitizes group values with spaces in filenames", {
     )
 
     write_by_group(data, group_col = "group", output_dir = tmp)
-    expect_true(fs::file_exists(fs::path(tmp, "group_one.csv")))
-    expect_true(fs::file_exists(fs::path(tmp, "group_two.csv")))
+    expect_true(fs::file_exists(fs::path(tmp, "group-one.csv")))
+    expect_true(fs::file_exists(fs::path(tmp, "group-two.csv")))
 })
 
-test_that("sanitizes group values with special characters in filenames", {
+test_that("sanitizes group values with special characters using dashes in filenames", {
     tmp  <- withr::local_tempdir()
     data <- tibble::tibble(
         group = c("group@one", "group@one", "group#two"),
@@ -148,8 +148,8 @@ test_that("sanitizes group values with special characters in filenames", {
     )
 
     write_by_group(data, group_col = "group", output_dir = tmp)
-    expect_true(fs::file_exists(fs::path(tmp, "group_one.csv")))
-    expect_true(fs::file_exists(fs::path(tmp, "group_two.csv")))
+    expect_true(fs::file_exists(fs::path(tmp, "group-one.csv")))
+    expect_true(fs::file_exists(fs::path(tmp, "group-two.csv")))
 })
 
 # -- sanitize_filename() helper -----------------------------------------------
@@ -158,18 +158,18 @@ test_that("sanitize_filename() lowercases input", {
     expect_equal(sanitize_filename("Adelie"), "adelie")
 })
 
-test_that("sanitize_filename() replaces spaces with underscores", {
-    expect_equal(sanitize_filename("group one"), "group_one")
+test_that("sanitize_filename() replaces spaces with dashes", {
+    expect_equal(sanitize_filename("group one"), "group-one")
 })
 
-test_that("sanitize_filename() replaces special characters with underscores", {
-    expect_equal(sanitize_filename("group@one!"), "group_one")
+test_that("sanitize_filename() replaces special characters with dashes", {
+    expect_equal(sanitize_filename("group@one!"), "group-one")
 })
 
-test_that("sanitize_filename() collapses consecutive underscores", {
-    expect_equal(sanitize_filename("group  one"), "group_one")
+test_that("sanitize_filename() collapses consecutive dashes", {
+    expect_equal(sanitize_filename("group  one"), "group-one")
 })
 
-test_that("sanitize_filename() strips leading and trailing underscores", {
+test_that("sanitize_filename() strips leading and trailing dashes", {
     expect_equal(sanitize_filename("@group@"), "group")
 })

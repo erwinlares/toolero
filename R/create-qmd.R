@@ -6,13 +6,18 @@
 #'
 #' @param path A string or `NULL`. Path to the directory where the document
 #'   will be created. If `NULL`, the user must supply a path explicitly.
-#' @param filename A string. Name of the generated `.qmd` file. Defaults to
-#'   `"analysis.qmd"`.
+#' @param filename A string or `NULL`. Name of the generated `.qmd` file.
+#'   Must be supplied explicitly, e.g. `"analysis.qmd"`.
 #' @param yaml_data A string or `NULL`. Path to a YAML file containing
 #'   metadata to pre-populate the document header. If `NULL` (the default),
 #'   the template is copied as-is with placeholder prompts intact.
 #' @param overwrite A logical. Whether to overwrite existing files. Defaults
 #'   to `FALSE`.
+#' @param use_purl Logical. If `TRUE` (the default), creates a `_quarto.yml`
+#'   file with a post-render hook and a `purl.R` script that extracts R code
+#'   from the rendered document into a `.R` file. The target document is
+#'   resolved dynamically from `QUARTO_DOCUMENT_PATH`, so the same `purl.R`
+#'   works regardless of the document name.
 #'
 #' @return Invisibly returns `path`.
 #'
@@ -20,37 +25,43 @@
 #' `create_qmd()` performs the following steps:
 #'
 #' 1. Validates that `path` exists.
-#' 2. Creates a `data/` folder under `path` and copies `sample.csv` there.
-#' 3. Checks for `assets/styles.css` and `assets/header.html` - creates the
+#' 2. Validates that `filename` is supplied.
+#' 3. Creates a `data/` folder under `path` and copies `sample.csv` there.
+#' 4. Checks for `assets/styles.css` and `assets/header.html` - creates the
 #'    `assets/` folder if needed and copies both from the package.
-#' 4. Copies the template `.qmd` to `path/filename`.
-#' 5. If `yaml_data` is provided, reads the YAML file and substitutes values
+#' 5. Copies the template `.qmd` to `path/filename`.
+#' 6. If `yaml_data` is provided, reads the YAML file and substitutes values
 #'    into the document header.
+#' 7. If `use_purl = TRUE`, writes a `_quarto.yml` with a post-render hook
+#'    and copies `purl.R` from the package templates into `path`.
 #'
-#' Note: `path` has no default value. Always supply an explicit path to avoid
-#' writing files to unexpected locations. Use `tempdir()` for temporary output
-#' during testing or exploration.
+#' Note: `path` and `filename` have no default values. Always supply both
+#' explicitly to avoid writing files to unexpected locations. Use `tempdir()`
+#' for temporary output during testing or exploration.
 #'
 #' @export
 #'
 #' @examples
 #' \donttest{
-#' # Create with placeholder YAML in a temp directory
-#' create_qmd(path = tempdir())
+#' # Create a document in a temp directory
+#' create_qmd(path = tempdir(), filename = "analysis.qmd")
 #'
-#' # Create with a custom filename
-#' create_qmd(path = tempdir(), filename = "report.qmd", overwrite = TRUE)
+#' # Create with a custom filename, without the purl hook
+#' create_qmd(path = tempdir(), filename = "report.qmd",
+#'             overwrite = TRUE, use_purl = FALSE)
 #'
 #' # Create with pre-populated YAML
 #' yaml_file <- tempfile(fileext = ".yml")
 #' writeLines("author:\n  - name: 'Your Name'", yaml_file)
-#' create_qmd(path = tempdir(), yaml_data = yaml_file, overwrite = TRUE)
+#' create_qmd(path = tempdir(), filename = "analysis.qmd",
+#'             yaml_data = yaml_file, overwrite = TRUE)
 #' }
 create_qmd <- function(
         path = NULL,
-        filename = "analysis.qmd",
+        filename = NULL,
         yaml_data = NULL,
-        overwrite = FALSE) {
+        overwrite = FALSE,
+        use_purl = TRUE) {
 
     # -- 0. Validate path -------------------------------------------------------
     if (is.null(path)) {
@@ -60,7 +71,14 @@ create_qmd <- function(
         )
     }
 
-    # -- 1. Validate path -------------------------------------------------------
+    # -- 1. Validate filename ---------------------------------------------------
+    if (is.null(filename)) {
+        cli::cli_abort(
+            "{.arg filename} must be supplied, e.g. {.code filename = \"analysis.qmd\"}."
+        )
+    }
+
+    # -- 2. Validate path exists ------------------------------------------------
     if (!fs::dir_exists(path)) {
         cli::cli_abort(
             "Directory {.path {path}} does not exist.
@@ -68,7 +86,7 @@ create_qmd <- function(
         )
     }
 
-    # -- 2. Create data/ and copy sample.csv ------------------------------------
+    # -- 3. Create data/ and copy sample.csv ------------------------------------
     data_dir <- fs::path(path, "data")
     fs::dir_create(data_dir)
 
@@ -86,7 +104,7 @@ create_qmd <- function(
         cli::cli_alert_info("Skipping {.path {sample_dst}} - already exists.")
     }
 
-    # -- 3. Create assets/ and copy styles.css and header.html -----------------
+    # -- 4. Create assets/ and copy styles.css and header.html -----------------
     assets_dir <- fs::path(path, "assets")
     fs::dir_create(assets_dir)
 
@@ -108,7 +126,7 @@ create_qmd <- function(
         }
     }
 
-    # -- 4. Copy template .qmd --------------------------------------------------
+    # -- 5. Copy template .qmd --------------------------------------------------
     qmd_src <- system.file(
         "templates", "example.qmd",
         package = "toolero",
@@ -125,7 +143,7 @@ create_qmd <- function(
 
     qmd_content <- readr::read_file(qmd_src)
 
-    # -- 5. Substitute YAML if yaml_data is provided ----------------------------
+    # -- 6. Substitute YAML if yaml_data is provided ----------------------------
     if (!is.null(yaml_data)) {
         if (!fs::file_exists(yaml_data)) {
             cli::cli_abort(
@@ -139,6 +157,35 @@ create_qmd <- function(
 
     readr::write_file(qmd_content, qmd_dst)
     cli::cli_alert_success("Created {.path {qmd_dst}}")
+
+    # -- 7. Scaffold _quarto.yml and purl.R if use_purl = TRUE ------------------
+    if (use_purl) {
+
+        quarto_yml_dst <- fs::path(path, "_quarto.yml")
+        if (!fs::file_exists(quarto_yml_dst) || overwrite) {
+            quarto_yml_content <- paste0(
+                "project:\n",
+                "  post-render: Rscript purl.R\n"
+            )
+            readr::write_file(quarto_yml_content, quarto_yml_dst)
+            cli::cli_alert_success("Created {.path {quarto_yml_dst}}")
+        } else {
+            cli::cli_alert_info("Skipping {.path {quarto_yml_dst}} - already exists.")
+        }
+
+        purl_src <- system.file(
+            "templates", "purl.R",
+            package = "toolero",
+            mustWork = TRUE
+        )
+        purl_dst <- fs::path(path, "purl.R")
+        if (!fs::file_exists(purl_dst) || overwrite) {
+            fs::file_copy(purl_src, purl_dst, overwrite = overwrite)
+            cli::cli_alert_success("Created {.path {purl_dst}}")
+        } else {
+            cli::cli_alert_info("Skipping {.path {purl_dst}} - already exists.")
+        }
+    }
 
     invisible(path)
 }

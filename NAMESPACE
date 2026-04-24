@@ -2,6 +2,8 @@
 
 export(create_qmd)
 export(detect_execution_context)
+export(generate_kb_xml)
 export(init_project)
 export(read_clean_csv)
 export(write_by_group)
+importFrom(rlang,"%||%")

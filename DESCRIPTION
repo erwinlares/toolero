@@ -1,6 +1,6 @@
 Package: toolero
 Title: A Toolkit for Research Workflows
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: 
     person("Erwin", "Lares", , "erwin.lares@wisc.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-3284-828X"))
@@ -22,7 +22,6 @@ Suggests:
     rmarkdown,
     spelling,
     testthat (>= 3.0.0),
-    withr
 Config/testthat/edition: 3
 Imports: 
     cli,
@@ -34,7 +33,12 @@ Imports:
     renv,
     tibble,
     usethis,
-    yaml
+    yaml,
+    rlang,
+    rvest,
+    xml2,
+    quarto, 
+    withr
 URL: https://github.com/erwinlares/toolero, https://erwinlares.github.io/toolero/
 BugReports: https://github.com/erwinlares/toolero/issues
 VignetteBuilder: knitr

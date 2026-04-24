@@ -30,8 +30,8 @@ files, their group values, and row counts.
 \details{
 Output filenames are derived from the group values of \code{group_col}.
 Values are sanitized before use as filenames: converted to lowercase,
-spaces and special characters replaced with \verb{_}, consecutive underscores
-collapsed, and leading/trailing underscores stripped.
+spaces and special characters replaced with \code{-}, consecutive dashes
+collapsed, and leading/trailing dashes stripped.
 
 If \code{manifest = TRUE}, a \code{manifest.csv} is written to \code{output_dir}
 containing three columns: \code{group_value}, \code{n_rows}, and \code{file_path}.

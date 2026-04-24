@@ -18,8 +18,8 @@
 #' @details
 #' Output filenames are derived from the group values of `group_col`.
 #' Values are sanitized before use as filenames: converted to lowercase,
-#' spaces and special characters replaced with `_`, consecutive underscores
-#' collapsed, and leading/trailing underscores stripped.
+#' spaces and special characters replaced with `-`, consecutive dashes
+#' collapsed, and leading/trailing dashes stripped.
 #'
 #' If `manifest = TRUE`, a `manifest.csv` is written to `output_dir`
 #' containing three columns: `group_value`, `n_rows`, and `file_path`.
@@ -111,6 +111,7 @@ write_by_group <- function(
 sanitize_filename <- function(x) {
     x |>
         tolower() |>
-        gsub(pattern = "[^a-z0-9]+", replacement = "_", x = _) |>
-        gsub(pattern = "^_+|_+$",    replacement = "",  x = _)
+        gsub(pattern = "[^a-z0-9]+", replacement = "-", x = _) |>
+        gsub(pattern = "^-+|-+$",    replacement = "",  x = _)
 }
+

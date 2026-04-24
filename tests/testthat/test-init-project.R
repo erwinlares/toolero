@@ -4,10 +4,19 @@ test_that("init_project() creates the standard folder structure", {
 
     init_project(tmp, use_renv = FALSE, use_git = FALSE, open = FALSE)
 
-    standard_folders <- c("data", "data-raw", "images", "plots", "results", "scripts", "docs", "R")
+    standard_folders <- c("data", "data-raw", "images", "plots",
+                          "results", "scripts", "docs", "R")
     purrr::walk(standard_folders, \(folder) {
         expect_true(fs::dir_exists(file.path(tmp, folder)))
     })
+})
+
+test_that("init_project() accepts path as a named argument", {
+    tmp <- file.path(tempdir(), "test-project-named")
+    on.exit(fs::dir_delete(tmp), add = TRUE)
+
+    init_project(path = tmp, use_renv = FALSE, use_git = FALSE, open = FALSE)
+    expect_true(fs::dir_exists(tmp))
 })
 
 test_that("init_project() creates extra folders when provided", {

@@ -22,6 +22,7 @@ format:
     toc-depth: 3
     toc-title: "Contents"
     number-sections: true
+    embed-resources: false
     css: assets/styles.css
     include-before-body: assets/header.html
 params:
@@ -58,6 +59,7 @@ params:
 # ──────────────────────────────────────────────────────────────────────────
 
 library(readr)
+library(dplyr)
 library(ggplot2)
 library(toolero)
 ```

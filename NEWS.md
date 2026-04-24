@@ -1,3 +1,26 @@
+# toolero 0.3.0
+
+### New features
+
+* Added `generate_kb_xml()` to produce UW-Madison KB-importable XML files
+  from rendered Quarto documents. Extracts metadata from the `.qmd` YAML
+  header and re-renders with embedded resources for self-contained import.
+* `create_qmd()`: added `use_purl` argument (default `TRUE`) that scaffolds
+  a `_quarto.yml` post-render hook and a `purl.R` script for extracting R
+  code from rendered documents.
+* `create_qmd()`: `filename` argument now requires explicit input rather than
+  defaulting to `"analysis.qmd"`.
+
+### Changes
+
+* `write_by_group()`: sanitized output filenames now use `-` (dash) as the
+  separator instead of `_` (underscore), consistent with the package
+  convention that file names use dashes. Existing workflows that reference
+  output paths by name will need to update accordingly.
+* `init_project()`: renamed `file_path` argument to `path` for consistency
+  with `create_qmd()` and the broader package API.
+
+
 # toolero 0.2.0
 
 ### New features

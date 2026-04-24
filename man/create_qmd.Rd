@@ -6,17 +6,18 @@
 \usage{
 create_qmd(
   path = NULL,
-  filename = "analysis.qmd",
+  filename = NULL,
   yaml_data = NULL,
-  overwrite = FALSE
+  overwrite = FALSE,
+  use_purl = TRUE
 )
 }
 \arguments{
 \item{path}{A string or \code{NULL}. Path to the directory where the document
 will be created. If \code{NULL}, the user must supply a path explicitly.}
 
-\item{filename}{A string. Name of the generated \code{.qmd} file. Defaults to
-\code{"analysis.qmd"}.}
+\item{filename}{A string or \code{NULL}. Name of the generated \code{.qmd} file.
+Must be supplied explicitly, e.g. \code{"analysis.qmd"}.}
 
 \item{yaml_data}{A string or \code{NULL}. Path to a YAML file containing
 metadata to pre-populate the document header. If \code{NULL} (the default),
@@ -24,6 +25,12 @@ the template is copied as-is with placeholder prompts intact.}
 
 \item{overwrite}{A logical. Whether to overwrite existing files. Defaults
 to \code{FALSE}.}
+
+\item{use_purl}{Logical. If \code{TRUE} (the default), creates a \verb{_quarto.yml}
+file with a post-render hook and a \code{purl.R} script that extracts R code
+from the rendered document into a \code{.R} file. The target document is
+resolved dynamically from \code{QUARTO_DOCUMENT_PATH}, so the same \code{purl.R}
+works regardless of the document name.}
 }
 \value{
 Invisibly returns \code{path}.
@@ -37,29 +44,34 @@ the YAML header with user-supplied metadata.
 \code{create_qmd()} performs the following steps:
 \enumerate{
 \item Validates that \code{path} exists.
+\item Validates that \code{filename} is supplied.
 \item Creates a \verb{data/} folder under \code{path} and copies \code{sample.csv} there.
 \item Checks for \code{assets/styles.css} and \code{assets/header.html} - creates the
 \verb{assets/} folder if needed and copies both from the package.
 \item Copies the template \code{.qmd} to \code{path/filename}.
 \item If \code{yaml_data} is provided, reads the YAML file and substitutes values
 into the document header.
+\item If \code{use_purl = TRUE}, writes a \verb{_quarto.yml} with a post-render hook
+and copies \code{purl.R} from the package templates into \code{path}.
 }
 
-Note: \code{path} has no default value. Always supply an explicit path to avoid
-writing files to unexpected locations. Use \code{tempdir()} for temporary output
-during testing or exploration.
+Note: \code{path} and \code{filename} have no default values. Always supply both
+explicitly to avoid writing files to unexpected locations. Use \code{tempdir()}
+for temporary output during testing or exploration.
 }
 \examples{
 \donttest{
-# Create with placeholder YAML in a temp directory
-create_qmd(path = tempdir())
+# Create a document in a temp directory
+create_qmd(path = tempdir(), filename = "analysis.qmd")
 
-# Create with a custom filename
-create_qmd(path = tempdir(), filename = "report.qmd", overwrite = TRUE)
+# Create with a custom filename, without the purl hook
+create_qmd(path = tempdir(), filename = "report.qmd",
+            overwrite = TRUE, use_purl = FALSE)
 
 # Create with pre-populated YAML
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
-create_qmd(path = tempdir(), yaml_data = yaml_file, overwrite = TRUE)
+create_qmd(path = tempdir(), filename = "analysis.qmd",
+            yaml_data = yaml_file, overwrite = TRUE)
 }
 }
