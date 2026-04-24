@@ -5,7 +5,7 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title> • toolero</title>
+<title>Getting started with toolero • toolero</title>
 <!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
 <link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
@@ -15,7 +15,7 @@
 <link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Getting started with toolero">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -38,7 +38,7 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/toolero-intro.html">UNKNOWN TITLE</a></li>
+<li><a class="dropdown-item" href="../articles/toolero-intro.html">Getting started with toolero</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -60,7 +60,9 @@
 
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
-      <img src="../logo.png" class="logo" alt=""><h1></h1>
+      <img src="../logo.png" class="logo" alt=""><h1>Getting started with toolero</h1>
+                        <h4 data-toc-skip class="author">Erwin
+Lares</h4>
             
       
       <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/vignettes/toolero-intro.Rmd" class="external-link"><code>vignettes/toolero-intro.Rmd</code></a></small>
@@ -69,357 +71,342 @@
 
     
     
-<p>The vignette needs updating in three areas: the function list is
-stale (still shows only two functions), the content doesn’t reflect any
-of the 0.3.0 additions, and some of the “what’s next” items are now
-shipped. Here’s the updated version:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Getting started with toolero"</span></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Erwin Lares"</span></span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="an">output:</span><span class="co"> rmarkdown::html_vignette</span></span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="an">vignette:</span><span class="co"> &gt;</span></span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="co">  %\VignetteIndexEntry{Getting started with toolero}</span></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co">  %\VignetteEngine{knitr::rmarkdown}</span></span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="co">  %\VignetteEncoding{UTF-8}</span></span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="co">---</span></span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a></span>
-<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="fu">## What is toolero?</span></span>
-<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="in">`toolero`</span> is a small, opinionated toolkit designed to make the first steps of</span>
-<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>an R project faster and more consistent. It targets researchers and analysts</span>
-<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a>who want to spend less time on setup and more time on the work itself.</span>
-<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a></span>
-<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>The package currently provides the following functions:</span>
-<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a></span>
-<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="ss">- </span><span class="in">`init_project()`</span> — creates a new R project with a standard folder structure,</span>
-<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>  and optionally initializes <span class="in">`renv`</span> and <span class="in">`git`</span></span>
-<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="ss">- </span><span class="in">`read_clean_csv()`</span> — reads a CSV file and cleans column names in one step</span>
-<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a><span class="ss">- </span><span class="in">`create_qmd()`</span> — scaffolds a new Quarto document from a reproducible</span>
-<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a>  template, including sample data, UW-Madison branded assets, and an optional</span>
-<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a>  post-render <span class="in">`purl`</span> hook</span>
-<span id="cb1-27"><a href="#cb1-27" tabindex="-1"></a><span class="ss">- </span><span class="in">`detect_execution_context()`</span> — identifies whether code is running</span>
-<span id="cb1-28"><a href="#cb1-28" tabindex="-1"></a>  interactively, via <span class="in">`quarto render`</span>, or via <span class="in">`Rscript`</span></span>
-<span id="cb1-29"><a href="#cb1-29" tabindex="-1"></a><span class="ss">- </span><span class="in">`write_by_group()`</span> — splits a data frame by a grouping column and writes</span>
-<span id="cb1-30"><a href="#cb1-30" tabindex="-1"></a>  each group to a separate CSV file</span>
-<span id="cb1-31"><a href="#cb1-31" tabindex="-1"></a><span class="ss">- </span><span class="in">`generate_kb_xml()`</span> — produces a UW-Madison Knowledge Base importable XML</span>
-<span id="cb1-32"><a href="#cb1-32" tabindex="-1"></a>  file from a rendered Quarto document</span>
-<span id="cb1-33"><a href="#cb1-33" tabindex="-1"></a></span>
-<span id="cb1-34"><a href="#cb1-34" tabindex="-1"></a>All functions are designed around a simple idea: the decisions you make at the</span>
-<span id="cb1-35"><a href="#cb1-35" tabindex="-1"></a>start of a project — how it is organized, how data is read in, how dependencies</span>
-<span id="cb1-36"><a href="#cb1-36" tabindex="-1"></a>are tracked — have an outsized effect on how maintainable and reproducible that</span>
-<span id="cb1-37"><a href="#cb1-37" tabindex="-1"></a>project turns out to be. <span class="in">`toolero`</span> tries to make the right defaults easy to</span>
-<span id="cb1-38"><a href="#cb1-38" tabindex="-1"></a>reach for.</span>
-<span id="cb1-39"><a href="#cb1-39" tabindex="-1"></a></span>
-<span id="cb1-40"><a href="#cb1-40" tabindex="-1"></a>---</span>
-<span id="cb1-41"><a href="#cb1-41" tabindex="-1"></a></span>
-<span id="cb1-42"><a href="#cb1-42" tabindex="-1"></a><span class="fu">## Installation</span></span>
-<span id="cb1-43"><a href="#cb1-43" tabindex="-1"></a></span>
-<span id="cb1-44"><a href="#cb1-44" tabindex="-1"></a>You can install <span class="in">`toolero`</span> from CRAN:</span>
-<span id="cb1-45"><a href="#cb1-45" tabindex="-1"></a></span>
-<span id="cb1-46"><a href="#cb1-46" tabindex="-1"></a></span>
-<span id="cb1-47"><a href="#cb1-47" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-48"><a href="#cb1-48" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">"toolero"</span>)</span>
-<span id="cb1-49"><a href="#cb1-49" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-50"><a href="#cb1-50" tabindex="-1"></a></span>
-<span id="cb1-51"><a href="#cb1-51" tabindex="-1"></a>Or install the development version from GitHub:</span>
-<span id="cb1-52"><a href="#cb1-52" tabindex="-1"></a></span>
-<span id="cb1-53"><a href="#cb1-53" tabindex="-1"></a></span>
-<span id="cb1-54"><a href="#cb1-54" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-55"><a href="#cb1-55" tabindex="-1"></a>pak<span class="sc">::</span><span class="fu">pak</span>(<span class="st">"erwinlares/toolero"</span>)</span>
-<span id="cb1-56"><a href="#cb1-56" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-57"><a href="#cb1-57" tabindex="-1"></a></span>
-<span id="cb1-58"><a href="#cb1-58" tabindex="-1"></a>---</span>
-<span id="cb1-59"><a href="#cb1-59" tabindex="-1"></a></span>
-<span id="cb1-60"><a href="#cb1-60" tabindex="-1"></a><span class="fu">## Starting a project with `init_project()`</span></span>
-<span id="cb1-61"><a href="#cb1-61" tabindex="-1"></a></span>
-<span id="cb1-62"><a href="#cb1-62" tabindex="-1"></a><span class="fu">### The problem</span></span>
-<span id="cb1-63"><a href="#cb1-63" tabindex="-1"></a></span>
-<span id="cb1-64"><a href="#cb1-64" tabindex="-1"></a>Starting a new R project usually means the same manual steps every time:</span>
-<span id="cb1-65"><a href="#cb1-65" tabindex="-1"></a>create a folder, set up an RStudio project, create subdirectories for data and</span>
-<span id="cb1-66"><a href="#cb1-66" tabindex="-1"></a>scripts, initialize <span class="in">`renv`</span>, initialize <span class="in">`git`</span>. None of these steps is hard on</span>
-<span id="cb1-67"><a href="#cb1-67" tabindex="-1"></a>its own, but skipping any of them — especially early on — tends to create</span>
-<span id="cb1-68"><a href="#cb1-68" tabindex="-1"></a>friction later. A project without <span class="in">`renv`</span> is harder to share. A project without</span>
-<span id="cb1-69"><a href="#cb1-69" tabindex="-1"></a><span class="in">`git`</span> is harder to recover. A project without a consistent folder structure is</span>
-<span id="cb1-70"><a href="#cb1-70" tabindex="-1"></a>harder to hand off.</span>
-<span id="cb1-71"><a href="#cb1-71" tabindex="-1"></a></span>
-<span id="cb1-72"><a href="#cb1-72" tabindex="-1"></a><span class="fu">### The solution</span></span>
-<span id="cb1-73"><a href="#cb1-73" tabindex="-1"></a></span>
-<span id="cb1-74"><a href="#cb1-74" tabindex="-1"></a><span class="in">`init_project()`</span> handles all of this in a single call:</span>
-<span id="cb1-75"><a href="#cb1-75" tabindex="-1"></a></span>
-<span id="cb1-76"><a href="#cb1-76" tabindex="-1"></a></span>
-<span id="cb1-77"><a href="#cb1-77" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-78"><a href="#cb1-78" tabindex="-1"></a><span class="fu">library</span>(toolero)</span>
-<span id="cb1-79"><a href="#cb1-79" tabindex="-1"></a></span>
-<span id="cb1-80"><a href="#cb1-80" tabindex="-1"></a><span class="fu">init_project</span>(<span class="at">path =</span> <span class="st">"~/Documents/my-project"</span>)</span>
-<span id="cb1-81"><a href="#cb1-81" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-82"><a href="#cb1-82" tabindex="-1"></a></span>
-<span id="cb1-83"><a href="#cb1-83" tabindex="-1"></a>This creates a new RStudio project at the specified path with the following</span>
-<span id="cb1-84"><a href="#cb1-84" tabindex="-1"></a>folder structure already in place:</span>
-<span id="cb1-85"><a href="#cb1-85" tabindex="-1"></a></span>
-<span id="cb1-86"><a href="#cb1-86" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-87"><a href="#cb1-87" tabindex="-1"></a><span class="in">my-project/</span></span>
-<span id="cb1-88"><a href="#cb1-88" tabindex="-1"></a><span class="in">├── data/         # input data</span></span>
-<span id="cb1-89"><a href="#cb1-89" tabindex="-1"></a><span class="in">├── data-raw/     # original, unprocessed data</span></span>
-<span id="cb1-90"><a href="#cb1-90" tabindex="-1"></a><span class="in">├── R/            # reusable functions</span></span>
-<span id="cb1-91"><a href="#cb1-91" tabindex="-1"></a><span class="in">├── scripts/      # analysis scripts</span></span>
-<span id="cb1-92"><a href="#cb1-92" tabindex="-1"></a><span class="in">├── plots/        # generated visualizations</span></span>
-<span id="cb1-93"><a href="#cb1-93" tabindex="-1"></a><span class="in">├── images/       # static images and assets</span></span>
-<span id="cb1-94"><a href="#cb1-94" tabindex="-1"></a><span class="in">├── results/      # processed outputs and tables</span></span>
-<span id="cb1-95"><a href="#cb1-95" tabindex="-1"></a><span class="in">└── docs/         # notes, manuscripts, Quarto documents</span></span>
-<span id="cb1-96"><a href="#cb1-96" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-97"><a href="#cb1-97" tabindex="-1"></a></span>
-<span id="cb1-98"><a href="#cb1-98" tabindex="-1"></a><span class="at">&gt; **Why this structure?** The folder layout is opinionated but not arbitrary.</span></span>
-<span id="cb1-99"><a href="#cb1-99" tabindex="-1"></a><span class="at">&gt; Separating </span><span class="in">`data/`</span><span class="at"> from </span><span class="in">`data-raw/`</span><span class="at"> makes it clear which files are original</span></span>
-<span id="cb1-100"><a href="#cb1-100" tabindex="-1"></a><span class="at">&gt; and which have been processed. Keeping </span><span class="in">`R/`</span><span class="at"> distinct from </span><span class="in">`scripts/`</span></span>
-<span id="cb1-101"><a href="#cb1-101" tabindex="-1"></a><span class="at">&gt; encourages moving reusable logic into functions over time, which is a natural</span></span>
-<span id="cb1-102"><a href="#cb1-102" tabindex="-1"></a><span class="at">&gt; step toward more maintainable code.</span></span>
-<span id="cb1-103"><a href="#cb1-103" tabindex="-1"></a></span>
-<span id="cb1-104"><a href="#cb1-104" tabindex="-1"></a>By default, <span class="in">`init_project()`</span> also initializes <span class="in">`renv`</span> and <span class="in">`git`</span> in the new</span>
-<span id="cb1-105"><a href="#cb1-105" tabindex="-1"></a>project. This means the project is reproducible and version-controlled from</span>
-<span id="cb1-106"><a href="#cb1-106" tabindex="-1"></a>the first commit.</span>
-<span id="cb1-107"><a href="#cb1-107" tabindex="-1"></a></span>
-<span id="cb1-108"><a href="#cb1-108" tabindex="-1"></a><span class="at">&gt; **Why `renv` and `git` by default?** </span><span class="in">`renv`</span><span class="at"> ensures that the packages your</span></span>
-<span id="cb1-109"><a href="#cb1-109" tabindex="-1"></a><span class="at">&gt; project depends on are recorded and reproducible — someone else (or your</span></span>
-<span id="cb1-110"><a href="#cb1-110" tabindex="-1"></a><span class="at">&gt; future self) can restore the exact same environment. </span><span class="in">`git`</span><span class="at"> provides a full</span></span>
-<span id="cb1-111"><a href="#cb1-111" tabindex="-1"></a><span class="at">&gt; history of changes, making it possible to recover from mistakes and understand</span></span>
-<span id="cb1-112"><a href="#cb1-112" tabindex="-1"></a><span class="at">&gt; how the project evolved. Both are much easier to set up at the start than to</span></span>
-<span id="cb1-113"><a href="#cb1-113" tabindex="-1"></a><span class="at">&gt; retrofit later.</span></span>
-<span id="cb1-114"><a href="#cb1-114" tabindex="-1"></a></span>
-<span id="cb1-115"><a href="#cb1-115" tabindex="-1"></a><span class="fu">### Adding extra folders</span></span>
-<span id="cb1-116"><a href="#cb1-116" tabindex="-1"></a></span>
-<span id="cb1-117"><a href="#cb1-117" tabindex="-1"></a>If your project needs folders beyond the defaults, pass them as a character</span>
-<span id="cb1-118"><a href="#cb1-118" tabindex="-1"></a>vector via <span class="in">`extra_folders`</span>:</span>
-<span id="cb1-119"><a href="#cb1-119" tabindex="-1"></a></span>
-<span id="cb1-120"><a href="#cb1-120" tabindex="-1"></a></span>
-<span id="cb1-121"><a href="#cb1-121" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-122"><a href="#cb1-122" tabindex="-1"></a><span class="fu">init_project</span>(</span>
-<span id="cb1-123"><a href="#cb1-123" tabindex="-1"></a>  <span class="at">path          =</span> <span class="st">"~/Documents/my-project"</span>,</span>
-<span id="cb1-124"><a href="#cb1-124" tabindex="-1"></a>  <span class="at">extra_folders =</span> <span class="fu">c</span>(<span class="st">"notebooks"</span>, <span class="st">"presentations"</span>)</span>
-<span id="cb1-125"><a href="#cb1-125" tabindex="-1"></a>)</span>
-<span id="cb1-126"><a href="#cb1-126" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-127"><a href="#cb1-127" tabindex="-1"></a></span>
-<span id="cb1-128"><a href="#cb1-128" tabindex="-1"></a><span class="fu">### Opting out of renv or git</span></span>
-<span id="cb1-129"><a href="#cb1-129" tabindex="-1"></a></span>
-<span id="cb1-130"><a href="#cb1-130" tabindex="-1"></a>If you need to skip one or both:</span>
-<span id="cb1-131"><a href="#cb1-131" tabindex="-1"></a></span>
-<span id="cb1-132"><a href="#cb1-132" tabindex="-1"></a></span>
-<span id="cb1-133"><a href="#cb1-133" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-134"><a href="#cb1-134" tabindex="-1"></a><span class="fu">init_project</span>(</span>
-<span id="cb1-135"><a href="#cb1-135" tabindex="-1"></a>  <span class="at">path     =</span> <span class="st">"~/Documents/my-project"</span>,</span>
-<span id="cb1-136"><a href="#cb1-136" tabindex="-1"></a>  <span class="at">use_renv =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb1-137"><a href="#cb1-137" tabindex="-1"></a>  <span class="at">use_git  =</span> <span class="cn">FALSE</span></span>
-<span id="cb1-138"><a href="#cb1-138" tabindex="-1"></a>)</span>
-<span id="cb1-139"><a href="#cb1-139" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-140"><a href="#cb1-140" tabindex="-1"></a></span>
-<span id="cb1-141"><a href="#cb1-141" tabindex="-1"></a><span class="at">&gt; **When might you skip `renv` or `git`?** Skipping them is occasionally useful</span></span>
-<span id="cb1-142"><a href="#cb1-142" tabindex="-1"></a><span class="at">&gt; in teaching or demonstration contexts where the overhead of a full setup is</span></span>
-<span id="cb1-143"><a href="#cb1-143" tabindex="-1"></a><span class="at">&gt; unnecessary. For any project you plan to share, archive, or return to later,</span></span>
-<span id="cb1-144"><a href="#cb1-144" tabindex="-1"></a><span class="at">&gt; the defaults are strongly recommended.</span></span>
-<span id="cb1-145"><a href="#cb1-145" tabindex="-1"></a></span>
-<span id="cb1-146"><a href="#cb1-146" tabindex="-1"></a>---</span>
-<span id="cb1-147"><a href="#cb1-147" tabindex="-1"></a></span>
-<span id="cb1-148"><a href="#cb1-148" tabindex="-1"></a><span class="fu">## Reading data with `read_clean_csv()`</span></span>
-<span id="cb1-149"><a href="#cb1-149" tabindex="-1"></a></span>
-<span id="cb1-150"><a href="#cb1-150" tabindex="-1"></a><span class="fu">### The problem</span></span>
-<span id="cb1-151"><a href="#cb1-151" tabindex="-1"></a></span>
-<span id="cb1-152"><a href="#cb1-152" tabindex="-1"></a>Reading a CSV file into R is straightforward — until the column names come back</span>
-<span id="cb1-153"><a href="#cb1-153" tabindex="-1"></a>with spaces, mixed capitalization, or special characters. Cleaning them up is a</span>
-<span id="cb1-154"><a href="#cb1-154" tabindex="-1"></a>small but recurring friction point.</span>
-<span id="cb1-155"><a href="#cb1-155" tabindex="-1"></a></span>
-<span id="cb1-156"><a href="#cb1-156" tabindex="-1"></a><span class="fu">### The solution</span></span>
-<span id="cb1-157"><a href="#cb1-157" tabindex="-1"></a></span>
-<span id="cb1-158"><a href="#cb1-158" tabindex="-1"></a><span class="in">`read_clean_csv()`</span> combines <span class="in">`readr::read_csv()`</span> and <span class="in">`janitor::clean_names()`</span></span>
-<span id="cb1-159"><a href="#cb1-159" tabindex="-1"></a>into a single call:</span>
-<span id="cb1-160"><a href="#cb1-160" tabindex="-1"></a></span>
-<span id="cb1-161"><a href="#cb1-161" tabindex="-1"></a></span>
-<span id="cb1-162"><a href="#cb1-162" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-163"><a href="#cb1-163" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_clean_csv</span>(<span class="st">"data/my-file.csv"</span>)</span>
-<span id="cb1-164"><a href="#cb1-164" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-165"><a href="#cb1-165" tabindex="-1"></a></span>
-<span id="cb1-166"><a href="#cb1-166" tabindex="-1"></a>Column names are automatically converted to lowercase with underscores —</span>
-<span id="cb1-167"><a href="#cb1-167" tabindex="-1"></a>consistent, predictable, and tidyverse-friendly. A column called</span>
-<span id="cb1-168"><a href="#cb1-168" tabindex="-1"></a><span class="in">`First Name`</span> becomes <span class="in">`first_name`</span>. <span class="in">`Q1 Revenue ($)`</span> becomes <span class="in">`q1_revenue`</span>.</span>
-<span id="cb1-169"><a href="#cb1-169" tabindex="-1"></a></span>
-<span id="cb1-170"><a href="#cb1-170" tabindex="-1"></a>By default, column type messages from <span class="in">`readr`</span> are suppressed to keep the</span>
-<span id="cb1-171"><a href="#cb1-171" tabindex="-1"></a>output clean. If you want to see them — useful when reading an unfamiliar</span>
-<span id="cb1-172"><a href="#cb1-172" tabindex="-1"></a>dataset for the first time — set <span class="in">`verbose = TRUE`</span>:</span>
-<span id="cb1-173"><a href="#cb1-173" tabindex="-1"></a></span>
-<span id="cb1-174"><a href="#cb1-174" tabindex="-1"></a></span>
-<span id="cb1-175"><a href="#cb1-175" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-176"><a href="#cb1-176" tabindex="-1"></a>data <span class="ot">&lt;-</span> <span class="fu">read_clean_csv</span>(<span class="st">"data/my-file.csv"</span>, <span class="at">verbose =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb1-177"><a href="#cb1-177" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-178"><a href="#cb1-178" tabindex="-1"></a></span>
-<span id="cb1-179"><a href="#cb1-179" tabindex="-1"></a><span class="at">&gt; **Why suppress messages by default?** Column type messages are helpful when</span></span>
-<span id="cb1-180"><a href="#cb1-180" tabindex="-1"></a><span class="at">&gt; you are first exploring a dataset. In a script or document that runs</span></span>
-<span id="cb1-181"><a href="#cb1-181" tabindex="-1"></a><span class="at">&gt; repeatedly, they become noise. The </span><span class="in">`verbose`</span><span class="at"> argument gives you control</span></span>
-<span id="cb1-182"><a href="#cb1-182" tabindex="-1"></a><span class="at">&gt; without requiring you to remember the </span><span class="in">`readr`</span><span class="at"> option name.</span></span>
-<span id="cb1-183"><a href="#cb1-183" tabindex="-1"></a></span>
-<span id="cb1-184"><a href="#cb1-184" tabindex="-1"></a>---</span>
-<span id="cb1-185"><a href="#cb1-185" tabindex="-1"></a></span>
-<span id="cb1-186"><a href="#cb1-186" tabindex="-1"></a><span class="fu">## Scaffolding a Quarto document with `create_qmd()`</span></span>
-<span id="cb1-187"><a href="#cb1-187" tabindex="-1"></a></span>
-<span id="cb1-188"><a href="#cb1-188" tabindex="-1"></a><span class="fu">### The problem</span></span>
-<span id="cb1-189"><a href="#cb1-189" tabindex="-1"></a></span>
-<span id="cb1-190"><a href="#cb1-190" tabindex="-1"></a>Setting up a new Quarto document for a research workflow involves more than</span>
-<span id="cb1-191"><a href="#cb1-191" tabindex="-1"></a>creating a blank file. You need a consistent YAML header, sample data to</span>
-<span id="cb1-192"><a href="#cb1-192" tabindex="-1"></a>develop against, branded assets, and ideally a way to extract the R code from</span>
-<span id="cb1-193"><a href="#cb1-193" tabindex="-1"></a>the document once it is rendered.</span>
-<span id="cb1-194"><a href="#cb1-194" tabindex="-1"></a></span>
-<span id="cb1-195"><a href="#cb1-195" tabindex="-1"></a><span class="fu">### The solution</span></span>
-<span id="cb1-196"><a href="#cb1-196" tabindex="-1"></a></span>
-<span id="cb1-197"><a href="#cb1-197" tabindex="-1"></a><span class="in">`create_qmd()`</span> scaffolds a complete working environment in a single call:</span>
-<span id="cb1-198"><a href="#cb1-198" tabindex="-1"></a></span>
-<span id="cb1-199"><a href="#cb1-199" tabindex="-1"></a></span>
-<span id="cb1-200"><a href="#cb1-200" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-201"><a href="#cb1-201" tabindex="-1"></a><span class="fu">create_qmd</span>(<span class="at">path =</span> <span class="st">"~/Documents/my-project"</span>, <span class="at">filename =</span> <span class="st">"analysis.qmd"</span>)</span>
-<span id="cb1-202"><a href="#cb1-202" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-203"><a href="#cb1-203" tabindex="-1"></a></span>
-<span id="cb1-204"><a href="#cb1-204" tabindex="-1"></a>This creates:</span>
-<span id="cb1-205"><a href="#cb1-205" tabindex="-1"></a></span>
-<span id="cb1-206"><a href="#cb1-206" tabindex="-1"></a><span class="ss">- </span><span class="in">`analysis.qmd`</span> — a Quarto document with a fully populated YAML header,</span>
-<span id="cb1-207"><a href="#cb1-207" tabindex="-1"></a>  three-context input resolution via <span class="in">`detect_execution_context()`</span>, and a</span>
-<span id="cb1-208"><a href="#cb1-208" tabindex="-1"></a>  sample analysis using the Palmer Penguins dataset</span>
-<span id="cb1-209"><a href="#cb1-209" tabindex="-1"></a><span class="ss">- </span><span class="in">`data/sample.csv`</span> — sample data to develop against</span>
-<span id="cb1-210"><a href="#cb1-210" tabindex="-1"></a><span class="ss">- </span><span class="in">`assets/styles.css`</span> and <span class="in">`assets/header.html`</span> — UW-Madison RCI branding files</span>
-<span id="cb1-211"><a href="#cb1-211" tabindex="-1"></a><span class="ss">- </span><span class="in">`_quarto.yml`</span> — a project file with a post-render hook that runs <span class="in">`purl.R`</span></span>
-<span id="cb1-212"><a href="#cb1-212" tabindex="-1"></a><span class="ss">- </span><span class="in">`purl.R`</span> — a script that extracts R code from the rendered document into a</span>
-<span id="cb1-213"><a href="#cb1-213" tabindex="-1"></a>  companion <span class="in">`.R`</span> file</span>
-<span id="cb1-214"><a href="#cb1-214" tabindex="-1"></a></span>
-<span id="cb1-215"><a href="#cb1-215" tabindex="-1"></a><span class="fu">### The post-render purl hook</span></span>
-<span id="cb1-216"><a href="#cb1-216" tabindex="-1"></a></span>
-<span id="cb1-217"><a href="#cb1-217" tabindex="-1"></a>By default (<span class="in">`use_purl = TRUE`</span>), every time the document is rendered a clean</span>
-<span id="cb1-218"><a href="#cb1-218" tabindex="-1"></a><span class="in">`.R`</span> script is automatically extracted from the code chunks and saved</span>
-<span id="cb1-219"><a href="#cb1-219" tabindex="-1"></a>alongside the output. This is useful for sharing the analysis as a plain</span>
-<span id="cb1-220"><a href="#cb1-220" tabindex="-1"></a>script, running it on a remote cluster, or archiving the code independently</span>
-<span id="cb1-221"><a href="#cb1-221" tabindex="-1"></a>of the document.</span>
-<span id="cb1-222"><a href="#cb1-222" tabindex="-1"></a></span>
-<span id="cb1-223"><a href="#cb1-223" tabindex="-1"></a>To opt out:</span>
-<span id="cb1-224"><a href="#cb1-224" tabindex="-1"></a></span>
-<span id="cb1-225"><a href="#cb1-225" tabindex="-1"></a></span>
-<span id="cb1-226"><a href="#cb1-226" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-227"><a href="#cb1-227" tabindex="-1"></a><span class="fu">create_qmd</span>(<span class="at">path =</span> <span class="st">"~/Documents/my-project"</span>, <span class="at">filename =</span> <span class="st">"analysis.qmd"</span>,</span>
-<span id="cb1-228"><a href="#cb1-228" tabindex="-1"></a>           <span class="at">use_purl =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb1-229"><a href="#cb1-229" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-230"><a href="#cb1-230" tabindex="-1"></a></span>
-<span id="cb1-231"><a href="#cb1-231" tabindex="-1"></a><span class="fu">### Pre-populating the YAML header</span></span>
-<span id="cb1-232"><a href="#cb1-232" tabindex="-1"></a></span>
-<span id="cb1-233"><a href="#cb1-233" tabindex="-1"></a>If you have author metadata in a YAML file, you can pre-populate the document</span>
-<span id="cb1-234"><a href="#cb1-234" tabindex="-1"></a>header automatically:</span>
-<span id="cb1-235"><a href="#cb1-235" tabindex="-1"></a></span>
-<span id="cb1-236"><a href="#cb1-236" tabindex="-1"></a></span>
-<span id="cb1-237"><a href="#cb1-237" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-238"><a href="#cb1-238" tabindex="-1"></a><span class="fu">create_qmd</span>(</span>
-<span id="cb1-239"><a href="#cb1-239" tabindex="-1"></a>  <span class="at">path      =</span> <span class="st">"~/Documents/my-project"</span>,</span>
-<span id="cb1-240"><a href="#cb1-240" tabindex="-1"></a>  <span class="at">filename  =</span> <span class="st">"analysis.qmd"</span>,</span>
-<span id="cb1-241"><a href="#cb1-241" tabindex="-1"></a>  <span class="at">yaml_data =</span> <span class="st">"~/my-metadata.yml"</span></span>
-<span id="cb1-242"><a href="#cb1-242" tabindex="-1"></a>)</span>
-<span id="cb1-243"><a href="#cb1-243" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-244"><a href="#cb1-244" tabindex="-1"></a></span>
-<span id="cb1-245"><a href="#cb1-245" tabindex="-1"></a>---</span>
-<span id="cb1-246"><a href="#cb1-246" tabindex="-1"></a></span>
-<span id="cb1-247"><a href="#cb1-247" tabindex="-1"></a><span class="fu">## Detecting the execution context with `detect_execution_context()`</span></span>
-<span id="cb1-248"><a href="#cb1-248" tabindex="-1"></a></span>
-<span id="cb1-249"><a href="#cb1-249" tabindex="-1"></a>R code often needs to behave differently depending on where it is running —</span>
-<span id="cb1-250"><a href="#cb1-250" tabindex="-1"></a>interactively in RStudio, during a <span class="in">`quarto render`</span>, or as a batch <span class="in">`Rscript`</span></span>
-<span id="cb1-251"><a href="#cb1-251" tabindex="-1"></a>job on a remote cluster. <span class="in">`detect_execution_context()`</span> identifies which of</span>
-<span id="cb1-252"><a href="#cb1-252" tabindex="-1"></a>these three environments is active and returns one of <span class="in">`"interactive"`</span>,</span>
-<span id="cb1-253"><a href="#cb1-253" tabindex="-1"></a><span class="in">`"quarto"`</span>, or <span class="in">`"rscript"`</span>.</span>
-<span id="cb1-254"><a href="#cb1-254" tabindex="-1"></a></span>
-<span id="cb1-255"><a href="#cb1-255" tabindex="-1"></a>The canonical use case is resolving input file paths portably:</span>
-<span id="cb1-256"><a href="#cb1-256" tabindex="-1"></a></span>
-<span id="cb1-257"><a href="#cb1-257" tabindex="-1"></a></span>
-<span id="cb1-258"><a href="#cb1-258" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-259"><a href="#cb1-259" tabindex="-1"></a>context <span class="ot">&lt;-</span> <span class="fu">detect_execution_context</span>()</span>
-<span id="cb1-260"><a href="#cb1-260" tabindex="-1"></a></span>
-<span id="cb1-261"><a href="#cb1-261" tabindex="-1"></a>input_file <span class="ot">&lt;-</span> <span class="cf">switch</span>(context,</span>
-<span id="cb1-262"><a href="#cb1-262" tabindex="-1"></a>  <span class="at">interactive =</span> <span class="st">"data/sample.csv"</span>,</span>
-<span id="cb1-263"><a href="#cb1-263" tabindex="-1"></a>  <span class="at">quarto      =</span> params<span class="sc">$</span>input_file,</span>
-<span id="cb1-264"><a href="#cb1-264" tabindex="-1"></a>  <span class="at">rscript     =</span> <span class="fu">commandArgs</span>(<span class="at">trailingOnly =</span> <span class="cn">TRUE</span>)[<span class="dv">1</span>]</span>
-<span id="cb1-265"><a href="#cb1-265" tabindex="-1"></a>)</span>
-<span id="cb1-266"><a href="#cb1-266" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-267"><a href="#cb1-267" tabindex="-1"></a></span>
-<span id="cb1-268"><a href="#cb1-268" tabindex="-1"></a>This pattern is built into the template scaffolded by <span class="in">`create_qmd()`</span>.</span>
-<span id="cb1-269"><a href="#cb1-269" tabindex="-1"></a></span>
-<span id="cb1-270"><a href="#cb1-270" tabindex="-1"></a>---</span>
-<span id="cb1-271"><a href="#cb1-271" tabindex="-1"></a></span>
-<span id="cb1-272"><a href="#cb1-272" tabindex="-1"></a><span class="fu">## Splitting data by group with `write_by_group()`</span></span>
-<span id="cb1-273"><a href="#cb1-273" tabindex="-1"></a></span>
-<span id="cb1-274"><a href="#cb1-274" tabindex="-1"></a>When a data frame contains multiple groups that need to be written to separate</span>
-<span id="cb1-275"><a href="#cb1-275" tabindex="-1"></a>files — for instance, one CSV per species, site, or experimental condition —</span>
-<span id="cb1-276"><a href="#cb1-276" tabindex="-1"></a><span class="in">`write_by_group()`</span> handles the split and the write in a single call:</span>
-<span id="cb1-277"><a href="#cb1-277" tabindex="-1"></a></span>
-<span id="cb1-278"><a href="#cb1-278" tabindex="-1"></a></span>
-<span id="cb1-279"><a href="#cb1-279" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-280"><a href="#cb1-280" tabindex="-1"></a><span class="fu">write_by_group</span>(</span>
-<span id="cb1-281"><a href="#cb1-281" tabindex="-1"></a>  <span class="at">data       =</span> penguins,</span>
-<span id="cb1-282"><a href="#cb1-282" tabindex="-1"></a>  <span class="at">group_col  =</span> <span class="st">"species"</span>,</span>
-<span id="cb1-283"><a href="#cb1-283" tabindex="-1"></a>  <span class="at">output_dir =</span> <span class="st">"results/by-species"</span></span>
-<span id="cb1-284"><a href="#cb1-284" tabindex="-1"></a>)</span>
-<span id="cb1-285"><a href="#cb1-285" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-286"><a href="#cb1-286" tabindex="-1"></a></span>
-<span id="cb1-287"><a href="#cb1-287" tabindex="-1"></a>Output filenames are derived from the group values and sanitized for use as</span>
-<span id="cb1-288"><a href="#cb1-288" tabindex="-1"></a>file names — converted to lowercase, with spaces and special characters</span>
-<span id="cb1-289"><a href="#cb1-289" tabindex="-1"></a>replaced by dashes. A group called <span class="in">`Chinstrap`</span> becomes <span class="in">`chinstrap.csv`</span>.</span>
-<span id="cb1-290"><a href="#cb1-290" tabindex="-1"></a><span class="in">`Palmer Penguins`</span> would become <span class="in">`palmer-penguins.csv`</span>.</span>
-<span id="cb1-291"><a href="#cb1-291" tabindex="-1"></a></span>
-<span id="cb1-292"><a href="#cb1-292" tabindex="-1"></a>To also write a manifest listing the output files, group values, and row</span>
-<span id="cb1-293"><a href="#cb1-293" tabindex="-1"></a>counts:</span>
-<span id="cb1-294"><a href="#cb1-294" tabindex="-1"></a></span>
-<span id="cb1-295"><a href="#cb1-295" tabindex="-1"></a></span>
-<span id="cb1-296"><a href="#cb1-296" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-297"><a href="#cb1-297" tabindex="-1"></a><span class="fu">write_by_group</span>(</span>
-<span id="cb1-298"><a href="#cb1-298" tabindex="-1"></a>  <span class="at">data       =</span> penguins,</span>
-<span id="cb1-299"><a href="#cb1-299" tabindex="-1"></a>  <span class="at">group_col  =</span> <span class="st">"species"</span>,</span>
-<span id="cb1-300"><a href="#cb1-300" tabindex="-1"></a>  <span class="at">output_dir =</span> <span class="st">"results/by-species"</span>,</span>
-<span id="cb1-301"><a href="#cb1-301" tabindex="-1"></a>  <span class="at">manifest   =</span> <span class="cn">TRUE</span></span>
-<span id="cb1-302"><a href="#cb1-302" tabindex="-1"></a>)</span>
-<span id="cb1-303"><a href="#cb1-303" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-304"><a href="#cb1-304" tabindex="-1"></a></span>
-<span id="cb1-305"><a href="#cb1-305" tabindex="-1"></a>---</span>
-<span id="cb1-306"><a href="#cb1-306" tabindex="-1"></a></span>
-<span id="cb1-307"><a href="#cb1-307" tabindex="-1"></a><span class="fu">## Exporting to the UW-Madison Knowledge Base with `generate_kb_xml()`</span></span>
-<span id="cb1-308"><a href="#cb1-308" tabindex="-1"></a></span>
-<span id="cb1-309"><a href="#cb1-309" tabindex="-1"></a>If your workflow includes publishing Quarto documents to the UW-Madison</span>
-<span id="cb1-310"><a href="#cb1-310" tabindex="-1"></a>Knowledge Base (KB), <span class="in">`generate_kb_xml()`</span> automates the export step. It takes</span>
-<span id="cb1-311"><a href="#cb1-311" tabindex="-1"></a>a rendered HTML file, re-renders the source <span class="in">`.qmd`</span> with all assets embedded,</span>
-<span id="cb1-312"><a href="#cb1-312" tabindex="-1"></a>extracts the body, and produces an XML file ready for KB import.</span>
-<span id="cb1-313"><a href="#cb1-313" tabindex="-1"></a></span>
-<span id="cb1-314"><a href="#cb1-314" tabindex="-1"></a></span>
-<span id="cb1-315"><a href="#cb1-315" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-316"><a href="#cb1-316" tabindex="-1"></a><span class="fu">generate_kb_xml</span>(</span>
-<span id="cb1-317"><a href="#cb1-317" tabindex="-1"></a>  <span class="at">html_path  =</span> <span class="st">"docs/analysis.html"</span>,</span>
-<span id="cb1-318"><a href="#cb1-318" tabindex="-1"></a>  <span class="at">output_dir =</span> <span class="st">"exports"</span></span>
-<span id="cb1-319"><a href="#cb1-319" tabindex="-1"></a>)</span>
-<span id="cb1-320"><a href="#cb1-320" tabindex="-1"></a><span class="in">```</span></span>
-<span id="cb1-321"><a href="#cb1-321" tabindex="-1"></a></span>
-<span id="cb1-322"><a href="#cb1-322" tabindex="-1"></a>Metadata is drawn automatically from the <span class="in">`.qmd`</span> YAML header:</span>
-<span id="cb1-323"><a href="#cb1-323" tabindex="-1"></a></span>
-<span id="cb1-324"><a href="#cb1-324" tabindex="-1"></a><span class="ss">- </span><span class="in">`title`</span> → <span class="in">`kb_title`</span></span>
-<span id="cb1-325"><a href="#cb1-325" tabindex="-1"></a><span class="ss">- </span><span class="in">`description`</span> → <span class="in">`kb_summary`</span></span>
-<span id="cb1-326"><a href="#cb1-326" tabindex="-1"></a><span class="ss">- </span><span class="in">`categories`</span> → <span class="in">`kb_keywords`</span></span>
-<span id="cb1-327"><a href="#cb1-327" tabindex="-1"></a></span>
-<span id="cb1-328"><a href="#cb1-328" tabindex="-1"></a><span class="at">&gt; **When importing into the KB**, check the</span></span>
-<span id="cb1-329"><a href="#cb1-329" tabindex="-1"></a><span class="at">&gt; *Decode HTML entity in body content* option.</span></span>
-<span id="cb1-330"><a href="#cb1-330" tabindex="-1"></a></span>
-<span id="cb1-331"><a href="#cb1-331" tabindex="-1"></a>---</span>
-<span id="cb1-332"><a href="#cb1-332" tabindex="-1"></a></span>
-<span id="cb1-333"><a href="#cb1-333" tabindex="-1"></a><span class="fu">## Citation</span></span>
-<span id="cb1-334"><a href="#cb1-334" tabindex="-1"></a></span>
-<span id="cb1-335"><a href="#cb1-335" tabindex="-1"></a>If you use <span class="in">`toolero`</span> in your work, please cite it:</span>
-<span id="cb1-336"><a href="#cb1-336" tabindex="-1"></a></span>
-<span id="cb1-337"><a href="#cb1-337" tabindex="-1"></a></span>
-<span id="cb1-338"><a href="#cb1-338" tabindex="-1"></a><span class="in">``` r</span></span>
-<span id="cb1-339"><a href="#cb1-339" tabindex="-1"></a><span class="fu">citation</span>(<span class="st">"toolero"</span>)</span>
-<span id="cb1-340"><a href="#cb1-340" tabindex="-1"></a><span class="in">```</span></span></code></pre></div>
-<p>The main changes from the original: updated the function list at the
-top, added sections for <code><a href="../reference/create_qmd.html">create_qmd()</a></code>,
-<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code>, <code><a href="../reference/write_by_group.html">write_by_group()</a></code>,
-and <code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code>, updated <code><a href="../reference/init_project.html">init_project()</a></code>
-examples to use <code>path =</code> instead of positional, and removed
-the “what’s next” section since those items are now shipped.</p>
-  </main>
+<div class="section level2">
+<h2 id="what-is-toolero">What is toolero?<a class="anchor" aria-label="anchor" href="#what-is-toolero"></a>
+</h2>
+<p><code>toolero</code> is a small, opinionated toolkit designed to make
+the first steps of an R project faster and more consistent. It targets
+researchers and analysts who want to spend less time on setup and more
+time on the work itself.</p>
+<p>The package currently provides the following functions:</p>
+<ul>
+<li>
+<code><a href="../reference/init_project.html">init_project()</a></code> — creates a new R project with a
+standard folder structure, and optionally initializes <code>renv</code>
+and <code>git</code>
+</li>
+<li>
+<code><a href="../reference/read_clean_csv.html">read_clean_csv()</a></code> — reads a CSV file and cleans column
+names in one step</li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code> — scaffolds a new Quarto document from a
+reproducible template, including sample data, UW-Madison branded assets,
+and an optional post-render <code>purl</code> hook</li>
+<li>
+<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> — identifies whether code is
+running interactively, via <code>quarto render</code>, or via
+<code>Rscript</code>
+</li>
+<li>
+<code><a href="../reference/write_by_group.html">write_by_group()</a></code> — splits a data frame by a grouping
+column and writes each group to a separate CSV file</li>
+<li>
+<code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code> — produces a UW-Madison Knowledge
+Base importable XML file from a rendered Quarto document</li>
+</ul>
+<p>All functions are designed around a simple idea: the decisions you
+make at the start of a project — how it is organized, how data is read
+in, how dependencies are tracked — have an outsized effect on how
+maintainable and reproducible that project turns out to be.
+<code>toolero</code> tries to make the right defaults easy to reach
+for.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
+</h2>
+<p>You can install <code>toolero</code> from CRAN:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
+<p>Or install the development version from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"erwinlares/toolero"</span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="starting-a-project-with-init_project">Starting a project with <code>init_project()</code><a class="anchor" aria-label="anchor" href="#starting-a-project-with-init_project"></a>
+</h2>
+<div class="section level3">
+<h3 id="the-problem">The problem<a class="anchor" aria-label="anchor" href="#the-problem"></a>
+</h3>
+<p>Starting a new R project usually means the same manual steps every
+time: create a folder, set up an RStudio project, create subdirectories
+for data and scripts, initialize <code>renv</code>, initialize
+<code>git</code>. None of these steps is hard on its own, but skipping
+any of them — especially early on — tends to create friction later. A
+project without <code>renv</code> is harder to share. A project without
+<code>git</code> is harder to recover. A project without a consistent
+folder structure is harder to hand off.</p>
+</div>
+<div class="section level3">
+<h3 id="the-solution">The solution<a class="anchor" aria-label="anchor" href="#the-solution"></a>
+</h3>
+<p><code><a href="../reference/init_project.html">init_project()</a></code> handles all of this in a single call:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span><span class="op">)</span></span></code></pre></div>
+<p>This creates a new RStudio project at the specified path with the
+following folder structure already in place:</p>
+<pre><code>my-project/
+├── data/         # input data
+├── data-raw/     # original, unprocessed data
+├── R/            # reusable functions
+├── scripts/      # analysis scripts
+├── plots/        # generated visualizations
+├── images/       # static images and assets
+├── results/      # processed outputs and tables
+└── docs/         # notes, manuscripts, Quarto documents</code></pre>
+<blockquote>
+<p><strong>Why this structure?</strong> The folder layout is opinionated
+but not arbitrary. Separating <code>data/</code> from
+<code>data-raw/</code> makes it clear which files are original and which
+have been processed. Keeping <code>R/</code> distinct from
+<code>scripts/</code> encourages moving reusable logic into functions
+over time, which is a natural step toward more maintainable code.</p>
+</blockquote>
+<p>By default, <code><a href="../reference/init_project.html">init_project()</a></code> also initializes
+<code>renv</code> and <code>git</code> in the new project. This means
+the project is reproducible and version-controlled from the first
+commit.</p>
+<blockquote>
+<p><strong>Why <code>renv</code> and <code>git</code> by
+default?</strong> <code>renv</code> ensures that the packages your
+project depends on are recorded and reproducible — someone else (or your
+future self) can restore the exact same environment. <code>git</code>
+provides a full history of changes, making it possible to recover from
+mistakes and understand how the project evolved. Both are much easier to
+set up at the start than to retrofit later.</p>
+</blockquote>
+</div>
+<div class="section level3">
+<h3 id="adding-extra-folders">Adding extra folders<a class="anchor" aria-label="anchor" href="#adding-extra-folders"></a>
+</h3>
+<p>If your project needs folders beyond the defaults, pass them as a
+character vector via <code>extra_folders</code>:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/init_project.html">init_project</a></span><span class="op">(</span></span>
+<span>  path          <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  extra_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"notebooks"</span>, <span class="st">"presentations"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="opting-out-of-renv-or-git">Opting out of renv or git<a class="anchor" aria-label="anchor" href="#opting-out-of-renv-or-git"></a>
+</h3>
+<p>If you need to skip one or both:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/init_project.html">init_project</a></span><span class="op">(</span></span>
+<span>  path     <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  use_renv <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  use_git  <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<blockquote>
+<p><strong>When might you skip <code>renv</code> or
+<code>git</code>?</strong> Skipping them is occasionally useful in
+teaching or demonstration contexts where the overhead of a full setup is
+unnecessary. For any project you plan to share, archive, or return to
+later, the defaults are strongly recommended.</p>
+</blockquote>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="reading-data-with-read_clean_csv">Reading data with <code>read_clean_csv()</code><a class="anchor" aria-label="anchor" href="#reading-data-with-read_clean_csv"></a>
+</h2>
+<div class="section level3">
+<h3 id="the-problem-1">The problem<a class="anchor" aria-label="anchor" href="#the-problem-1"></a>
+</h3>
+<p>Reading a CSV file into R is straightforward — until the column names
+come back with spaces, mixed capitalization, or special characters.
+Cleaning them up is a small but recurring friction point.</p>
+</div>
+<div class="section level3">
+<h3 id="the-solution-1">The solution<a class="anchor" aria-label="anchor" href="#the-solution-1"></a>
+</h3>
+<p><code><a href="../reference/read_clean_csv.html">read_clean_csv()</a></code> combines <code><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">readr::read_csv()</a></code>
+and <code><a href="https://sfirke.github.io/janitor/reference/clean_names.html" class="external-link">janitor::clean_names()</a></code> into a single call:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data/my-file.csv"</span><span class="op">)</span></span></code></pre></div>
+<p>Column names are automatically converted to lowercase with
+underscores — consistent, predictable, and tidyverse-friendly. A column
+called <code>First Name</code> becomes <code>first_name</code>.
+<code>Q1 Revenue ($)</code> becomes <code>q1_revenue</code>.</p>
+<p>By default, column type messages from <code>readr</code> are
+suppressed to keep the output clean. If you want to see them — useful
+when reading an unfamiliar dataset for the first time — set
+<code>verbose = TRUE</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data/my-file.csv"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<blockquote>
+<p><strong>Why suppress messages by default?</strong> Column type
+messages are helpful when you are first exploring a dataset. In a script
+or document that runs repeatedly, they become noise. The
+<code>verbose</code> argument gives you control without requiring you to
+remember the <code>readr</code> option name.</p>
+</blockquote>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="scaffolding-a-quarto-document-with-create_qmd">Scaffolding a Quarto document with <code>create_qmd()</code><a class="anchor" aria-label="anchor" href="#scaffolding-a-quarto-document-with-create_qmd"></a>
+</h2>
+<div class="section level3">
+<h3 id="the-problem-2">The problem<a class="anchor" aria-label="anchor" href="#the-problem-2"></a>
+</h3>
+<p>Setting up a new Quarto document for a research workflow involves
+more than creating a blank file. You need a consistent YAML header,
+sample data to develop against, branded assets, and ideally a way to
+extract the R code from the document once it is rendered.</p>
+</div>
+<div class="section level3">
+<h3 id="the-solution-2">The solution<a class="anchor" aria-label="anchor" href="#the-solution-2"></a>
+</h3>
+<p><code><a href="../reference/create_qmd.html">create_qmd()</a></code> scaffolds a complete working environment in
+a single call:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span></code></pre></div>
+<p>This creates:</p>
+<ul>
+<li>
+<code>analysis.qmd</code> — a Quarto document with a fully populated
+YAML header, three-context input resolution via
+<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code>, and a sample analysis using the
+Palmer Penguins dataset</li>
+<li>
+<code>data/sample.csv</code> — sample data to develop against</li>
+<li>
+<code>assets/styles.css</code> and <code>assets/header.html</code> —
+UW-Madison RCI branding files</li>
+<li>
+<code>_quarto.yml</code> — a project file with a post-render hook
+that runs <code>purl.R</code>
+</li>
+<li>
+<code>purl.R</code> — a script that extracts R code from the
+rendered document into a companion <code>.R</code> file</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="the-post-render-purl-hook">The post-render purl hook<a class="anchor" aria-label="anchor" href="#the-post-render-purl-hook"></a>
+</h3>
+<p>By default (<code>use_purl = TRUE</code>), every time the document is
+rendered a clean <code>.R</code> script is automatically extracted from
+the code chunks and saved alongside the output. This is useful for
+sharing the analysis as a plain script, running it on a remote cluster,
+or archiving the code independently of the document.</p>
+<p>To opt out:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
+<span>           use_purl <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="pre-populating-the-yaml-header">Pre-populating the YAML header<a class="anchor" aria-label="anchor" href="#pre-populating-the-yaml-header"></a>
+</h3>
+<p>If you have author metadata in a YAML file, you can pre-populate the
+document header automatically:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span></span>
+<span>  path      <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  filename  <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
+<span>  yaml_data <span class="op">=</span> <span class="st">"~/my-metadata.yml"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+</div>
+<div class="section level2">
+<h2 id="detecting-the-execution-context-with-detect_execution_context">Detecting the execution context with
+<code>detect_execution_context()</code><a class="anchor" aria-label="anchor" href="#detecting-the-execution-context-with-detect_execution_context"></a>
+</h2>
+<p>R code often needs to behave differently depending on where it is
+running — interactively in RStudio, during a <code>quarto render</code>,
+or as a batch <code>Rscript</code> job on a remote cluster.
+<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> identifies which of these three
+environments is active and returns one of <code>"interactive"</code>,
+<code>"quarto"</code>, or <code>"rscript"</code>.</p>
+<p>The canonical use case is resolving input file paths portably:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
+<span>  interactive <span class="op">=</span> <span class="st">"data/sample.csv"</span>,</span>
+<span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
+<span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>This pattern is built into the template scaffolded by
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="splitting-data-by-group-with-write_by_group">Splitting data by group with <code>write_by_group()</code><a class="anchor" aria-label="anchor" href="#splitting-data-by-group-with-write_by_group"></a>
+</h2>
+<p>When a data frame contains multiple groups that need to be written to
+separate files — for instance, one CSV per species, site, or
+experimental condition — <code><a href="../reference/write_by_group.html">write_by_group()</a></code> handles the split
+and the write in a single call:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
+<span>  data       <span class="op">=</span> <span class="va">penguins</span>,</span>
+<span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"results/by-species"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Output filenames are derived from the group values and sanitized for
+use as file names — converted to lowercase, with spaces and special
+characters replaced by dashes. A group called <code>Chinstrap</code>
+becomes <code>chinstrap.csv</code>. <code>Palmer Penguins</code> would
+become <code>palmer-penguins.csv</code>.</p>
+<p>To also write a manifest listing the output files, group values, and
+row counts:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
+<span>  data       <span class="op">=</span> <span class="va">penguins</span>,</span>
+<span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"results/by-species"</span>,</span>
+<span>  manifest   <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="exporting-to-the-uw-madison-knowledge-base-with-generate_kb_xml">Exporting to the UW-Madison Knowledge Base with
+<code>generate_kb_xml()</code><a class="anchor" aria-label="anchor" href="#exporting-to-the-uw-madison-knowledge-base-with-generate_kb_xml"></a>
+</h2>
+<p>If your workflow includes publishing Quarto documents to the
+UW-Madison Knowledge Base (KB), <code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code> automates
+the export step. It takes a rendered HTML file, re-renders the source
+<code>.qmd</code> with all assets embedded, extracts the body, and
+produces an XML file ready for KB import.</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
+<span>  html_path  <span class="op">=</span> <span class="st">"docs/analysis.html"</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"exports"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Metadata is drawn automatically from the <code>.qmd</code> YAML
+header:</p>
+<ul>
+<li>
+<code>title</code> → <code>kb_title</code>
+</li>
+<li>
+<code>description</code> → <code>kb_summary</code>
+</li>
+<li>
+<code>categories</code> → <code>kb_keywords</code>
+</li>
+</ul>
+<blockquote>
+<p><strong>When importing into the KB</strong>, check the <em>Decode
+HTML entity in body content</em> option.</p>
+</blockquote>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+</h2>
+<p>If you use <code>toolero</code> in your work, please cite it:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 

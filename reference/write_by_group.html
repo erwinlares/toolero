@@ -22,7 +22,7 @@ files, their group values, and row counts."><meta property="og:image" content="h
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/toolero-intro.html">UNKNOWN TITLE</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/toolero-intro.html">Getting started with toolero</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -101,15 +101,15 @@ temporary output during testing or exploration.</p>
 <span class="r-in"><span>  mass    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3750</span>, <span class="fl">3800</span>, <span class="fl">5000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>, output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpQKMr0B/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpQKMr0B/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpDFaRPO/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpDFaRPO/gentoo.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Same but also write a manifest</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpQKMr0B/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpQKMr0B/gentoo.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpQKMr0B/manifest.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpDFaRPO/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpDFaRPO/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpDFaRPO/manifest.csv</span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

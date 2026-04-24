@@ -22,7 +22,7 @@ the YAML header with user-supplied metadata."><meta property="og:image" content=
       <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/toolero-intro.html">UNKNOWN TITLE</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/toolero-intro.html">Getting started with toolero</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
@@ -116,32 +116,32 @@ for temporary output during testing or exploration.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="co"># Create a document in a temp directory</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/data/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/assets/styles.css</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/assets/header.html</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/analysis.qmd</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/_quarto.yml</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/purl.R</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/data/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/assets/styles.css</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/assets/header.html</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/_quarto.yml</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/purl.R</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Create with a custom filename, without the purl hook</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span>,</span></span>
 <span class="r-in"><span>            overwrite <span class="op">=</span> <span class="cn">TRUE</span>, use_purl <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/data/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/assets/styles.css</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/assets/header.html</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/report.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/data/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/assets/styles.css</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/assets/header.html</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/report.qmd</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Create with pre-populated YAML</span></span></span>
 <span class="r-in"><span><span class="va">yaml_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".yml"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"author:\n  - name: 'Your Name'"</span>, <span class="va">yaml_file</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
 <span class="r-in"><span>            yaml_data <span class="op">=</span> <span class="va">yaml_file</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/data/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/assets/styles.css</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/assets/header.html</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/analysis.qmd</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/_quarto.yml</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpQKMr0B/purl.R</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/data/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/assets/styles.css</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/assets/header.html</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/_quarto.yml</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpDFaRPO/purl.R</span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
