@@ -1,6 +1,3 @@
-The vignette needs updating in three areas: the function list is stale (still shows only two functions), the content doesn't reflect any of the 0.3.0 additions, and some of the "what's next" items are now shipped. Here's the updated version:
-
-````markdown
 ---
 title: "Getting started with toolero"
 author: "Erwin Lares"
@@ -346,6 +343,3 @@ If you use `toolero` in your work, please cite it:
 #| eval: false
 citation("toolero")
 ```
-````
-
-The main changes from the original: updated the function list at the top, added sections for `create_qmd()`, `detect_execution_context()`, `write_by_group()`, and `generate_kb_xml()`, updated `init_project()` examples to use `path =` instead of positional, and removed the "what's next" section since those items are now shipped.
