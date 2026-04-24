@@ -1,5 +1,7 @@
 # toolero 0.2.0
 
+### New features
+
 * Added `detect_execution_context()` to identify whether code is running in
   an interactive R session, a `quarto render` call, or a plain `Rscript`
   invocation. Returns one of `"interactive"`, `"quarto"`, or `"rscript"`.
@@ -14,12 +16,9 @@
   sanitized group values. Optionally writes a `manifest.csv` listing output
   files, group values, and row counts.
 
-* Resubmission addressing CRAN feedback: removed redundant "in R" from title,
-  replaced `\dontrun{}` with `\donttest{}` throughout, removed default write
-  paths in `create_qmd()` and `write_by_group()`, and replaced non-ASCII
-  characters in source files.
-
 # toolero 0.1.1
+
+### New features
 
 * Added `uw_branding` argument to `init_project()`. When `TRUE`, creates an
   `assets/` folder in the new project and populates it with UW-Madison RCI
