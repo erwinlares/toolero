@@ -9,7 +9,7 @@ control.
 
 ``` r
 init_project(
-  file_path,
+  path,
   use_renv = TRUE,
   use_git = TRUE,
   extra_folders = NULL,
@@ -20,7 +20,7 @@ init_project(
 
 ## Arguments
 
-- file_path:
+- path:
 
   A character string with the path and name of the new project (e.g.,
   `"~/Documents/my-project"`).
@@ -59,35 +59,38 @@ Called for its side effects. Does not return a value.
 
 ``` r
 # \donttest{
-init_project(file_path = file.path(tempdir(), "project1"),
+init_project(path = file.path(tempdir(), "project1"),
              use_renv = FALSE, use_git = FALSE)
-#> ✔ Creating /tmp/RtmpeDkVp3/project1/.
-#> ✔ Setting active project to "/tmp/RtmpeDkVp3/project1".
-#> ✔ Creating R/.
-#> ✔ Writing a sentinel file .here.
-#> ☐ Build robust paths within your project via `here::here()`.
-#> ℹ Learn more at <https://here.r-lib.org>.
-#> ✔ Setting active project to "<no active project>".
+#> ! New project /tmp/RtmpS8Xp4P/project1 would be nested inside an existing
+#>   project /tmp/RtmpS8Xp4P/, which is rarely a good idea.
+#> ℹ If this is unexpected, the here package has a function, `here::dr_here()`
+#>   that reveals why a particular path is regarded as a project. To learn more,
+#>   run `here::dr_here()` in a fresh R session that has /tmp/RtmpS8Xp4P/ as
+#>   working directory.
+#> Error in ui_yep(x = x, yes = yes, no = no, n_yes = n_yes, n_no = n_no,     shuffle = shuffle, .envir = .envir): ✖ User input required, but session is not interactive.
+#> ℹ Query: "Do you want to create anyway?"
 
-init_project(file_path = file.path(tempdir(), "project2"),
+init_project(path = file.path(tempdir(), "project2"),
              uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
-#> ✔ Creating /tmp/RtmpeDkVp3/project2/.
-#> ✔ Setting active project to "/tmp/RtmpeDkVp3/project2".
-#> ✔ Creating R/.
-#> ✔ Writing a sentinel file .here.
-#> ☐ Build robust paths within your project via `here::here()`.
-#> ℹ Learn more at <https://here.r-lib.org>.
-#> ✔ Setting active project to "<no active project>".
+#> ! New project /tmp/RtmpS8Xp4P/project2 would be nested inside an existing
+#>   project /tmp/RtmpS8Xp4P/, which is rarely a good idea.
+#> ℹ If this is unexpected, the here package has a function, `here::dr_here()`
+#>   that reveals why a particular path is regarded as a project. To learn more,
+#>   run `here::dr_here()` in a fresh R session that has /tmp/RtmpS8Xp4P/ as
+#>   working directory.
+#> Error in ui_yep(x = x, yes = yes, no = no, n_yes = n_yes, n_no = n_no,     shuffle = shuffle, .envir = .envir): ✖ User input required, but session is not interactive.
+#> ℹ Query: "Do you want to create anyway?"
 
-init_project(file_path = file.path(tempdir(), "project3"),
+init_project(path = file.path(tempdir(), "project3"),
              extra_folders = c("notebooks"),
              use_renv = FALSE, use_git = FALSE)
-#> ✔ Creating /tmp/RtmpeDkVp3/project3/.
-#> ✔ Setting active project to "/tmp/RtmpeDkVp3/project3".
-#> ✔ Creating R/.
-#> ✔ Writing a sentinel file .here.
-#> ☐ Build robust paths within your project via `here::here()`.
-#> ℹ Learn more at <https://here.r-lib.org>.
-#> ✔ Setting active project to "<no active project>".
+#> ! New project /tmp/RtmpS8Xp4P/project3 would be nested inside an existing
+#>   project /tmp/RtmpS8Xp4P/, which is rarely a good idea.
+#> ℹ If this is unexpected, the here package has a function, `here::dr_here()`
+#>   that reveals why a particular path is regarded as a project. To learn more,
+#>   run `here::dr_here()` in a fresh R session that has /tmp/RtmpS8Xp4P/ as
+#>   working directory.
+#> Error in ui_yep(x = x, yes = yes, no = no, n_yes = n_yes, n_no = n_no,     shuffle = shuffle, .envir = .envir): ✖ User input required, but session is not interactive.
+#> ℹ Query: "Do you want to create anyway?"
 # }
 ```

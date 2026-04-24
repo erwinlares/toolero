@@ -9,9 +9,10 @@ the YAML header with user-supplied metadata.
 ``` r
 create_qmd(
   path = NULL,
-  filename = "analysis.qmd",
+  filename = NULL,
   yaml_data = NULL,
-  overwrite = FALSE
+  overwrite = FALSE,
+  use_purl = TRUE
 )
 ```
 
@@ -24,8 +25,8 @@ create_qmd(
 
 - filename:
 
-  A string. Name of the generated `.qmd` file. Defaults to
-  `"analysis.qmd"`.
+  A string or `NULL`. Name of the generated `.qmd` file. Must be
+  supplied explicitly, e.g. `"analysis.qmd"`.
 
 - yaml_data:
 
@@ -37,6 +38,14 @@ create_qmd(
 
   A logical. Whether to overwrite existing files. Defaults to `FALSE`.
 
+- use_purl:
+
+  Logical. If `TRUE` (the default), creates a `_quarto.yml` file with a
+  post-render hook and a `purl.R` script that extracts R code from the
+  rendered document into a `.R` file. The target document is resolved
+  dynamically from `QUARTO_DOCUMENT_PATH`, so the same `purl.R` works
+  regardless of the document name.
+
 ## Value
 
 Invisibly returns `path`.
@@ -47,18 +56,23 @@ Invisibly returns `path`.
 
 1.  Validates that `path` exists.
 
-2.  Creates a `data/` folder under `path` and copies `sample.csv` there.
+2.  Validates that `filename` is supplied.
 
-3.  Checks for `assets/styles.css` and `assets/header.html` - creates
+3.  Creates a `data/` folder under `path` and copies `sample.csv` there.
+
+4.  Checks for `assets/styles.css` and `assets/header.html` - creates
     the `assets/` folder if needed and copies both from the package.
 
-4.  Copies the template `.qmd` to `path/filename`.
+5.  Copies the template `.qmd` to `path/filename`.
 
-5.  If `yaml_data` is provided, reads the YAML file and substitutes
+6.  If `yaml_data` is provided, reads the YAML file and substitutes
     values into the document header.
 
-Note: `path` has no default value. Always supply an explicit path to
-avoid writing files to unexpected locations. Use
+7.  If `use_purl = TRUE`, writes a `_quarto.yml` with a post-render hook
+    and copies `purl.R` from the package templates into `path`.
+
+Note: `path` and `filename` have no default values. Always supply both
+explicitly to avoid writing files to unexpected locations. Use
 [`tempdir()`](https://rdrr.io/r/base/tempfile.html) for temporary output
 during testing or exploration.
 
@@ -66,27 +80,33 @@ during testing or exploration.
 
 ``` r
 # \donttest{
-# Create with placeholder YAML in a temp directory
-create_qmd(path = tempdir())
-#> ✔ Created /tmp/RtmpeDkVp3/data/sample.csv
-#> ✔ Created /tmp/RtmpeDkVp3/assets/styles.css
-#> ✔ Created /tmp/RtmpeDkVp3/assets/header.html
-#> ✔ Created /tmp/RtmpeDkVp3/analysis.qmd
+# Create a document in a temp directory
+create_qmd(path = tempdir(), filename = "analysis.qmd")
+#> ✔ Created /tmp/RtmpS8Xp4P/data/sample.csv
+#> ✔ Created /tmp/RtmpS8Xp4P/assets/styles.css
+#> ✔ Created /tmp/RtmpS8Xp4P/assets/header.html
+#> ✔ Created /tmp/RtmpS8Xp4P/analysis.qmd
+#> ✔ Created /tmp/RtmpS8Xp4P/_quarto.yml
+#> ✔ Created /tmp/RtmpS8Xp4P/purl.R
 
-# Create with a custom filename
-create_qmd(path = tempdir(), filename = "report.qmd", overwrite = TRUE)
-#> ✔ Created /tmp/RtmpeDkVp3/data/sample.csv
-#> ✔ Created /tmp/RtmpeDkVp3/assets/styles.css
-#> ✔ Created /tmp/RtmpeDkVp3/assets/header.html
-#> ✔ Created /tmp/RtmpeDkVp3/report.qmd
+# Create with a custom filename, without the purl hook
+create_qmd(path = tempdir(), filename = "report.qmd",
+            overwrite = TRUE, use_purl = FALSE)
+#> ✔ Created /tmp/RtmpS8Xp4P/data/sample.csv
+#> ✔ Created /tmp/RtmpS8Xp4P/assets/styles.css
+#> ✔ Created /tmp/RtmpS8Xp4P/assets/header.html
+#> ✔ Created /tmp/RtmpS8Xp4P/report.qmd
 
 # Create with pre-populated YAML
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
-create_qmd(path = tempdir(), yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpeDkVp3/data/sample.csv
-#> ✔ Created /tmp/RtmpeDkVp3/assets/styles.css
-#> ✔ Created /tmp/RtmpeDkVp3/assets/header.html
-#> ✔ Created /tmp/RtmpeDkVp3/analysis.qmd
+create_qmd(path = tempdir(), filename = "analysis.qmd",
+            yaml_data = yaml_file, overwrite = TRUE)
+#> ✔ Created /tmp/RtmpS8Xp4P/data/sample.csv
+#> ✔ Created /tmp/RtmpS8Xp4P/assets/styles.css
+#> ✔ Created /tmp/RtmpS8Xp4P/assets/header.html
+#> ✔ Created /tmp/RtmpS8Xp4P/analysis.qmd
+#> ✔ Created /tmp/RtmpS8Xp4P/_quarto.yml
+#> ✔ Created /tmp/RtmpS8Xp4P/purl.R
 # }
 ```

@@ -40,8 +40,8 @@ Invisibly returns `output_dir`.
 
 Output filenames are derived from the group values of `group_col`.
 Values are sanitized before use as filenames: converted to lowercase,
-spaces and special characters replaced with `_`, consecutive underscores
-collapsed, and leading/trailing underscores stripped.
+spaces and special characters replaced with `-`, consecutive dashes
+collapsed, and leading/trailing dashes stripped.
 
 If `manifest = TRUE`, a `manifest.csv` is written to `output_dir`
 containing three columns: `group_value`, `n_rows`, and `file_path`.
@@ -61,14 +61,14 @@ data <- data.frame(
   mass    = c(3750, 3800, 5000)
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpeDkVp3/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpeDkVp3/gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpS8Xp4P/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpS8Xp4P/gentoo.csv
 
 # Same but also write a manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpeDkVp3/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpeDkVp3/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmpeDkVp3/manifest.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpS8Xp4P/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpS8Xp4P/gentoo.csv
+#> ✔ Manifest written to /tmp/RtmpS8Xp4P/manifest.csv
 # }
 ```
