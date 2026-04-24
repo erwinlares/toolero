@@ -82,31 +82,31 @@ during testing or exploration.
 # \donttest{
 # Create a document in a temp directory
 create_qmd(path = tempdir(), filename = "analysis.qmd")
-#> ✔ Created /tmp/RtmpS8Xp4P/data/sample.csv
-#> ✔ Created /tmp/RtmpS8Xp4P/assets/styles.css
-#> ✔ Created /tmp/RtmpS8Xp4P/assets/header.html
-#> ✔ Created /tmp/RtmpS8Xp4P/analysis.qmd
-#> ✔ Created /tmp/RtmpS8Xp4P/_quarto.yml
-#> ✔ Created /tmp/RtmpS8Xp4P/purl.R
+#> ✔ Created /tmp/RtmpEPd1TC/data/sample.csv
+#> ✔ Created /tmp/RtmpEPd1TC/assets/styles.css
+#> ✔ Created /tmp/RtmpEPd1TC/assets/header.html
+#> ✔ Created /tmp/RtmpEPd1TC/analysis.qmd
+#> ✔ Created /tmp/RtmpEPd1TC/_quarto.yml
+#> ✔ Created /tmp/RtmpEPd1TC/purl.R
 
 # Create with a custom filename, without the purl hook
 create_qmd(path = tempdir(), filename = "report.qmd",
             overwrite = TRUE, use_purl = FALSE)
-#> ✔ Created /tmp/RtmpS8Xp4P/data/sample.csv
-#> ✔ Created /tmp/RtmpS8Xp4P/assets/styles.css
-#> ✔ Created /tmp/RtmpS8Xp4P/assets/header.html
-#> ✔ Created /tmp/RtmpS8Xp4P/report.qmd
+#> ✔ Created /tmp/RtmpEPd1TC/data/sample.csv
+#> ✔ Created /tmp/RtmpEPd1TC/assets/styles.css
+#> ✔ Created /tmp/RtmpEPd1TC/assets/header.html
+#> ✔ Created /tmp/RtmpEPd1TC/report.qmd
 
 # Create with pre-populated YAML
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
             yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpS8Xp4P/data/sample.csv
-#> ✔ Created /tmp/RtmpS8Xp4P/assets/styles.css
-#> ✔ Created /tmp/RtmpS8Xp4P/assets/header.html
-#> ✔ Created /tmp/RtmpS8Xp4P/analysis.qmd
-#> ✔ Created /tmp/RtmpS8Xp4P/_quarto.yml
-#> ✔ Created /tmp/RtmpS8Xp4P/purl.R
+#> ✔ Created /tmp/RtmpEPd1TC/data/sample.csv
+#> ✔ Created /tmp/RtmpEPd1TC/assets/styles.css
+#> ✔ Created /tmp/RtmpEPd1TC/assets/header.html
+#> ✔ Created /tmp/RtmpEPd1TC/analysis.qmd
+#> ✔ Created /tmp/RtmpEPd1TC/_quarto.yml
+#> ✔ Created /tmp/RtmpEPd1TC/purl.R
 # }
 ```
