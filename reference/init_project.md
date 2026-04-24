@@ -62,15 +62,15 @@ Called for its side effects. Does not return a value.
 tmp <- withr::local_tempdir()
 init_project(path = file.path(tmp, "project1"),
              use_renv = FALSE, use_git = FALSE)
-#> Error in check_path_is_directory(path_dir(path)): ✖ Directory /tmp/RtmpEPd1TC/file1aa468dea962 does not exist.
+#> Error in check_path_is_directory(path_dir(path)): ✖ Directory /tmp/RtmpKJVXQk/file1aa25fa84177 does not exist.
 
 init_project(path = file.path(tmp, "project2"),
              uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
-#> Error in check_path_is_directory(path_dir(path)): ✖ Directory /tmp/RtmpEPd1TC/file1aa468dea962 does not exist.
+#> Error in check_path_is_directory(path_dir(path)): ✖ Directory /tmp/RtmpKJVXQk/file1aa25fa84177 does not exist.
 
 init_project(path = file.path(tmp, "project3"),
              extra_folders = c("notebooks"),
              use_renv = FALSE, use_git = FALSE)
-#> Error in check_path_is_directory(path_dir(path)): ✖ Directory /tmp/RtmpEPd1TC/file1aa468dea962 does not exist.
+#> Error in check_path_is_directory(path_dir(path)): ✖ Directory /tmp/RtmpKJVXQk/file1aa25fa84177 does not exist.
 # }
 ```
