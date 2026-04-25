@@ -72,44 +72,44 @@ Lares</h4>
     
     
 <div class="section level2">
-<h2 id="what-is-toolero">What is toolero?<a class="anchor" aria-label="anchor" href="#what-is-toolero"></a>
+<h2 id="background-and-motivation">Background and motivation<a class="anchor" aria-label="anchor" href="#background-and-motivation"></a>
 </h2>
-<p><code>toolero</code> is a small, opinionated toolkit designed to make
-the first steps of an R project faster and more consistent. It targets
-researchers and analysts who want to spend less time on setup and more
-time on the work itself.</p>
-<p>The package currently provides the following functions:</p>
+<p><code>toolero</code> grew out of a recurring observation made while
+teaching and supporting researchers at UW-Madison: the habits that make
+a project reproducible, shareable, and maintainable are easiest to adopt
+at the very beginning — and hardest to retrofit once a project is
+already underway.</p>
+<p>The package is heavily influenced by the workflows taught in
+workshops run by <a href="https://carpentries.org/" class="external-link">The Carpentries</a>
+and the <a href="https://www.library.wisc.edu/" class="external-link">UW-Madison
+Libraries</a>. Those workshops emphasize consistent project
+organization, version control, and reproducible data practices as
+foundational skills — not advanced topics. <code>toolero</code> tries to
+operationalize those principles into a small set of functions that
+reduce the friction of doing the right thing from the start.</p>
+<p>The theming and branding support in <code>toolero</code> is
+specifically tailored to UW-Madison’s Research Computing and
+Instrumentation (RCI) unit, whose Quarto-based reporting templates are
+baked into the package as defaults. If you are not at UW-Madison, the
+branding files are optional — the rest of the package works
+independently of them.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="who-is-this-for">Who is this for?<a class="anchor" aria-label="anchor" href="#who-is-this-for"></a>
+</h2>
+<p><code>toolero</code> is designed for researchers and analysts
+who:</p>
 <ul>
-<li>
-<code><a href="../reference/init_project.html">init_project()</a></code> — creates a new R project with a
-standard folder structure, and optionally initializes <code>renv</code>
-and <code>git</code>
-</li>
-<li>
-<code><a href="../reference/read_clean_csv.html">read_clean_csv()</a></code> — reads a CSV file and cleans column
-names in one step</li>
-<li>
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code> — scaffolds a new Quarto document from a
-reproducible template, including sample data, UW-Madison branded assets,
-and an optional post-render <code>purl</code> hook</li>
-<li>
-<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> — identifies whether code is
-running interactively, via <code>quarto render</code>, or via
-<code>Rscript</code>
-</li>
-<li>
-<code><a href="../reference/write_by_group.html">write_by_group()</a></code> — splits a data frame by a grouping
-column and writes each group to a separate CSV file</li>
-<li>
-<code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code> — produces a UW-Madison Knowledge
-Base importable XML file from a rendered Quarto document</li>
+<li>Work primarily in R and use RStudio as their IDE</li>
+<li>Write reports or analyses in Quarto</li>
+<li>Want consistent, reproducible project structure without having to
+think about it every time</li>
+<li>May need to publish content to the UW-Madison Knowledge Base</li>
 </ul>
-<p>All functions are designed around a simple idea: the decisions you
-make at the start of a project — how it is organized, how data is read
-in, how dependencies are tracked — have an outsized effect on how
-maintainable and reproducible that project turns out to be.
-<code>toolero</code> tries to make the right defaults easy to reach
-for.</p>
+<p>The package is intentionally small. It does not try to be
+comprehensive. It tries to make the right defaults easy to reach for
+from the first line of code.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -124,23 +124,21 @@ for.</p>
 <hr>
 </div>
 <div class="section level2">
-<h2 id="starting-a-project-with-init_project">Starting a project with <code>init_project()</code><a class="anchor" aria-label="anchor" href="#starting-a-project-with-init_project"></a>
+<h2 id="project-setup-init_project-and-create_qmd">Project setup: <code>init_project()</code> and
+<code>create_qmd()</code><a class="anchor" aria-label="anchor" href="#project-setup-init_project-and-create_qmd"></a>
 </h2>
+<p>These two functions are designed to be used together, in order.
+<code><a href="../reference/init_project.html">init_project()</a></code> creates the scaffold;
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code> populates it with a working Quarto
+document.</p>
 <div class="section level3">
-<h3 id="the-problem">The problem<a class="anchor" aria-label="anchor" href="#the-problem"></a>
+<h3 id="starting-with-init_project">Starting with <code>init_project()</code><a class="anchor" aria-label="anchor" href="#starting-with-init_project"></a>
 </h3>
 <p>Starting a new R project usually means the same manual steps every
 time: create a folder, set up an RStudio project, create subdirectories
 for data and scripts, initialize <code>renv</code>, initialize
 <code>git</code>. None of these steps is hard on its own, but skipping
-any of them — especially early on — tends to create friction later. A
-project without <code>renv</code> is harder to share. A project without
-<code>git</code> is harder to recover. A project without a consistent
-folder structure is harder to hand off.</p>
-</div>
-<div class="section level3">
-<h3 id="the-solution">The solution<a class="anchor" aria-label="anchor" href="#the-solution"></a>
-</h3>
+any of them — especially early on — tends to create friction later.</p>
 <p><code><a href="../reference/init_project.html">init_project()</a></code> handles all of this in a single call:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
@@ -166,104 +164,38 @@ have been processed. Keeping <code>R/</code> distinct from
 over time, which is a natural step toward more maintainable code.</p>
 </blockquote>
 <p>By default, <code><a href="../reference/init_project.html">init_project()</a></code> also initializes
-<code>renv</code> and <code>git</code> in the new project. This means
-the project is reproducible and version-controlled from the first
-commit.</p>
+<code>renv</code> and <code>git</code>. This means the project is
+reproducible and version-controlled from the first commit.</p>
 <blockquote>
 <p><strong>Why <code>renv</code> and <code>git</code> by
 default?</strong> <code>renv</code> ensures that the packages your
-project depends on are recorded and reproducible — someone else (or your
-future self) can restore the exact same environment. <code>git</code>
-provides a full history of changes, making it possible to recover from
-mistakes and understand how the project evolved. Both are much easier to
-set up at the start than to retrofit later.</p>
+project depends on are recorded and reproducible. <code>git</code>
+provides a full history of changes. Both are much easier to set up at
+the start than to retrofit later.</p>
 </blockquote>
-</div>
-<div class="section level3">
-<h3 id="adding-extra-folders">Adding extra folders<a class="anchor" aria-label="anchor" href="#adding-extra-folders"></a>
-</h3>
-<p>If your project needs folders beyond the defaults, pass them as a
-character vector via <code>extra_folders</code>:</p>
+<p>If your project needs folders beyond the defaults:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/init_project.html">init_project</a></span><span class="op">(</span></span>
 <span>  path          <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
 <span>  extra_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"notebooks"</span>, <span class="st">"presentations"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="opting-out-of-renv-or-git">Opting out of renv or git<a class="anchor" aria-label="anchor" href="#opting-out-of-renv-or-git"></a>
-</h3>
-<p>If you need to skip one or both:</p>
+<p>To apply UW-Madison RCI branding assets to the project:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/init_project.html">init_project</a></span><span class="op">(</span></span>
-<span>  path     <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
-<span>  use_renv <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  use_git  <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  path        <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  uw_branding <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<blockquote>
-<p><strong>When might you skip <code>renv</code> or
-<code>git</code>?</strong> Skipping them is occasionally useful in
-teaching or demonstration contexts where the overhead of a full setup is
-unnecessary. For any project you plan to share, archive, or return to
-later, the defaults are strongly recommended.</p>
-</blockquote>
-<hr>
-</div>
-</div>
-<div class="section level2">
-<h2 id="reading-data-with-read_clean_csv">Reading data with <code>read_clean_csv()</code><a class="anchor" aria-label="anchor" href="#reading-data-with-read_clean_csv"></a>
-</h2>
-<div class="section level3">
-<h3 id="the-problem-1">The problem<a class="anchor" aria-label="anchor" href="#the-problem-1"></a>
-</h3>
-<p>Reading a CSV file into R is straightforward — until the column names
-come back with spaces, mixed capitalization, or special characters.
-Cleaning them up is a small but recurring friction point.</p>
+<p>This creates an <code>assets/</code> folder and populates it with
+<code>styles.css</code>, <code>header.html</code>, and
+<code>rci-banner.png</code> — the same assets used in the Quarto
+template scaffolded by <code><a href="../reference/create_qmd.html">create_qmd()</a></code>.</p>
 </div>
 <div class="section level3">
-<h3 id="the-solution-1">The solution<a class="anchor" aria-label="anchor" href="#the-solution-1"></a>
+<h3 id="adding-a-quarto-document-with-create_qmd">Adding a Quarto document with <code>create_qmd()</code><a class="anchor" aria-label="anchor" href="#adding-a-quarto-document-with-create_qmd"></a>
 </h3>
-<p><code><a href="../reference/read_clean_csv.html">read_clean_csv()</a></code> combines <code><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">readr::read_csv()</a></code>
-and <code><a href="https://sfirke.github.io/janitor/reference/clean_names.html" class="external-link">janitor::clean_names()</a></code> into a single call:</p>
+<p>Once the project exists, <code><a href="../reference/create_qmd.html">create_qmd()</a></code> adds a working
+Quarto document to it:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data/my-file.csv"</span><span class="op">)</span></span></code></pre></div>
-<p>Column names are automatically converted to lowercase with
-underscores — consistent, predictable, and tidyverse-friendly. A column
-called <code>First Name</code> becomes <code>first_name</code>.
-<code>Q1 Revenue ($)</code> becomes <code>q1_revenue</code>.</p>
-<p>By default, column type messages from <code>readr</code> are
-suppressed to keep the output clean. If you want to see them — useful
-when reading an unfamiliar dataset for the first time — set
-<code>verbose = TRUE</code>:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data/my-file.csv"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<blockquote>
-<p><strong>Why suppress messages by default?</strong> Column type
-messages are helpful when you are first exploring a dataset. In a script
-or document that runs repeatedly, they become noise. The
-<code>verbose</code> argument gives you control without requiring you to
-remember the <code>readr</code> option name.</p>
-</blockquote>
-<hr>
-</div>
-</div>
-<div class="section level2">
-<h2 id="scaffolding-a-quarto-document-with-create_qmd">Scaffolding a Quarto document with <code>create_qmd()</code><a class="anchor" aria-label="anchor" href="#scaffolding-a-quarto-document-with-create_qmd"></a>
-</h2>
-<div class="section level3">
-<h3 id="the-problem-2">The problem<a class="anchor" aria-label="anchor" href="#the-problem-2"></a>
-</h3>
-<p>Setting up a new Quarto document for a research workflow involves
-more than creating a blank file. You need a consistent YAML header,
-sample data to develop against, branded assets, and ideally a way to
-extract the R code from the document once it is rendered.</p>
-</div>
-<div class="section level3">
-<h3 id="the-solution-2">The solution<a class="anchor" aria-label="anchor" href="#the-solution-2"></a>
-</h3>
-<p><code><a href="../reference/create_qmd.html">create_qmd()</a></code> scaffolds a complete working environment in
-a single call:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span></code></pre></div>
 <p>This creates:</p>
 <ul>
@@ -273,90 +205,87 @@ YAML header, three-context input resolution via
 <code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code>, and a sample analysis using the
 Palmer Penguins dataset</li>
 <li>
-<code>data/sample.csv</code> — sample data to develop against</li>
+<code>data/sample.csv</code> — sample data to develop against
+immediately</li>
 <li>
 <code>assets/styles.css</code> and <code>assets/header.html</code> —
-UW-Madison RCI branding files</li>
+UW-Madison RCI branding</li>
 <li>
 <code>_quarto.yml</code> — a project file with a post-render hook
 that runs <code>purl.R</code>
 </li>
 <li>
-<code>purl.R</code> — a script that extracts R code from the
-rendered document into a companion <code>.R</code> file</li>
+<code>purl.R</code> — extracts R code from the rendered document
+into a companion <code>.R</code> file automatically on every render</li>
 </ul>
-</div>
-<div class="section level3">
-<h3 id="the-post-render-purl-hook">The post-render purl hook<a class="anchor" aria-label="anchor" href="#the-post-render-purl-hook"></a>
-</h3>
-<p>By default (<code>use_purl = TRUE</code>), every time the document is
-rendered a clean <code>.R</code> script is automatically extracted from
-the code chunks and saved alongside the output. This is useful for
-sharing the analysis as a plain script, running it on a remote cluster,
-or archiving the code independently of the document.</p>
-<p>To opt out:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
-<span>           use_purl <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="pre-populating-the-yaml-header">Pre-populating the YAML header<a class="anchor" aria-label="anchor" href="#pre-populating-the-yaml-header"></a>
-</h3>
-<p>If you have author metadata in a YAML file, you can pre-populate the
-document header automatically:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<blockquote>
+<p><strong>Why the purl hook?</strong> Having a plain <code>.R</code>
+companion to your <code>.qmd</code> is useful for sharing the analysis
+as a script, running it on a remote cluster, or archiving the code
+independently of the document. The hook runs automatically so you never
+have to remember to extract it manually.</p>
+</blockquote>
+<p>To pre-populate the YAML header with your own metadata:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span></span>
 <span>  path      <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
 <span>  filename  <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
 <span>  yaml_data <span class="op">=</span> <span class="st">"~/my-metadata.yml"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<p>Where <code>my-metadata.yml</code> might look like:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">title</span><span class="kw">:</span><span class="at"> </span><span class="st">"My Analysis"</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">author</span><span class="kw">:</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> </span><span class="st">"Your Name"</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="at">    </span><span class="fu">affiliation</span><span class="kw">:</span><span class="at"> </span><span class="st">"UW-Madison"</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="at">    </span><span class="fu">email</span><span class="kw">:</span><span class="at"> </span><span class="st">"you@wisc.edu"</span></span></code></pre></div>
+<p>Any keys present in the YAML file overwrite the corresponding
+placeholders in the template. Keys not present are left as-is.</p>
 <hr>
 </div>
 </div>
 <div class="section level2">
-<h2 id="detecting-the-execution-context-with-detect_execution_context">Detecting the execution context with
-<code>detect_execution_context()</code><a class="anchor" aria-label="anchor" href="#detecting-the-execution-context-with-detect_execution_context"></a>
+<h2 id="working-with-data-read_clean_csv-and-write_by_group">Working with data: <code>read_clean_csv()</code> and
+<code>write_by_group()</code><a class="anchor" aria-label="anchor" href="#working-with-data-read_clean_csv-and-write_by_group"></a>
 </h2>
-<p>R code often needs to behave differently depending on where it is
-running — interactively in RStudio, during a <code>quarto render</code>,
-or as a batch <code>Rscript</code> job on a remote cluster.
-<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> identifies which of these three
-environments is active and returns one of <code>"interactive"</code>,
-<code>"quarto"</code>, or <code>"rscript"</code>.</p>
-<p>The canonical use case is resolving input file paths portably:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
-<span>  interactive <span class="op">=</span> <span class="st">"data/sample.csv"</span>,</span>
-<span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
-<span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>This pattern is built into the template scaffolded by
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code>.</p>
-<hr>
+<p>These two functions address common friction points in day-to-day data
+work. They are general-purpose utilities — useful in any R project, not
+just ones set up with <code>toolero</code>.</p>
+<div class="section level3">
+<h3 id="reading-data-with-read_clean_csv">Reading data with <code>read_clean_csv()</code><a class="anchor" aria-label="anchor" href="#reading-data-with-read_clean_csv"></a>
+</h3>
+<p><code><a href="../reference/read_clean_csv.html">read_clean_csv()</a></code> combines <code><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">readr::read_csv()</a></code>
+and <code><a href="https://sfirke.github.io/janitor/reference/clean_names.html" class="external-link">janitor::clean_names()</a></code> into a single call:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data/my-file.csv"</span><span class="op">)</span></span></code></pre></div>
+<p>Column names are automatically converted to lowercase with
+underscores — consistent, predictable, and tidyverse-friendly. A column
+called <code>First Name</code> becomes <code>first_name</code>.
+<code>Q1 Revenue ($)</code> becomes <code>q1_revenue</code>.</p>
+<p>By default, column type messages from <code>readr</code> are
+suppressed. Set <code>verbose = TRUE</code> to see them:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data/my-file.csv"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level2">
-<h2 id="splitting-data-by-group-with-write_by_group">Splitting data by group with <code>write_by_group()</code><a class="anchor" aria-label="anchor" href="#splitting-data-by-group-with-write_by_group"></a>
-</h2>
+<div class="section level3">
+<h3 id="splitting-data-by-group-with-write_by_group">Splitting data by group with <code>write_by_group()</code><a class="anchor" aria-label="anchor" href="#splitting-data-by-group-with-write_by_group"></a>
+</h3>
 <p>When a data frame contains multiple groups that need to be written to
-separate files — for instance, one CSV per species, site, or
-experimental condition — <code><a href="../reference/write_by_group.html">write_by_group()</a></code> handles the split
-and the write in a single call:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+separate files, <code><a href="../reference/write_by_group.html">write_by_group()</a></code> handles the split and the
+write in a single call:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
 <span>  data       <span class="op">=</span> <span class="va">penguins</span>,</span>
 <span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="st">"results/by-species"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Output filenames are derived from the group values and sanitized for
-use as file names — converted to lowercase, with spaces and special
+use as file names — converted to lowercase with spaces and special
 characters replaced by dashes. A group called <code>Chinstrap</code>
 becomes <code>chinstrap.csv</code>. <code>Palmer Penguins</code> would
 become <code>palmer-penguins.csv</code>.</p>
 <p>To also write a manifest listing the output files, group values, and
 row counts:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
 <span>  data       <span class="op">=</span> <span class="va">penguins</span>,</span>
 <span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
@@ -365,33 +294,63 @@ row counts:</p>
 <span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
+</div>
 <div class="section level2">
-<h2 id="exporting-to-the-uw-madison-knowledge-base-with-generate_kb_xml">Exporting to the UW-Madison Knowledge Base with
-<code>generate_kb_xml()</code><a class="anchor" aria-label="anchor" href="#exporting-to-the-uw-madison-knowledge-base-with-generate_kb_xml"></a>
+<h2 id="execution-context-detect_execution_context">Execution context: <code>detect_execution_context()</code><a class="anchor" aria-label="anchor" href="#execution-context-detect_execution_context"></a>
 </h2>
-<p>If your workflow includes publishing Quarto documents to the
-UW-Madison Knowledge Base (KB), <code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code> automates
-the export step. It takes a rendered HTML file, re-renders the source
-<code>.qmd</code> with all assets embedded, extracts the body, and
-produces an XML file ready for KB import.</p>
+<p>R code often needs to behave differently depending on where it is
+running — interactively in RStudio, during a <code>quarto render</code>,
+or as a batch <code>Rscript</code> job on a remote cluster.
+<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> identifies which of these three
+environments is active and returns one of <code>"interactive"</code>,
+<code>"quarto"</code>, or <code>"rscript"</code>.</p>
+<p>The canonical use case is resolving input file paths portably:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
+<span>  interactive <span class="op">=</span> <span class="st">"data/sample.csv"</span>,</span>
+<span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
+<span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>This pattern is built into the template scaffolded by
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>, so you get it for free without having to
+write it yourself.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="knowledge-base-export-generate_kb_xml">Knowledge Base export: <code>generate_kb_xml()</code><a class="anchor" aria-label="anchor" href="#knowledge-base-export-generate_kb_xml"></a>
+</h2>
+<blockquote>
+<p><strong>This section is relevant only if you publish content to the
+UW-Madison Knowledge Base.</strong> If you do not, you can safely skip
+it.</p>
+</blockquote>
+<p>The UW-Madison Knowledge Base requires content to be submitted as XML
+with all visual assets embedded in the HTML body.
+<code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code> automates this process entirely.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
 <span>  html_path  <span class="op">=</span> <span class="st">"docs/analysis.html"</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="st">"exports"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Metadata is drawn automatically from the <code>.qmd</code> YAML
-header:</p>
-<ul>
-<li>
-<code>title</code> → <code>kb_title</code>
+<p>The function:</p>
+<ol style="list-style-type: decimal">
+<li>Infers the source <code>.qmd</code> from the HTML path (or accepts
+it explicitly via <code>qmd_path</code>)</li>
+<li>Re-renders the document with <code>embed-resources: true</code> so
+all CSS, images, and JavaScript are self-contained</li>
+<li>Extracts metadata from the <code>.qmd</code> YAML header —
+<code>title</code> → <code>kb_title</code>, <code>description</code> →
+<code>kb_summary</code>, <code>categories</code> →
+<code>kb_keywords</code>
 </li>
-<li>
-<code>description</code> → <code>kb_summary</code>
-</li>
-<li>
-<code>categories</code> → <code>kb_keywords</code>
-</li>
-</ul>
+<li>Produces a <code>.xml</code> file ready for direct KB import</li>
+</ol>
+<p>This is why the <code>description</code> and <code>categories</code>
+fields in the <code><a href="../reference/create_qmd.html">create_qmd()</a></code> template matter — they flow
+through automatically into the KB article metadata without any extra
+work.</p>
 <blockquote>
 <p><strong>When importing into the KB</strong>, check the <em>Decode
 HTML entity in body content</em> option.</p>

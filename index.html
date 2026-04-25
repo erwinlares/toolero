@@ -63,13 +63,18 @@
 <img src="logo.png" class="logo" alt=""><h1 id="toolero">toolero<a class="anchor" aria-label="anchor" href="#toolero"></a>
 </h1>
 </div>
-<p><img src="reference/figures/logo.png" align="right" height="139" alt="toolero package logo"><!-- badges: start --><a href="https://doi.org/10.5281/zenodo.19457647" class="external-link"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.19457647.svg" alt="DOI"></a> <a href="https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://CRAN.R-project.org/package=toolero" class="external-link"><img src="https://www.r-pkg.org/badges/version/toolero" alt="CRAN status"></a> <a href="https://cran.r-project.org/package=toolero" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/toolero" alt="CRAN downloads"></a> <!-- badges: end --></p>
+<p><img src="reference/figures/logo.png" align="right" height="139" alt="toolero package logo"></p>
+<!-- badges: start -->
+
 <p><code>toolero</code> is an R package designed to help researchers implement best practices for their coding projects. It provides a small set of opinionated, practical functions that reduce friction at the start of a project and during day-to-day data work.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install <code>toolero</code> from <a href="https://github.com/erwinlares/toolero" class="external-link">GitHub</a> with:</p>
+<p>You can install <code>toolero</code> from CRAN:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
+<p>Or install the development version from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"erwinlares/toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -81,25 +86,45 @@
 <code>init_project()</code><a class="anchor" aria-label="anchor" href="#init_project"></a>
 </h3>
 <p>Creates a new R project with a standard folder structure suited for research workflows. Optionally initializes <code>renv</code> for package management and <code>git</code> for version control.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Create a project with the standard folder structure</span></span>
-<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span><span class="st">"~/Documents/my-project"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Add extra folders</span></span>
-<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span><span class="st">"~/Documents/my-project"</span>, extra_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"notebooks"</span>, <span class="st">"presentations"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>             extra_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"notebooks"</span>, <span class="st">"presentations"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Skip renv and git</span></span>
-<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span><span class="st">"~/Documents/my-project"</span>, use_renv <span class="op">=</span> <span class="cn">FALSE</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, use_renv <span class="op">=</span> <span class="cn">FALSE</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p>The default folder structure includes: <code>data/</code>, <code>data-raw/</code>, <code>R/</code>, <code>scripts/</code>, <code>plots/</code>, <code>images/</code>, <code>results/</code>, and <code>docs/</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="create_qmd">
+<code>create_qmd()</code><a class="anchor" aria-label="anchor" href="#create_qmd"></a>
+</h3>
+<p>Scaffolds a new Quarto document from a reproducible template, including a sample dataset, UW-Madison branded assets, and an optional post-render purl hook that extracts R code from the rendered document into a companion <code>.R</code> file. Optionally pre-populates the YAML header from a user-supplied YAML config file.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create a document with placeholder YAML</span></span>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Create without the purl hook</span></span>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span>,</span>
+<span>           use_purl <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Pre-populate YAML from a personal config file</span></span>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
+<span>           yaml_data <span class="op">=</span> <span class="st">"~/my_config.yml"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="read_clean_csv">
 <code>read_clean_csv()</code><a class="anchor" aria-label="anchor" href="#read_clean_csv"></a>
 </h3>
 <p>Reads a CSV file and cleans the column names in one step, producing a tidyverse-friendly tibble.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"path/to/file.csv"</span><span class="op">)</span></span>
@@ -112,7 +137,7 @@
 <code>detect_execution_context()</code><a class="anchor" aria-label="anchor" href="#detect_execution_context"></a>
 </h3>
 <p>Identifies which of three execution environments the code is currently running in: an interactive R session, a <code>quarto render</code> call, or a plain <code>Rscript</code> invocation. Returns one of <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code>.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
@@ -124,28 +149,11 @@
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="create_qmd">
-<code>create_qmd()</code><a class="anchor" aria-label="anchor" href="#create_qmd"></a>
-</h3>
-<p>Scaffolds a new Quarto document from a reproducible template, including a sample dataset and UW-Madison branded assets. Optionally pre-populates the YAML header from a user-supplied YAML config file.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create with placeholder YAML</span></span>
-<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create with a custom filename</span></span>
-<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Pre-populate YAML from a personal config file</span></span>
-<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, yaml_data <span class="op">=</span> <span class="st">"~/my_config.yml"</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
 <h3 id="write_by_group">
 <code>write_by_group()</code><a class="anchor" aria-label="anchor" href="#write_by_group"></a>
 </h3>
-<p>Splits a data frame by a single grouping column and writes each group to a separate CSV file. Filenames are derived from sanitized group values. Optionally writes a <code>manifest.csv</code> listing output files, group values, and row counts.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<p>Splits a data frame by a single grouping column and writes each group to a separate CSV file. Filenames are derived from sanitized group values — converted to lowercase with spaces and special characters replaced by dashes. Optionally writes a <code>manifest.csv</code> listing output files, group values, and row counts.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Load the bundled sample dataset</span></span>
@@ -159,12 +167,26 @@
 <span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span><span class="va">penguins</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span>
 <span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
 </div>
+<div class="section level3">
+<h3 id="generate_kb_xml">
+<code>generate_kb_xml()</code><a class="anchor" aria-label="anchor" href="#generate_kb_xml"></a>
+</h3>
+<p>Produces a UW-Madison Knowledge Base importable XML file from a rendered Quarto document. Re-renders the source <code>.qmd</code> with all assets embedded, extracts the HTML body, and wraps it in the KB XML structure along with metadata drawn from the document’s YAML header — <code>title</code> → <code>kb_title</code>, <code>description</code> → <code>kb_summary</code>, <code>categories</code> → <code>kb_keywords</code>.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
+<span>  html_path  <span class="op">=</span> <span class="st">"docs/analysis.html"</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"exports"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>When importing the resulting XML into the KB, check the <em>Decode HTML entity in body content</em> option.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>To cite <code>toolero</code> in publications:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -211,7 +233,15 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://doi.org/10.5281/zenodo.19457647" class="external-link"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.19457647.svg" alt="DOI"></a></li>
+<li><a href="https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/erwinlares/toolero/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://CRAN.R-project.org/package=toolero" class="external-link"><img src="https://www.r-pkg.org/badges/version/toolero" alt="CRAN status"></a></li>
+<li><a href="https://cran.r-project.org/package=toolero" class="external-link"><img src="https://cranlogs.r-pkg.org/badges/toolero" alt="CRAN downloads"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

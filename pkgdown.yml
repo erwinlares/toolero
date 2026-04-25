@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   toolero-intro: toolero-intro.html
-last_built: 2026-04-24T23:00Z
+last_built: 2026-04-25T21:13Z
 urls:
   reference: https://erwinlares.github.io/toolero/reference
   article: https://erwinlares.github.io/toolero/articles
