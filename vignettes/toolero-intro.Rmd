@@ -15,32 +15,42 @@ knitr::opts_chunk$set(
 )
 ```
 
-## What is toolero?
+## Background and motivation
 
-`toolero` is a small, opinionated toolkit designed to make the first steps of
-an R project faster and more consistent. It targets researchers and analysts
-who want to spend less time on setup and more time on the work itself.
+`toolero` grew out of a recurring observation made while teaching and
+supporting researchers at UW-Madison: the habits that make a project
+reproducible, shareable, and maintainable are easiest to adopt at the very
+beginning — and hardest to retrofit once a project is already underway.
 
-The package currently provides the following functions:
+The package is heavily influenced by the workflows taught in workshops run by
+[The Carpentries](https://carpentries.org/) and the
+[UW-Madison Libraries](https://www.library.wisc.edu/). Those workshops
+emphasize consistent project organization, version control, and reproducible
+data practices as foundational skills — not advanced topics. `toolero` tries
+to operationalize those principles into a small set of functions that reduce
+the friction of doing the right thing from the start.
 
-- `init_project()` — creates a new R project with a standard folder structure,
-  and optionally initializes `renv` and `git`
-- `read_clean_csv()` — reads a CSV file and cleans column names in one step
-- `create_qmd()` — scaffolds a new Quarto document from a reproducible
-  template, including sample data, UW-Madison branded assets, and an optional
-  post-render `purl` hook
-- `detect_execution_context()` — identifies whether code is running
-  interactively, via `quarto render`, or via `Rscript`
-- `write_by_group()` — splits a data frame by a grouping column and writes
-  each group to a separate CSV file
-- `generate_kb_xml()` — produces a UW-Madison Knowledge Base importable XML
-  file from a rendered Quarto document
+The theming and branding support in `toolero` is specifically tailored to
+UW-Madison's Research Computing and Instrumentation (RCI) unit, whose
+Quarto-based reporting templates are baked into the package as defaults. If
+you are not at UW-Madison, the branding files are optional — the rest of the
+package works independently of them.
 
-All functions are designed around a simple idea: the decisions you make at the
-start of a project — how it is organized, how data is read in, how dependencies
-are tracked — have an outsized effect on how maintainable and reproducible that
-project turns out to be. `toolero` tries to make the right defaults easy to
-reach for.
+---
+
+## Who is this for?
+
+`toolero` is designed for researchers and analysts who:
+
+- Work primarily in R and use RStudio as their IDE
+- Write reports or analyses in Quarto
+- Want consistent, reproducible project structure without having to think
+  about it every time
+- May need to publish content to the UW-Madison Knowledge Base
+
+The package is intentionally small. It does not try to be comprehensive. It
+tries to make the right defaults easy to reach for from the first line of
+code.
 
 ---
 
@@ -62,19 +72,19 @@ pak::pak("erwinlares/toolero")
 
 ---
 
-## Starting a project with `init_project()`
+## Project setup: `init_project()` and `create_qmd()`
 
-### The problem
+These two functions are designed to be used together, in order. `init_project()`
+creates the scaffold; `create_qmd()` populates it with a working Quarto
+document.
+
+### Starting with `init_project()`
 
 Starting a new R project usually means the same manual steps every time:
-create a folder, set up an RStudio project, create subdirectories for data and
-scripts, initialize `renv`, initialize `git`. None of these steps is hard on
-its own, but skipping any of them — especially early on — tends to create
-friction later. A project without `renv` is harder to share. A project without
-`git` is harder to recover. A project without a consistent folder structure is
-harder to hand off.
-
-### The solution
+create a folder, set up an RStudio project, create subdirectories for data
+and scripts, initialize `renv`, initialize `git`. None of these steps is hard
+on its own, but skipping any of them — especially early on — tends to create
+friction later.
 
 `init_project()` handles all of this in a single call:
 
@@ -106,21 +116,15 @@ my-project/
 > encourages moving reusable logic into functions over time, which is a natural
 > step toward more maintainable code.
 
-By default, `init_project()` also initializes `renv` and `git` in the new
-project. This means the project is reproducible and version-controlled from
-the first commit.
+By default, `init_project()` also initializes `renv` and `git`. This means
+the project is reproducible and version-controlled from the first commit.
 
 > **Why `renv` and `git` by default?** `renv` ensures that the packages your
-> project depends on are recorded and reproducible — someone else (or your
-> future self) can restore the exact same environment. `git` provides a full
-> history of changes, making it possible to recover from mistakes and understand
-> how the project evolved. Both are much easier to set up at the start than to
+> project depends on are recorded and reproducible. `git` provides a full
+> history of changes. Both are much easier to set up at the start than to
 > retrofit later.
 
-### Adding extra folders
-
-If your project needs folders beyond the defaults, pass them as a character
-vector via `extra_folders`:
+If your project needs folders beyond the defaults:
 
 ```{r}
 #| eval: false
@@ -130,76 +134,23 @@ init_project(
 )
 ```
 
-### Opting out of renv or git
-
-If you need to skip one or both:
+To apply UW-Madison RCI branding assets to the project:
 
 ```{r}
 #| eval: false
 init_project(
-  path     = "~/Documents/my-project",
-  use_renv = FALSE,
-  use_git  = FALSE
+  path        = "~/Documents/my-project",
+  uw_branding = TRUE
 )
 ```
 
-> **When might you skip `renv` or `git`?** Skipping them is occasionally useful
-> in teaching or demonstration contexts where the overhead of a full setup is
-> unnecessary. For any project you plan to share, archive, or return to later,
-> the defaults are strongly recommended.
+This creates an `assets/` folder and populates it with `styles.css`,
+`header.html`, and `rci-banner.png` — the same assets used in the Quarto
+template scaffolded by `create_qmd()`.
 
----
+### Adding a Quarto document with `create_qmd()`
 
-## Reading data with `read_clean_csv()`
-
-### The problem
-
-Reading a CSV file into R is straightforward — until the column names come back
-with spaces, mixed capitalization, or special characters. Cleaning them up is a
-small but recurring friction point.
-
-### The solution
-
-`read_clean_csv()` combines `readr::read_csv()` and `janitor::clean_names()`
-into a single call:
-
-```{r}
-#| eval: false
-data <- read_clean_csv("data/my-file.csv")
-```
-
-Column names are automatically converted to lowercase with underscores —
-consistent, predictable, and tidyverse-friendly. A column called
-`First Name` becomes `first_name`. `Q1 Revenue ($)` becomes `q1_revenue`.
-
-By default, column type messages from `readr` are suppressed to keep the
-output clean. If you want to see them — useful when reading an unfamiliar
-dataset for the first time — set `verbose = TRUE`:
-
-```{r}
-#| eval: false
-data <- read_clean_csv("data/my-file.csv", verbose = TRUE)
-```
-
-> **Why suppress messages by default?** Column type messages are helpful when
-> you are first exploring a dataset. In a script or document that runs
-> repeatedly, they become noise. The `verbose` argument gives you control
-> without requiring you to remember the `readr` option name.
-
----
-
-## Scaffolding a Quarto document with `create_qmd()`
-
-### The problem
-
-Setting up a new Quarto document for a research workflow involves more than
-creating a blank file. You need a consistent YAML header, sample data to
-develop against, branded assets, and ideally a way to extract the R code from
-the document once it is rendered.
-
-### The solution
-
-`create_qmd()` scaffolds a complete working environment in a single call:
+Once the project exists, `create_qmd()` adds a working Quarto document to it:
 
 ```{r}
 #| eval: false
@@ -211,32 +162,18 @@ This creates:
 - `analysis.qmd` — a Quarto document with a fully populated YAML header,
   three-context input resolution via `detect_execution_context()`, and a
   sample analysis using the Palmer Penguins dataset
-- `data/sample.csv` — sample data to develop against
-- `assets/styles.css` and `assets/header.html` — UW-Madison RCI branding files
+- `data/sample.csv` — sample data to develop against immediately
+- `assets/styles.css` and `assets/header.html` — UW-Madison RCI branding
 - `_quarto.yml` — a project file with a post-render hook that runs `purl.R`
-- `purl.R` — a script that extracts R code from the rendered document into a
-  companion `.R` file
+- `purl.R` — extracts R code from the rendered document into a companion
+  `.R` file automatically on every render
 
-### The post-render purl hook
+> **Why the purl hook?** Having a plain `.R` companion to your `.qmd` is
+> useful for sharing the analysis as a script, running it on a remote cluster,
+> or archiving the code independently of the document. The hook runs
+> automatically so you never have to remember to extract it manually.
 
-By default (`use_purl = TRUE`), every time the document is rendered a clean
-`.R` script is automatically extracted from the code chunks and saved
-alongside the output. This is useful for sharing the analysis as a plain
-script, running it on a remote cluster, or archiving the code independently
-of the document.
-
-To opt out:
-
-```{r}
-#| eval: false
-create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd",
-           use_purl = FALSE)
-```
-
-### Pre-populating the YAML header
-
-If you have author metadata in a YAML file, you can pre-populate the document
-header automatically:
+To pre-populate the YAML header with your own metadata:
 
 ```{r}
 #| eval: false
@@ -247,9 +184,84 @@ create_qmd(
 )
 ```
 
+Where `my-metadata.yml` might look like:
+
+```yaml
+title: "My Analysis"
+author:
+  - name: "Your Name"
+    affiliation: "UW-Madison"
+    email: "you@wisc.edu"
+```
+
+Any keys present in the YAML file overwrite the corresponding placeholders in
+the template. Keys not present are left as-is.
+
 ---
 
-## Detecting the execution context with `detect_execution_context()`
+## Working with data: `read_clean_csv()` and `write_by_group()`
+
+These two functions address common friction points in day-to-day data work.
+They are general-purpose utilities — useful in any R project, not just ones
+set up with `toolero`.
+
+### Reading data with `read_clean_csv()`
+
+`read_clean_csv()` combines `readr::read_csv()` and `janitor::clean_names()`
+into a single call:
+
+```{r}
+#| eval: false
+data <- read_clean_csv("data/my-file.csv")
+```
+
+Column names are automatically converted to lowercase with underscores —
+consistent, predictable, and tidyverse-friendly. A column called `First Name`
+becomes `first_name`. `Q1 Revenue ($)` becomes `q1_revenue`.
+
+By default, column type messages from `readr` are suppressed. Set
+`verbose = TRUE` to see them:
+
+```{r}
+#| eval: false
+data <- read_clean_csv("data/my-file.csv", verbose = TRUE)
+```
+
+### Splitting data by group with `write_by_group()`
+
+When a data frame contains multiple groups that need to be written to separate
+files, `write_by_group()` handles the split and the write in a single call:
+
+```{r}
+#| eval: false
+write_by_group(
+  data       = penguins,
+  group_col  = "species",
+  output_dir = "results/by-species"
+)
+```
+
+Output filenames are derived from the group values and sanitized for use as
+file names — converted to lowercase with spaces and special characters
+replaced by dashes. A group called `Chinstrap` becomes `chinstrap.csv`.
+`Palmer Penguins` would become `palmer-penguins.csv`.
+
+To also write a manifest listing the output files, group values, and row
+counts:
+
+```{r}
+#| eval: false
+write_by_group(
+  data       = penguins,
+  group_col  = "species",
+  output_dir = "results/by-species",
+  manifest   = TRUE
+)
+```
+
+---
+
+## Execution context: `detect_execution_context()`
 
 R code often needs to behave differently depending on where it is running —
 interactively in RStudio, during a `quarto render`, or as a batch `Rscript`
@@ -270,51 +282,19 @@ input_file <- switch(context,
 )
 ```
 
-This pattern is built into the template scaffolded by `create_qmd()`.
+This pattern is built into the template scaffolded by `create_qmd()`, so you
+get it for free without having to write it yourself.
 
 ---
 
-## Splitting data by group with `write_by_group()`
+## Knowledge Base export: `generate_kb_xml()`
 
-When a data frame contains multiple groups that need to be written to separate
-files — for instance, one CSV per species, site, or experimental condition —
-`write_by_group()` handles the split and the write in a single call:
+> **This section is relevant only if you publish content to the UW-Madison
+> Knowledge Base.** If you do not, you can safely skip it.
 
-```{r}
-#| eval: false
-write_by_group(
-  data       = penguins,
-  group_col  = "species",
-  output_dir = "results/by-species"
-)
-```
-
-Output filenames are derived from the group values and sanitized for use as
-file names — converted to lowercase, with spaces and special characters
-replaced by dashes. A group called `Chinstrap` becomes `chinstrap.csv`.
-`Palmer Penguins` would become `palmer-penguins.csv`.
-
-To also write a manifest listing the output files, group values, and row
-counts:
-
-```{r}
-#| eval: false
-write_by_group(
-  data       = penguins,
-  group_col  = "species",
-  output_dir = "results/by-species",
-  manifest   = TRUE
-)
-```
-
----
-
-## Exporting to the UW-Madison Knowledge Base with `generate_kb_xml()`
-
-If your workflow includes publishing Quarto documents to the UW-Madison
-Knowledge Base (KB), `generate_kb_xml()` automates the export step. It takes
-a rendered HTML file, re-renders the source `.qmd` with all assets embedded,
-extracts the body, and produces an XML file ready for KB import.
+The UW-Madison Knowledge Base requires content to be submitted as XML with
+all visual assets embedded in the HTML body. `generate_kb_xml()` automates
+this process entirely.
 
 ```{r}
 #| eval: false
@@ -324,11 +304,19 @@ generate_kb_xml(
 )
 ```
 
-Metadata is drawn automatically from the `.qmd` YAML header:
+The function:
 
-- `title` → `kb_title`
-- `description` → `kb_summary`
-- `categories` → `kb_keywords`
+1. Infers the source `.qmd` from the HTML path (or accepts it explicitly via
+   `qmd_path`)
+2. Re-renders the document with `embed-resources: true` so all CSS, images,
+   and JavaScript are self-contained
+3. Extracts metadata from the `.qmd` YAML header — `title` → `kb_title`,
+   `description` → `kb_summary`, `categories` → `kb_keywords`
+4. Produces a `.xml` file ready for direct KB import
+
+This is why the `description` and `categories` fields in the `create_qmd()`
+template matter — they flow through automatically into the KB article metadata
+without any extra work.
 
 > **When importing into the KB**, check the
 > *Decode HTML entity in body content* option.
