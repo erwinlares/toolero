@@ -33,6 +33,11 @@
   [`fs::dir_ls()`](https://fs.r-lib.org/reference/dir_ls.html) glob
   scan, which works reliably regardless of how Quarto invokes the
   post-render script.
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  fixed YAML boolean serialization when `yaml_data` is supplied.
+  [`yaml::as.yaml()`](https://yaml.r-lib.org/reference/as.yaml.html) was
+  converting `true`/`false` to `yes`/`no`, which Quarto does not
+  recognize. A custom handler now forces `true`/`false` output.
 
 #### New features
 

@@ -54,6 +54,8 @@
 <code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>purl.R</code> is now correctly placed in <code>R/</code> instead of the project root, consistent with <code>_quarto.yml</code> calling <code>Rscript R/purl.R</code>.</li>
 <li>
 <code>inst/templates/purl.R</code>: replaced <code>QUARTO_DOCUMENT_PATH</code> environment variable approach with <code><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">fs::dir_ls()</a></code> glob scan, which works reliably regardless of how Quarto invokes the post-render script.</li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: fixed YAML boolean serialization when <code>yaml_data</code> is supplied. <code><a href="https://yaml.r-lib.org/reference/as.yaml.html" class="external-link">yaml::as.yaml()</a></code> was converting <code>true</code>/<code>false</code> to <code>yes</code>/<code>no</code>, which Quarto does not recognize. A custom handler now forces <code>true</code>/<code>false</code> output.</li>
 </ul></div>
 <div class="section level4">
 <h4 id="new-features-0-3-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-3-0"></a></h4>
