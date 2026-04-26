@@ -19,6 +19,13 @@
   and the broader package API. Calls using `file_path =` by name will
   error; positional calls are unaffected.
 
+#### Changes
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `path` now defaults to `"."` (the current working directory). Explicit
+  `NULL` is no longer accepted. `filename` remains required and provides
+  sufficient protection against accidental misuse.
+
 #### Bug fixes
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):

@@ -8,7 +8,7 @@ the YAML header with user-supplied metadata.
 
 ``` r
 create_qmd(
-  path = NULL,
+  path = ".",
   filename = NULL,
   yaml_data = NULL,
   overwrite = FALSE,
@@ -20,8 +20,8 @@ create_qmd(
 
 - path:
 
-  A string or `NULL`. Path to the directory where the document will be
-  created. If `NULL`, the user must supply a path explicitly.
+  A string. Path to the directory where the document will be created.
+  Defaults to `"."` (the current working directory).
 
 - filename:
 
@@ -72,10 +72,9 @@ Invisibly returns `path`.
     pointing to `R/purl.R`, and copies `purl.R` from the package
     templates into `path/R/purl.R`.
 
-Note: `path` and `filename` have no default values. Always supply both
-explicitly to avoid writing files to unexpected locations. Use
-[`tempdir()`](https://rdrr.io/r/base/tempfile.html) for temporary output
-during testing or exploration.
+Note: `filename` has no default value and must always be supplied
+explicitly. Use [`tempdir()`](https://rdrr.io/r/base/tempfile.html) for
+temporary output during testing or exploration.
 
 ## Examples
 
@@ -83,31 +82,31 @@ during testing or exploration.
 # \donttest{
 # Create a document in a temp directory
 create_qmd(path = tempdir(), filename = "analysis.qmd")
-#> ✔ Created /tmp/RtmpA8Iu6f/data/sample.csv
-#> ✔ Created /tmp/RtmpA8Iu6f/assets/styles.css
-#> ✔ Created /tmp/RtmpA8Iu6f/assets/header.html
-#> ✔ Created /tmp/RtmpA8Iu6f/analysis.qmd
-#> ✔ Created /tmp/RtmpA8Iu6f/_quarto.yml
-#> ✔ Created /tmp/RtmpA8Iu6f/R/purl.R
+#> ✔ Created /tmp/Rtmpdhd6Gt/data/sample.csv
+#> ✔ Created /tmp/Rtmpdhd6Gt/assets/styles.css
+#> ✔ Created /tmp/Rtmpdhd6Gt/assets/header.html
+#> ✔ Created /tmp/Rtmpdhd6Gt/analysis.qmd
+#> ✔ Created /tmp/Rtmpdhd6Gt/_quarto.yml
+#> ✔ Created /tmp/Rtmpdhd6Gt/R/purl.R
 
 # Create with a custom filename, without the purl hook
 create_qmd(path = tempdir(), filename = "report.qmd",
             overwrite = TRUE, use_purl = FALSE)
-#> ✔ Created /tmp/RtmpA8Iu6f/data/sample.csv
-#> ✔ Created /tmp/RtmpA8Iu6f/assets/styles.css
-#> ✔ Created /tmp/RtmpA8Iu6f/assets/header.html
-#> ✔ Created /tmp/RtmpA8Iu6f/report.qmd
+#> ✔ Created /tmp/Rtmpdhd6Gt/data/sample.csv
+#> ✔ Created /tmp/Rtmpdhd6Gt/assets/styles.css
+#> ✔ Created /tmp/Rtmpdhd6Gt/assets/header.html
+#> ✔ Created /tmp/Rtmpdhd6Gt/report.qmd
 
 # Create with pre-populated YAML
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
             yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpA8Iu6f/data/sample.csv
-#> ✔ Created /tmp/RtmpA8Iu6f/assets/styles.css
-#> ✔ Created /tmp/RtmpA8Iu6f/assets/header.html
-#> ✔ Created /tmp/RtmpA8Iu6f/analysis.qmd
-#> ✔ Created /tmp/RtmpA8Iu6f/_quarto.yml
-#> ✔ Created /tmp/RtmpA8Iu6f/R/purl.R
+#> ✔ Created /tmp/Rtmpdhd6Gt/data/sample.csv
+#> ✔ Created /tmp/Rtmpdhd6Gt/assets/styles.css
+#> ✔ Created /tmp/Rtmpdhd6Gt/assets/header.html
+#> ✔ Created /tmp/Rtmpdhd6Gt/analysis.qmd
+#> ✔ Created /tmp/Rtmpdhd6Gt/_quarto.yml
+#> ✔ Created /tmp/Rtmpdhd6Gt/R/purl.R
 # }
 ```
