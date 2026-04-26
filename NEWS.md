@@ -22,6 +22,10 @@
 * `inst/templates/purl.R`: replaced `QUARTO_DOCUMENT_PATH` environment
   variable approach with `fs::dir_ls()` glob scan, which works reliably
   regardless of how Quarto invokes the post-render script.
+* `create_qmd()`: fixed YAML boolean serialization when `yaml_data` is
+  supplied. `yaml::as.yaml()` was converting `true`/`false` to `yes`/`no`,
+  which Quarto does not recognize. A custom handler now forces `true`/`false`
+  output.
 
 ### New features
 

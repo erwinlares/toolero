@@ -223,7 +223,12 @@ substitute_yaml <- function(qmd_content, user_yaml) {
     }
 
     # Serialize and reconstruct
-    merged_yaml_str <- yaml::as.yaml(template_yaml)
+    merged_yaml_str <- yaml::as.yaml(
+        template_yaml,
+        handlers = list(
+            logical = function(x) ifelse(x, "true", "false")
+        )
+    )
     new_header <- paste0("---\n", merged_yaml_str, "---")
 
     sub(yaml_pattern, new_header, qmd_content, perl = TRUE)
