@@ -12,6 +12,12 @@
   consistency with `create_qmd()` and the broader package API. Calls using
   `file_path =` by name will error; positional calls are unaffected.
 
+### Changes 
+
+* `create_qmd()`: `path` now defaults to `"."` (the current working directory).
+  Explicit `NULL` is no longer accepted. `filename` remains required and
+  provides sufficient protection against accidental misuse.
+
 ### Bug fixes
 
 * `create_qmd()`: `_quarto.yml` is now copied from `inst/templates/` rather
@@ -35,8 +41,7 @@
 * `create_qmd()`: added `use_purl` argument (default `TRUE`) that scaffolds
   a `_quarto.yml` post-render hook and a `purl.R` script for extracting R
   code from rendered documents.
-
-
+  
 # toolero 0.2.0
 
 ### Breaking changes

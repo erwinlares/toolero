@@ -198,3 +198,13 @@ test_that("substitute_yaml() warns and returns content unchanged when no YAML he
   )
   expect_equal(result, content)
 })
+
+test_that("substitute_yaml() serializes logicals as true/false not yes/no", {
+  template <- "---\ntoc: true\nnumber-sections: true\nembed-resources: false\n---\n\nBody."
+  user_yaml <- list(title = "My Title")
+
+  result <- substitute_yaml(template, user_yaml)
+  expect_true(grepl("true", result, fixed = TRUE))
+  expect_false(grepl("yes", result, fixed = TRUE))
+  expect_false(grepl("no", result, fixed = TRUE))
+})

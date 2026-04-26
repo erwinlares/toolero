@@ -5,7 +5,7 @@
 \title{Create a new Quarto document from a template}
 \usage{
 create_qmd(
-  path = NULL,
+  path = ".",
   filename = NULL,
   yaml_data = NULL,
   overwrite = FALSE,
@@ -13,8 +13,8 @@ create_qmd(
 )
 }
 \arguments{
-\item{path}{A string or \code{NULL}. Path to the directory where the document
-will be created. If \code{NULL}, the user must supply a path explicitly.}
+\item{path}{A string. Path to the directory where the document will be
+created. Defaults to \code{"."} (the current working directory).}
 
 \item{filename}{A string or \code{NULL}. Name of the generated \code{.qmd} file.
 Must be supplied explicitly, e.g. \code{"analysis.qmd"}.}
@@ -56,9 +56,9 @@ pointing to \code{R/purl.R}, and copies \code{purl.R} from the package templates
 into \code{path/R/purl.R}.
 }
 
-Note: \code{path} and \code{filename} have no default values. Always supply both
-explicitly to avoid writing files to unexpected locations. Use \code{tempdir()}
-for temporary output during testing or exploration.
+Note: \code{filename} has no default value and must always be supplied
+explicitly. Use \code{tempdir()} for temporary output during testing or
+exploration.
 }
 \examples{
 \donttest{

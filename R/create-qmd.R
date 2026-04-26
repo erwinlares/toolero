@@ -4,8 +4,8 @@
 #' sample dataset and UW-Madison branded assets. Optionally pre-populates
 #' the YAML header with user-supplied metadata.
 #'
-#' @param path A string or `NULL`. Path to the directory where the document
-#'   will be created. If `NULL`, the user must supply a path explicitly.
+#' @param path A string. Path to the directory where the document will be
+#'   created. Defaults to `"."` (the current working directory).
 #' @param filename A string or `NULL`. Name of the generated `.qmd` file.
 #'   Must be supplied explicitly, e.g. `"analysis.qmd"`.
 #' @param yaml_data A string or `NULL`. Path to a YAML file containing
@@ -36,9 +36,9 @@
 #'    pointing to `R/purl.R`, and copies `purl.R` from the package templates
 #'    into `path/R/purl.R`.
 #'
-#' Note: `path` and `filename` have no default values. Always supply both
-#' explicitly to avoid writing files to unexpected locations. Use `tempdir()`
-#' for temporary output during testing or exploration.
+#' Note: `filename` has no default value and must always be supplied
+#' explicitly. Use `tempdir()` for temporary output during testing or
+#' exploration.
 #'
 #' @export
 #'
@@ -58,19 +58,11 @@
 #'             yaml_data = yaml_file, overwrite = TRUE)
 #' }
 create_qmd <- function(
-        path = NULL,
+        path = ".",
         filename = NULL,
         yaml_data = NULL,
         overwrite = FALSE,
         use_purl = TRUE) {
-
-    # -- 0. Validate path -------------------------------------------------------
-    if (is.null(path)) {
-        cli::cli_abort(
-            "{.arg path} must be supplied. Use {.code tempdir()} for temporary
-       output or provide an explicit path."
-        )
-    }
 
     # -- 1. Validate filename ---------------------------------------------------
     if (is.null(filename)) {
@@ -182,7 +174,7 @@ create_qmd <- function(
             package = "toolero",
             mustWork = TRUE
         )
-        fs::dir_create(fs::path(path, "R"))   # <- add this
+        fs::dir_create(fs::path(path, "R"))
         purl_dst <- fs::path(path, "R", "purl.R")
         if (!fs::file_exists(purl_dst) || overwrite) {
             fs::file_copy(purl_src, purl_dst, overwrite = overwrite)
@@ -222,12 +214,10 @@ substitute_yaml <- function(qmd_content, user_yaml) {
         template_yaml[[key]] <- user_yaml[[key]]
     }
 
-    # Serialize and reconstruct
+    # Serialize and reconstruct, forcing true/false instead of yes/no
     merged_yaml_str <- yaml::as.yaml(
         template_yaml,
-        handlers = list(
-            logical = function(x) ifelse(x, "true", "false")
-        )
+        handlers = list(logical = function(x) ifelse(x, "true", "false"))
     )
     new_header <- paste0("---\n", merged_yaml_str, "---")
 
