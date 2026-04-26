@@ -72,7 +72,10 @@ init_project <- function(path,
         }
 
         # 5. initialize renv
-        if (use_renv) renv::init(project = path, restart = FALSE)
+        if (use_renv) {
+            renv::init(project = path, restart = FALSE)
+            renv::snapshot(project = path, prompt = FALSE)
+        }
 
         # 6. initialize git
         if (use_git) usethis::use_git(message = "initial commit")
