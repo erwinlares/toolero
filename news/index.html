@@ -40,35 +40,30 @@
 <div class="section level4">
 <h4 id="breaking-changes-0-3-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-3-0"></a></h4>
 <ul><li>
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>filename</code> no longer defaults to <code>"analysis.qmd"</code> — it must now be supplied explicitly. Code that relied on the default will error.</li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>filename</code> is now the first argument and has no default — it must be supplied explicitly. <code>path</code> is now the second argument and defaults to <code>"."</code>, allowing natural calls like <code>create_qmd("analysis.qmd")</code>.</li>
 <li>
 <code><a href="../reference/write_by_group.html">write_by_group()</a></code>: sanitized output filenames now use <code>-</code> (dash) as the separator instead of <code>_</code> (underscore), consistent with the package convention that file names use dashes. Existing workflows that reference output paths by name will need to update accordingly.</li>
 <li>
 <code><a href="../reference/init_project.html">init_project()</a></code>: the <code>file_path</code> argument has been renamed to <code>path</code> for consistency with <code><a href="../reference/create_qmd.html">create_qmd()</a></code> and the broader package API. Calls using <code>file_path =</code> by name will error; positional calls are unaffected.</li>
-<li>
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>filename</code> is now the first argument, allowing natural positional calls like <code>create_qmd("analysis.qmd")</code>. <code>path</code> remains the second argument and defaults to <code>"."</code>.</li>
-</ul></div>
-<div class="section level4">
-<h4 id="changes-0-3-0">Changes<a class="anchor" aria-label="anchor" href="#changes-0-3-0"></a></h4>
-<ul><li>
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>path</code> now defaults to <code>"."</code> (the current working directory). Explicit <code>NULL</code> is no longer accepted. <code>filename</code> remains required and provides sufficient protection against accidental misuse.</li>
-</ul></div>
-<div class="section level4">
-<h4 id="bug-fixes-0-3-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-0"></a></h4>
-<ul><li>
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>_quarto.yml</code> is now copied from <code>inst/templates/</code> rather than written from a hardcoded string, so changes to the template are reflected automatically.</li>
-<li>
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>purl.R</code> is now correctly placed in <code>R/</code> instead of the project root, consistent with <code>_quarto.yml</code> calling <code>Rscript R/purl.R</code>.</li>
-<li>
-<code>inst/templates/purl.R</code>: replaced <code>QUARTO_DOCUMENT_PATH</code> environment variable approach with <code><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">fs::dir_ls()</a></code> glob scan, which works reliably regardless of how Quarto invokes the post-render script.</li>
-<li>
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: fixed YAML boolean serialization when <code>yaml_data</code> is supplied. <code><a href="https://yaml.r-lib.org/reference/as.yaml.html" class="external-link">yaml::as.yaml()</a></code> was converting <code>true</code>/<code>false</code> to <code>yes</code>/<code>no</code>, which Quarto does not recognize. A custom handler now forces <code>true</code>/<code>false</code> output.</li>
 </ul></div>
 <div class="section level4">
 <h4 id="new-features-0-3-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-3-0"></a></h4>
 <ul><li>Added <code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code> to produce UW-Madison KB-importable XML files from rendered Quarto documents. Extracts metadata from the <code>.qmd</code> YAML header and re-renders with embedded resources for self-contained import.</li>
 <li>
-<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: added <code>use_purl</code> argument (default <code>TRUE</code>) that scaffolds a <code>_quarto.yml</code> post-render hook and a <code>purl.R</code> script for extracting R code from rendered documents.</li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: added <code>use_purl</code> argument (default <code>TRUE</code>) that scaffolds a <code>_quarto.yml</code> post-render hook and a <code>purl.R</code> script for extracting R code from rendered documents into <code>R/</code>.</li>
+</ul></div>
+<div class="section level4">
+<h4 id="bug-fixes-0-3-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-0"></a></h4>
+<ul><li>
+<code><a href="../reference/init_project.html">init_project()</a></code>: now runs <code><a href="https://rstudio.github.io/renv/reference/snapshot.html" class="external-link">renv::snapshot()</a></code> and creates <code>.renvignore</code> after <code><a href="https://rstudio.github.io/renv/reference/init.html" class="external-link">renv::init()</a></code>, ensuring the lockfile is populated and <code>.qmd</code> files are excluded from dependency scanning at project creation time.</li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>_quarto.yml</code> is now copied from <code>inst/templates/</code> rather than written from a hardcoded string, so changes to the template are reflected automatically.</li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>purl.R</code> is now correctly placed in <code>R/</code> instead of the project root, consistent with <code>_quarto.yml</code> calling <code>Rscript R/purl.R</code>.</li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: fixed YAML boolean serialization when <code>yaml_data</code> is supplied. <code><a href="https://yaml.r-lib.org/reference/as.yaml.html" class="external-link">yaml::as.yaml()</a></code> was converting <code>true</code>/<code>false</code> to <code>yes</code>/<code>no</code>, which Quarto does not recognize. A custom handler now forces unquoted <code>true</code>/<code>false</code> output.</li>
+<li>
+<code>inst/templates/purl.R</code>: replaced <code>QUARTO_DOCUMENT_PATH</code> environment variable approach with <code><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">fs::dir_ls()</a></code> glob scan, which works reliably regardless of how Quarto invokes the post-render script.</li>
 </ul></div>
 </div>
     <div class="section level2">
