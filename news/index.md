@@ -2,6 +2,23 @@
 
 ## toolero 0.3.0
 
+#### Breaking changes
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `filename` no longer defaults to `"analysis.qmd"` — it must now be
+  supplied explicitly. Code that relied on the default will error.
+- [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md):
+  sanitized output filenames now use `-` (dash) as the separator instead
+  of `_` (underscore), consistent with the package convention that file
+  names use dashes. Existing workflows that reference output paths by
+  name will need to update accordingly.
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  the `file_path` argument has been renamed to `path` for consistency
+  with
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+  and the broader package API. Calls using `file_path =` by name will
+  error; positional calls are unaffected.
+
 #### New features
 
 - Added
@@ -13,25 +30,26 @@
   added `use_purl` argument (default `TRUE`) that scaffolds a
   `_quarto.yml` post-render hook and a `purl.R` script for extracting R
   code from rendered documents.
-- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
-  `filename` argument now requires explicit input rather than defaulting
-  to `"analysis.qmd"`.
-
-#### Changes
-
-- [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md):
-  sanitized output filenames now use `-` (dash) as the separator instead
-  of `_` (underscore), consistent with the package convention that file
-  names use dashes. Existing workflows that reference output paths by
-  name will need to update accordingly.
-- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
-  renamed `file_path` argument to `path` for consistency with
-  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
-  and the broader package API.
 
 ## toolero 0.2.0
 
 CRAN release: 2026-04-24
+
+#### Breaking changes
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `path` is now a required argument with no default. Passing `NULL` or
+  omitting it raises an error. Use
+  [`tempdir()`](https://rdrr.io/r/base/tempfile.html) for temporary
+  output.
+- [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md):
+  `output_dir` is now a required argument with no default. Passing
+  `NULL` or omitting it raises an error. Use
+  [`tempdir()`](https://rdrr.io/r/base/tempfile.html) for temporary
+  output.
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  `open` now defaults to `FALSE` instead of `TRUE` to avoid disrupting
+  the current RStudio session in non-interactive contexts.
 
 #### New features
 
@@ -40,7 +58,6 @@ CRAN release: 2026-04-24
   to identify whether code is running in an interactive R session, a
   `quarto render` call, or a plain `Rscript` invocation. Returns one of
   `"interactive"`, `"quarto"`, or `"rscript"`.
-
 - Added
   [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
   to scaffold a new Quarto document from a reproducible template,
@@ -49,7 +66,6 @@ CRAN release: 2026-04-24
   [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md).
   Optionally pre-populates the YAML header from a user-supplied YAML
   config file.
-
 - Added
   [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
   to split a data frame by a single grouping column and write each group
