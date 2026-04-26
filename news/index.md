@@ -19,6 +19,21 @@
   and the broader package API. Calls using `file_path =` by name will
   error; positional calls are unaffected.
 
+#### Bug fixes
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `_quarto.yml` is now copied from `inst/templates/` rather than written
+  from a hardcoded string, so changes to the template are reflected
+  automatically.
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `purl.R` is now correctly placed in `R/` instead of the project root,
+  consistent with `_quarto.yml` calling `Rscript R/purl.R`.
+- `inst/templates/purl.R`: replaced `QUARTO_DOCUMENT_PATH` environment
+  variable approach with
+  [`fs::dir_ls()`](https://fs.r-lib.org/reference/dir_ls.html) glob
+  scan, which works reliably regardless of how Quarto invokes the
+  post-render script.
+
 #### New features
 
 - Added

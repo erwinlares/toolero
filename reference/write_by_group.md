@@ -61,14 +61,14 @@ data <- data.frame(
   mass    = c(3750, 3800, 5000)
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpF6Yht5/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpF6Yht5/gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpJ0SwRQ/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpJ0SwRQ/gentoo.csv
 
 # Same but also write a manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpF6Yht5/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpF6Yht5/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmpF6Yht5/manifest.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpJ0SwRQ/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpJ0SwRQ/gentoo.csv
+#> ✔ Manifest written to /tmp/RtmpJ0SwRQ/manifest.csv
 # }
 ```

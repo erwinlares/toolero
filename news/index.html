@@ -47,6 +47,15 @@
 <code><a href="../reference/init_project.html">init_project()</a></code>: the <code>file_path</code> argument has been renamed to <code>path</code> for consistency with <code><a href="../reference/create_qmd.html">create_qmd()</a></code> and the broader package API. Calls using <code>file_path =</code> by name will error; positional calls are unaffected.</li>
 </ul></div>
 <div class="section level4">
+<h4 id="bug-fixes-0-3-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-0"></a></h4>
+<ul><li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>_quarto.yml</code> is now copied from <code>inst/templates/</code> rather than written from a hardcoded string, so changes to the template are reflected automatically.</li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: <code>purl.R</code> is now correctly placed in <code>R/</code> instead of the project root, consistent with <code>_quarto.yml</code> calling <code>Rscript R/purl.R</code>.</li>
+<li>
+<code>inst/templates/purl.R</code>: replaced <code>QUARTO_DOCUMENT_PATH</code> environment variable approach with <code><a href="https://fs.r-lib.org/reference/dir_ls.html" class="external-link">fs::dir_ls()</a></code> glob scan, which works reliably regardless of how Quarto invokes the post-render script.</li>
+</ul></div>
+<div class="section level4">
 <h4 id="new-features-0-3-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-3-0"></a></h4>
 <ul><li>Added <code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code> to produce UW-Madison KB-importable XML files from rendered Quarto documents. Extracts metadata from the <code>.qmd</code> YAML header and re-renders with embedded resources for self-contained import.</li>
 <li>
