@@ -11,6 +11,9 @@
 * `init_project()`: the `file_path` argument has been renamed to `path` for
   consistency with `create_qmd()` and the broader package API. Calls using
   `file_path =` by name will error; positional calls are unaffected.
+* `create_qmd()`: `filename` is now the first argument, allowing natural
+  positional calls like `create_qmd("analysis.qmd")`. `path` remains the
+  second argument and defaults to `"."`.
 
 ### Changes 
 

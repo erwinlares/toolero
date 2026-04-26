@@ -5,19 +5,19 @@
 \title{Create a new Quarto document from a template}
 \usage{
 create_qmd(
-  path = ".",
   filename = NULL,
+  path = ".",
   yaml_data = NULL,
   overwrite = FALSE,
   use_purl = TRUE
 )
 }
 \arguments{
-\item{path}{A string. Path to the directory where the document will be
-created. Defaults to \code{"."} (the current working directory).}
-
 \item{filename}{A string or \code{NULL}. Name of the generated \code{.qmd} file.
 Must be supplied explicitly, e.g. \code{"analysis.qmd"}.}
+
+\item{path}{A string. Path to the directory where the document will be
+created. Defaults to \code{"."} (the current working directory).}
 
 \item{yaml_data}{A string or \code{NULL}. Path to a YAML file containing
 metadata to pre-populate the document header. If \code{NULL} (the default),

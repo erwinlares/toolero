@@ -4,10 +4,10 @@
 #' sample dataset and UW-Madison branded assets. Optionally pre-populates
 #' the YAML header with user-supplied metadata.
 #'
-#' @param path A string. Path to the directory where the document will be
-#'   created. Defaults to `"."` (the current working directory).
 #' @param filename A string or `NULL`. Name of the generated `.qmd` file.
 #'   Must be supplied explicitly, e.g. `"analysis.qmd"`.
+#' @param path A string. Path to the directory where the document will be
+#'   created. Defaults to `"."` (the current working directory).
 #' @param yaml_data A string or `NULL`. Path to a YAML file containing
 #'   metadata to pre-populate the document header. If `NULL` (the default),
 #'   the template is copied as-is with placeholder prompts intact.
@@ -58,8 +58,8 @@
 #'             yaml_data = yaml_file, overwrite = TRUE)
 #' }
 create_qmd <- function(
-        path = ".",
         filename = NULL,
+        path = ".",
         yaml_data = NULL,
         overwrite = FALSE,
         use_purl = TRUE) {
@@ -217,7 +217,9 @@ substitute_yaml <- function(qmd_content, user_yaml) {
     # Serialize and reconstruct, forcing true/false instead of yes/no
     merged_yaml_str <- yaml::as.yaml(
         template_yaml,
-        handlers = list(logical = function(x) ifelse(x, "true", "false"))
+        handlers = list(
+            logical = function(x) structure(ifelse(x, "true", "false"), class = "verbatim")
+        )
     )
     new_header <- paste0("---\n", merged_yaml_str, "---")
 
