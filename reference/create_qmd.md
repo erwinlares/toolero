@@ -8,8 +8,8 @@ the YAML header with user-supplied metadata.
 
 ``` r
 create_qmd(
-  path = ".",
   filename = NULL,
+  path = ".",
   yaml_data = NULL,
   overwrite = FALSE,
   use_purl = TRUE
@@ -18,15 +18,15 @@ create_qmd(
 
 ## Arguments
 
-- path:
-
-  A string. Path to the directory where the document will be created.
-  Defaults to `"."` (the current working directory).
-
 - filename:
 
   A string or `NULL`. Name of the generated `.qmd` file. Must be
   supplied explicitly, e.g. `"analysis.qmd"`.
+
+- path:
+
+  A string. Path to the directory where the document will be created.
+  Defaults to `"."` (the current working directory).
 
 - yaml_data:
 
@@ -82,31 +82,31 @@ temporary output during testing or exploration.
 # \donttest{
 # Create a document in a temp directory
 create_qmd(path = tempdir(), filename = "analysis.qmd")
-#> ✔ Created /tmp/Rtmpdhd6Gt/data/sample.csv
-#> ✔ Created /tmp/Rtmpdhd6Gt/assets/styles.css
-#> ✔ Created /tmp/Rtmpdhd6Gt/assets/header.html
-#> ✔ Created /tmp/Rtmpdhd6Gt/analysis.qmd
-#> ✔ Created /tmp/Rtmpdhd6Gt/_quarto.yml
-#> ✔ Created /tmp/Rtmpdhd6Gt/R/purl.R
+#> ✔ Created /tmp/RtmpkCumHN/data/sample.csv
+#> ✔ Created /tmp/RtmpkCumHN/assets/styles.css
+#> ✔ Created /tmp/RtmpkCumHN/assets/header.html
+#> ✔ Created /tmp/RtmpkCumHN/analysis.qmd
+#> ✔ Created /tmp/RtmpkCumHN/_quarto.yml
+#> ✔ Created /tmp/RtmpkCumHN/R/purl.R
 
 # Create with a custom filename, without the purl hook
 create_qmd(path = tempdir(), filename = "report.qmd",
             overwrite = TRUE, use_purl = FALSE)
-#> ✔ Created /tmp/Rtmpdhd6Gt/data/sample.csv
-#> ✔ Created /tmp/Rtmpdhd6Gt/assets/styles.css
-#> ✔ Created /tmp/Rtmpdhd6Gt/assets/header.html
-#> ✔ Created /tmp/Rtmpdhd6Gt/report.qmd
+#> ✔ Created /tmp/RtmpkCumHN/data/sample.csv
+#> ✔ Created /tmp/RtmpkCumHN/assets/styles.css
+#> ✔ Created /tmp/RtmpkCumHN/assets/header.html
+#> ✔ Created /tmp/RtmpkCumHN/report.qmd
 
 # Create with pre-populated YAML
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
             yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/Rtmpdhd6Gt/data/sample.csv
-#> ✔ Created /tmp/Rtmpdhd6Gt/assets/styles.css
-#> ✔ Created /tmp/Rtmpdhd6Gt/assets/header.html
-#> ✔ Created /tmp/Rtmpdhd6Gt/analysis.qmd
-#> ✔ Created /tmp/Rtmpdhd6Gt/_quarto.yml
-#> ✔ Created /tmp/Rtmpdhd6Gt/R/purl.R
+#> ✔ Created /tmp/RtmpkCumHN/data/sample.csv
+#> ✔ Created /tmp/RtmpkCumHN/assets/styles.css
+#> ✔ Created /tmp/RtmpkCumHN/assets/header.html
+#> ✔ Created /tmp/RtmpkCumHN/analysis.qmd
+#> ✔ Created /tmp/RtmpkCumHN/_quarto.yml
+#> ✔ Created /tmp/RtmpkCumHN/R/purl.R
 # }
 ```

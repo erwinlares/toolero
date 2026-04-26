@@ -18,6 +18,10 @@
   [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
   and the broader package API. Calls using `file_path =` by name will
   error; positional calls are unaffected.
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `filename` is now the first argument, allowing natural positional
+  calls like `create_qmd("analysis.qmd")`. `path` remains the second
+  argument and defaults to `"."`.
 
 #### Changes
 
