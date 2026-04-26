@@ -14,10 +14,10 @@
 #' @param overwrite A logical. Whether to overwrite existing files. Defaults
 #'   to `FALSE`.
 #' @param use_purl Logical. If `TRUE` (the default), creates a `_quarto.yml`
-#'   file with a post-render hook and a `purl.R` script that extracts R code
-#'   from the rendered document into a `.R` file. The target document is
-#'   resolved dynamically from `QUARTO_DOCUMENT_PATH`, so the same `purl.R`
-#'   works regardless of the document name.
+#'   file with a post-render hook and a `purl.R` script inside `R/` that
+#'   extracts R code from the rendered document into a `.R` file. The target
+#'   document is resolved dynamically by scanning the project root for `.qmd`
+#'   files, so the same `purl.R` works regardless of the document name.
 #'
 #' @return Invisibly returns `path`.
 #'
@@ -33,7 +33,8 @@
 #' 6. If `yaml_data` is provided, reads the YAML file and substitutes values
 #'    into the document header.
 #' 7. If `use_purl = TRUE`, writes a `_quarto.yml` with a post-render hook
-#'    and copies `purl.R` from the package templates into `path`.
+#'    pointing to `R/purl.R`, and copies `purl.R` from the package templates
+#'    into `path/R/purl.R`.
 #'
 #' Note: `path` and `filename` have no default values. Always supply both
 #' explicitly to avoid writing files to unexpected locations. Use `tempdir()`
@@ -158,27 +159,31 @@ create_qmd <- function(
     readr::write_file(qmd_content, qmd_dst)
     cli::cli_alert_success("Created {.path {qmd_dst}}")
 
-    # -- 7. Scaffold _quarto.yml and purl.R if use_purl = TRUE ------------------
+    # -- 7. Scaffold _quarto.yml and R/purl.R if use_purl = TRUE ----------------
     if (use_purl) {
 
+        # _quarto.yml at project root, copied from inst/templates
+        quarto_yml_src <- system.file(
+            "templates", "_quarto.yml",
+            package = "toolero",
+            mustWork = TRUE
+        )
         quarto_yml_dst <- fs::path(path, "_quarto.yml")
         if (!fs::file_exists(quarto_yml_dst) || overwrite) {
-            quarto_yml_content <- paste0(
-                "project:\n",
-                "  post-render: Rscript purl.R\n"
-            )
-            readr::write_file(quarto_yml_content, quarto_yml_dst)
+            fs::file_copy(quarto_yml_src, quarto_yml_dst, overwrite = overwrite)
             cli::cli_alert_success("Created {.path {quarto_yml_dst}}")
         } else {
             cli::cli_alert_info("Skipping {.path {quarto_yml_dst}} - already exists.")
         }
 
+        # purl.R goes into R/, not the project root
         purl_src <- system.file(
             "templates", "purl.R",
             package = "toolero",
             mustWork = TRUE
         )
-        purl_dst <- fs::path(path, "purl.R")
+        fs::dir_create(fs::path(path, "R"))   # <- add this
+        purl_dst <- fs::path(path, "R", "purl.R")
         if (!fs::file_exists(purl_dst) || overwrite) {
             fs::file_copy(purl_src, purl_dst, overwrite = overwrite)
             cli::cli_alert_success("Created {.path {purl_dst}}")

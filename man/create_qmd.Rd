@@ -27,10 +27,10 @@ the template is copied as-is with placeholder prompts intact.}
 to \code{FALSE}.}
 
 \item{use_purl}{Logical. If \code{TRUE} (the default), creates a \verb{_quarto.yml}
-file with a post-render hook and a \code{purl.R} script that extracts R code
-from the rendered document into a \code{.R} file. The target document is
-resolved dynamically from \code{QUARTO_DOCUMENT_PATH}, so the same \code{purl.R}
-works regardless of the document name.}
+file with a post-render hook and a \code{purl.R} script inside \verb{R/} that
+extracts R code from the rendered document into a \code{.R} file. The target
+document is resolved dynamically by scanning the project root for \code{.qmd}
+files, so the same \code{purl.R} works regardless of the document name.}
 }
 \value{
 Invisibly returns \code{path}.
@@ -52,7 +52,8 @@ the YAML header with user-supplied metadata.
 \item If \code{yaml_data} is provided, reads the YAML file and substitutes values
 into the document header.
 \item If \code{use_purl = TRUE}, writes a \verb{_quarto.yml} with a post-render hook
-and copies \code{purl.R} from the package templates into \code{path}.
+pointing to \code{R/purl.R}, and copies \code{purl.R} from the package templates
+into \code{path/R/purl.R}.
 }
 
 Note: \code{path} and \code{filename} have no default values. Always supply both

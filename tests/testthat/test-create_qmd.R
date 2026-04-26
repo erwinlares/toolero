@@ -89,14 +89,14 @@ test_that("_quarto.yml contains post-render hook", {
 test_that("creates purl.R when use_purl = TRUE", {
   tmp <- withr::local_tempdir()
   create_qmd(path = tmp, filename = "analysis.qmd", use_purl = TRUE)
-  expect_true(fs::file_exists(fs::path(tmp, "purl.R")))
+  expect_true(fs::file_exists(fs::path(tmp, "R", "purl.R")))
 })
 
-test_that("purl.R references QUARTO_DOCUMENT_PATH", {
+test_that("purl.R uses glob-based qmd scanning", {
   tmp <- withr::local_tempdir()
   create_qmd(path = tmp, filename = "analysis.qmd", use_purl = TRUE)
-  content <- readr::read_file(fs::path(tmp, "purl.R"))
-  expect_true(grepl("QUARTO_DOCUMENT_PATH", content, fixed = TRUE))
+  content <- readr::read_file(fs::path(tmp, "R", "purl.R"))
+  expect_true(grepl("dir_ls", content, fixed = TRUE))
 })
 
 test_that("does not create _quarto.yml when use_purl = FALSE", {
@@ -108,7 +108,7 @@ test_that("does not create _quarto.yml when use_purl = FALSE", {
 test_that("does not create purl.R when use_purl = FALSE", {
   tmp <- withr::local_tempdir()
   create_qmd(path = tmp, filename = "analysis.qmd", use_purl = FALSE)
-  expect_false(fs::file_exists(fs::path(tmp, "purl.R")))
+  expect_false(fs::file_exists(fs::path(tmp, "R", "purl.R")))
 })
 
 test_that("skips existing _quarto.yml without erroring when overwrite is FALSE", {

@@ -74,6 +74,7 @@ init_project <- function(path,
         # 5. initialize renv
         if (use_renv) {
             renv::init(project = path, restart = FALSE)
+            writeLines("*.qmd", file.path(path, ".renvignore"))
             renv::snapshot(project = path, prompt = FALSE)
         }
 
