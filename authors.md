@@ -8,7 +8,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/erwinlares/toolero/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/erwinlares/toolero/blob/v0.3.0/inst/CITATION)
 
 Lares E (2026). *toolero: A Toolkit for Research Workflows in R*.
 [doi:10.5281/zenodo.19457647](https://doi.org/10.5281/zenodo.19457647).

@@ -36,7 +36,7 @@ files, their group values, and row counts."><meta property="og:image" content="h
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Split a data frame by a grouping column and write each group to a CSV file</h1>
-      <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/R/write-by-group.R" class="external-link"><code>R/write-by-group.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/v0.3.0/R/write-by-group.R" class="external-link"><code>R/write-by-group.R</code></a></small>
       <div class="d-none name"><code>write_by_group.Rd</code></div>
     </div>
 
@@ -101,15 +101,15 @@ temporary output during testing or exploration.</p>
 <span class="r-in"><span>  mass    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3750</span>, <span class="fl">3800</span>, <span class="fl">5000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>, output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpzIIy0a/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpzIIy0a/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/Rtmpooag0K/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/Rtmpooag0K/gentoo.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Same but also write a manifest</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpzIIy0a/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpzIIy0a/gentoo.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpzIIy0a/manifest.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/Rtmpooag0K/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/Rtmpooag0K/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/Rtmpooag0K/manifest.csv</span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

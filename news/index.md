@@ -2,6 +2,8 @@
 
 ## toolero 0.3.0
 
+CRAN release: 2026-04-27
+
 #### Breaking changes
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
