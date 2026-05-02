@@ -20,7 +20,8 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)
 ## Package identity
 
 - Name: toolero
-- On CRAN, currently developing v0.4.0
+- On CRAN at v0.3.0, v0.4.0 developed and pushed to GitHub
+- CRAN submission planned for July 2026 (CRAN resubmission policy)
 - MIT license
 - Influenced by The Carpentries and UW-Madison Libraries workshop practices
 - UW-Madison RCI branding baked into templates
@@ -159,7 +160,14 @@ R/
 ```
 toolero v0.4.0
   +-- arborize() added
-  +-- CRAN submission pending
+  +-- pushed to GitHub
+  +-- CRAN submission planned July 2026
+  When ready to push to CRAN 
+
+    devtools::check() clean
+    devtools::check_rhub() for cross-platform verification
+    Update cran-comments.md
+    devtools::submit_cran()
 
 curriculr v0.2.0
   +-- create_cv() currently self-contained (no toolero delegation)
@@ -169,6 +177,7 @@ containr v0.1.2
   +-- CRAN submission pending
   +-- Will eventually depend on toolero
 ```
+
 
 ---
 

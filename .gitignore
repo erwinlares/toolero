@@ -10,4 +10,5 @@ inst/doc
 /Meta/
 erwinlares.yaml
 .positai
-renv/
+renv/library/
+renv/staging/

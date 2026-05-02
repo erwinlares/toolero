@@ -288,5 +288,31 @@ JOURNAL.md
 PLAN.md
 ```
 
+
+
 DESCRIPTION changes: Version bumped to 0.4.0, pdftools in Suggests,
 lifecycle in Imports, VignetteBuilder confirmed.
+
+
+### Vignette image path debugging
+
+The vignette took several iterations to pass R CMD check due to a path
+resolution problem with knitr::include_graphics(). The root cause was a
+single line in .Rbuildignore:
+
+    vignettes/figures/
+
+This excluded the pre-rendered PNGs from the package tarball entirely,
+causing every path approach to fail regardless of how it was constructed.
+Approaches tried before the root cause was identified: fig_path() helper,
+knitr::current_input(dir = TRUE), system.file("doc", ...), system.file("vignettes", ...).
+
+The fix: remove vignettes/figures/ from .Rbuildignore. With the PNGs
+included in the tarball, plain relative paths work correctly:
+
+    knitr::include_graphics("figures/np-tree.png")
+
+Lesson: when include_graphics() fails during R CMD check, verify the
+files are actually in the tarball before debugging paths.
+    pkgbuild::build()
+    tar -tzf toolero_0.4.0.tar.gz | grep figures
