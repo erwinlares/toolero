@@ -1,3 +1,5 @@
+^renv$
+^renv\.lock$
 ^toolero\.Rproj$
 ^\.Rproj\.user$
 ^LICENSE\.md$
@@ -12,3 +14,6 @@
 ^\.positai$
 ^\.claude$
 ^CONTRIBUTING\.md$
+^JOURNAL\.md$
+^PLAN\.md$
+^codecov\.yml$

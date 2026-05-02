@@ -54,6 +54,10 @@ into the document header.
 \item If \code{use_purl = TRUE}, writes a \verb{_quarto.yml} with a post-render hook
 pointing to \code{R/purl.R}, and copies \code{purl.R} from the package templates
 into \code{path/R/purl.R}.
+\item The sample dataset bundled with the template is a subset of the Palmer
+Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB (2020).
+palmerpenguins: Palmer Archipelago (Antarctica) Penguin Data. R package
+version 0.1.0. \doi{10.5281/zenodo.3960218}
 }
 
 Note: \code{filename} has no default value and must always be supplied

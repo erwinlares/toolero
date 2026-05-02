@@ -35,6 +35,10 @@
 #' 7. If `use_purl = TRUE`, writes a `_quarto.yml` with a post-render hook
 #'    pointing to `R/purl.R`, and copies `purl.R` from the package templates
 #'    into `path/R/purl.R`.
+#' 8. The sample dataset bundled with the template is a subset of the Palmer
+#'    Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB (2020).
+#'    palmerpenguins: Palmer Archipelago (Antarctica) Penguin Data. R package
+#'    version 0.1.0. \doi{10.5281/zenodo.3960218}
 #'
 #' Note: `filename` has no default value and must always be supplied
 #' explicitly. Use `tempdir()` for temporary output during testing or

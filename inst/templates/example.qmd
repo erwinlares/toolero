@@ -125,6 +125,9 @@ penguins |>
 
 # Relationship between flipper length and body mass by species.
 # Replace this block with your own plot.
+#
+# Data: Palmer Penguins (Horst, Hill & Gorman, 2020)
+# https://doi.org/10.5281/zenodo.3960218
 
 penguins |>
   ggplot(aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
