@@ -1,5 +1,22 @@
 # Changelog
 
+## toolero 0.4.0
+
+#### New features
+
+- Added
+  [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
+  for rendering syntactic trees as standalone PNG images using Quarto’s
+  Typst engine. Accepts two input formats via the `tree_notation`
+  argument:
+  - `"simple"` (default) – bracket notation string, uses
+    `@preview/syntree:0.2.1`
+  - `"structured"` – nested `tree()` call string, uses
+    `@preview/lingotree:1.0.0` Output PNG files can be embedded in any
+    document format without requiring a LaTeX installation. Requires
+    Quarto 1.4+ with Typst support and the `pdftools` package (in
+    Suggests).
+
 ## toolero 0.3.0
 
 CRAN release: 2026-04-27
@@ -7,7 +24,7 @@ CRAN release: 2026-04-27
 #### Breaking changes
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
-  `filename` is now the first argument and has no default — it must be
+  `filename` is now the first argument and has no default – it must be
   supplied explicitly. `path` is now the second argument and defaults to
   `"."`, allowing natural calls like `create_qmd("analysis.qmd")`.
 - [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md):

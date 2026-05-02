@@ -45,12 +45,14 @@ line of code.
 You can install `toolero` from CRAN:
 
 ``` r
+
 install.packages("toolero")
 ```
 
 Or install the development version from GitHub:
 
 ``` r
+
 pak::pak("erwinlares/toolero")
 ```
 
@@ -76,6 +78,7 @@ steps is hard on its own, but skipping any of them — especially early on
 handles all of this in a single call:
 
 ``` r
+
 library(toolero)
 
 init_project(path = "~/Documents/my-project")
@@ -114,6 +117,7 @@ reproducible and version-controlled from the first commit.
 If your project needs folders beyond the defaults:
 
 ``` r
+
 init_project(
   path          = "~/Documents/my-project",
   extra_folders = c("notebooks", "presentations")
@@ -123,6 +127,7 @@ init_project(
 To apply UW-Madison RCI branding assets to the project:
 
 ``` r
+
 init_project(
   path        = "~/Documents/my-project",
   uw_branding = TRUE
@@ -141,6 +146,7 @@ Once the project exists,
 adds a working Quarto document to it:
 
 ``` r
+
 create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd")
 ```
 
@@ -166,6 +172,7 @@ This creates:
 To pre-populate the YAML header with your own metadata:
 
 ``` r
+
 create_qmd(
   path      = "~/Documents/my-project",
   filename  = "analysis.qmd",
@@ -204,6 +211,7 @@ and
 into a single call:
 
 ``` r
+
 data <- read_clean_csv("data/my-file.csv")
 ```
 
@@ -216,6 +224,7 @@ By default, column type messages from `readr` are suppressed. Set
 `verbose = TRUE` to see them:
 
 ``` r
+
 data <- read_clean_csv("data/my-file.csv", verbose = TRUE)
 ```
 
@@ -227,6 +236,7 @@ separate files,
 handles the split and the write in a single call:
 
 ``` r
+
 write_by_group(
   data       = penguins,
   group_col  = "species",
@@ -243,6 +253,7 @@ To also write a manifest listing the output files, group values, and row
 counts:
 
 ``` r
+
 write_by_group(
   data       = penguins,
   group_col  = "species",
@@ -265,6 +276,7 @@ of `"interactive"`, `"quarto"`, or `"rscript"`.
 The canonical use case is resolving input file paths portably:
 
 ``` r
+
 context <- detect_execution_context()
 
 input_file <- switch(context,
@@ -291,6 +303,7 @@ with all visual assets embedded in the HTML body.
 automates this process entirely.
 
 ``` r
+
 generate_kb_xml(
   html_path  = "docs/analysis.html",
   output_dir = "exports"
@@ -323,5 +336,6 @@ metadata without any extra work.
 If you use `toolero` in your work, please cite it:
 
 ``` r
+
 citation("toolero")
 ```

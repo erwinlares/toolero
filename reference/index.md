@@ -2,6 +2,8 @@
 
 ## All functions
 
+- [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
+  : Render a syntactic tree as a PNG image
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
   : Create a new Quarto document from a template
 - [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)

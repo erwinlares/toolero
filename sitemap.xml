@@ -1,19 +1,26 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://erwinlares.github.io/toolero/404.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/CONTRIBUTING.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/JOURNAL.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/LICENSE-text.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/LICENSE.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/PLAN.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/articles/arborize.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/articles/index.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/articles/toolero-intro.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/authors.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/index.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/news/index.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/arborize.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/create_qmd.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/detect_execution_context.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-build_arborize_qmd.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-write_arborize_provenance.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/generate_kb_xml.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/index.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/init_project.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/read_clean_csv.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/toolero-package.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/write_by_group.html</loc></url>
 </urlset>
 

@@ -72,6 +72,12 @@ Invisibly returns `path`.
     pointing to `R/purl.R`, and copies `purl.R` from the package
     templates into `path/R/purl.R`.
 
+8.  The sample dataset bundled with the template is a subset of the
+    Palmer Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB
+    (2020). palmerpenguins: Palmer Archipelago (Antarctica) Penguin
+    Data. R package version 0.1.0.
+    [doi:10.5281/zenodo.3960218](https://doi.org/10.5281/zenodo.3960218)
+
 Note: `filename` has no default value and must always be supplied
 explicitly. Use [`tempdir()`](https://rdrr.io/r/base/tempfile.html) for
 temporary output during testing or exploration.
@@ -82,31 +88,31 @@ temporary output during testing or exploration.
 # \donttest{
 # Create a document in a temp directory
 create_qmd(path = tempdir(), filename = "analysis.qmd")
-#> ✔ Created /tmp/Rtmpooag0K/data/sample.csv
-#> ✔ Created /tmp/Rtmpooag0K/assets/styles.css
-#> ✔ Created /tmp/Rtmpooag0K/assets/header.html
-#> ✔ Created /tmp/Rtmpooag0K/analysis.qmd
-#> ✔ Created /tmp/Rtmpooag0K/_quarto.yml
-#> ✔ Created /tmp/Rtmpooag0K/R/purl.R
+#> ✔ Created /tmp/RtmpTuzRXD/data/sample.csv
+#> ✔ Created /tmp/RtmpTuzRXD/assets/styles.css
+#> ✔ Created /tmp/RtmpTuzRXD/assets/header.html
+#> ✔ Created /tmp/RtmpTuzRXD/analysis.qmd
+#> ✔ Created /tmp/RtmpTuzRXD/_quarto.yml
+#> ✔ Created /tmp/RtmpTuzRXD/R/purl.R
 
 # Create with a custom filename, without the purl hook
 create_qmd(path = tempdir(), filename = "report.qmd",
             overwrite = TRUE, use_purl = FALSE)
-#> ✔ Created /tmp/Rtmpooag0K/data/sample.csv
-#> ✔ Created /tmp/Rtmpooag0K/assets/styles.css
-#> ✔ Created /tmp/Rtmpooag0K/assets/header.html
-#> ✔ Created /tmp/Rtmpooag0K/report.qmd
+#> ✔ Created /tmp/RtmpTuzRXD/data/sample.csv
+#> ✔ Created /tmp/RtmpTuzRXD/assets/styles.css
+#> ✔ Created /tmp/RtmpTuzRXD/assets/header.html
+#> ✔ Created /tmp/RtmpTuzRXD/report.qmd
 
 # Create with pre-populated YAML
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
             yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/Rtmpooag0K/data/sample.csv
-#> ✔ Created /tmp/Rtmpooag0K/assets/styles.css
-#> ✔ Created /tmp/Rtmpooag0K/assets/header.html
-#> ✔ Created /tmp/Rtmpooag0K/analysis.qmd
-#> ✔ Created /tmp/Rtmpooag0K/_quarto.yml
-#> ✔ Created /tmp/Rtmpooag0K/R/purl.R
+#> ✔ Created /tmp/RtmpTuzRXD/data/sample.csv
+#> ✔ Created /tmp/RtmpTuzRXD/assets/styles.css
+#> ✔ Created /tmp/RtmpTuzRXD/assets/header.html
+#> ✔ Created /tmp/RtmpTuzRXD/analysis.qmd
+#> ✔ Created /tmp/RtmpTuzRXD/_quarto.yml
+#> ✔ Created /tmp/RtmpTuzRXD/R/purl.R
 # }
 ```
