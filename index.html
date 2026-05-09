@@ -61,203 +61,258 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header">
-<img src="logo.png" class="logo" alt=""><h1 id="toolero">toolero<a class="anchor" aria-label="anchor" href="#toolero"></a>
+<img src="logo.png" class="logo" alt=""><h1 id="toolero-">toolero <a class="anchor" aria-label="anchor" href="#toolero-"></a>
 </h1>
 </div>
-<p><img src="reference/figures/logo.png" align="right" height="139" alt="toolero package logo"></p>
 <!-- badges: start -->
 
-<p><code>toolero</code> is an R package designed to help researchers implement best practices for their coding projects. It provides a small set of opinionated, practical functions that reduce friction at the start of a project and during day-to-day data work.</p>
+<div class="section level2">
+<h2 id="the-problem-with-starting-from-scratch">The problem with starting from scratch<a class="anchor" aria-label="anchor" href="#the-problem-with-starting-from-scratch"></a>
+</h2>
+<p>Every research coding project begins with a blank slate and a set of early decisions: where to put the data, how to name the scripts, whether to track dependencies, and whether to use version control. These decisions feel low-stakes in the moment. They rarely are. The cost usually appears later, when the project needs to be shared, reviewed, rerun, containerized, or moved to a larger computing system.</p>
+<p>A project that starts with a flat folder, no dependency tracking, and scripts that mix data loading, cleaning, modeling, and reporting is not impossible to rescue later — but it is genuinely hard. Collaborators cannot reproduce results because the package versions are unknown. The analysis breaks when moved to a different machine. The manuscript references outputs that no longer exist in the file system.</p>
+<p><code>toolero</code> is a small, opinionated set of tools designed to make good research workflow decisions easier to adopt. It does not impose a rigid framework. It provides practical defaults for common research projects and gets out of the way when you need to customize.</p>
+<p>If you are new to research computing, <code>toolero</code> gives you a solid starting point without requiring you to know in advance why each piece matters. If you are experienced, it automates the setup work you would otherwise do by hand at the start of every project.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="when-to-use-toolero">When to use toolero<a class="anchor" aria-label="anchor" href="#when-to-use-toolero"></a>
+</h2>
+<p>Use <code>toolero</code> when you are:</p>
+<ul>
+<li>starting a new research coding project;</li>
+<li>teaching students or collaborators a reproducible project structure;</li>
+<li>preparing an analysis that may later need to run outside your laptop;</li>
+<li>using Quarto as the source of truth for an analysis;</li>
+<li>splitting data into independent pieces for parallel or high-throughput workflows;</li>
+<li>standardizing setup across multiple projects;</li>
+<li>publishing technical documentation that should stay synchronized with its source.</li>
+</ul>
+<p><code>toolero</code> is useful on its own. You do not need to containerize your project or submit work to a cluster to benefit from better project structure, cleaner inputs, literate analysis documents, and repeatable workflows.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="the-toolero-family">The toolero family<a class="anchor" aria-label="anchor" href="#the-toolero-family"></a>
+</h2>
+<p><code>toolero</code> is also the first step in a three-package family for reproducible research workflows, from local project setup to containerization and high-throughput computing submission:</p>
+<pre class="text"><code>toolero     organize, scaffold, split
+  └─ containr   freeze the software environment in a container
+       └─ submitr    send the analysis to CHTC and retrieve results</code></pre>
+<p>Each package is useful on its own. Together, they form a path from a new local R project to a containerized analysis that can run on high-throughput computing infrastructure.</p>
+<p>You can adopt these packages one at a time. <code>toolero</code> does not require <code>containr</code>, and <code>containr</code> does not require <code>submitr</code>. The family exists so that each step prepares cleanly for the next when your project is ready to scale.</p>
+<hr>
+</div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install <code>toolero</code> from CRAN:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
-<p>Or install the development version from GitHub:</p>
+<p>Install from CRAN:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
+<p>Install the development version from GitHub:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"erwinlares/toolero"</span><span class="op">)</span></span></code></pre></div>
+<hr>
 </div>
 <div class="section level2">
-<h2 id="functions">Functions<a class="anchor" aria-label="anchor" href="#functions"></a>
+<h2 id="a-first-workflow">A first workflow<a class="anchor" aria-label="anchor" href="#a-first-workflow"></a>
+</h2>
+<p>The functions below cover a common path from project creation to analysis-ready data. This example uses a temporary directory so you can try the workflow without writing to your Documents folder.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">project_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"my-analysis"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 1. Create a project with sensible defaults</span></span>
+<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">project_dir</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Scaffold a reproducible Quarto analysis document</span></span>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="va">project_dir</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 3. Read and clean a CSV file</span></span>
+<span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"data-raw"</span>, <span class="st">"input.csv"</span><span class="op">)</span></span>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="va">input_file</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 4. Split data into per-group subsets for parallel processing</span></span>
+<span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
+<span>  <span class="va">data</span>,</span>
+<span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"data"</span>, <span class="st">"jobs"</span><span class="op">)</span>,</span>
+<span>  manifest   <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>In a real project, replace <code>project_dir</code> with the path where you want the project to live. The important idea is that <code>toolero</code> helps you start with a structure that can grow: local analysis first, reproducible execution later, and scalable computing when needed.</p>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="core-workflow-functions">Core workflow functions<a class="anchor" aria-label="anchor" href="#core-workflow-functions"></a>
 </h2>
 <div class="section level3">
 <h3 id="init_project">
 <code>init_project()</code><a class="anchor" aria-label="anchor" href="#init_project"></a>
 </h3>
-<p>Creates a new R project with a standard folder structure suited for research workflows. Optionally initializes <code>renv</code> for package management and <code>git</code> for version control.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create a project with the standard folder structure</span></span>
+<p>Creates a new R project with a standard folder structure suited for research workflows. Optionally initializes <code>renv</code> for dependency management and <code>git</code> for version control — both on by default, because both matter.</p>
+<p>The default structure includes <code>data/</code>, <code>data-raw/</code>, <code>R/</code>, <code>scripts/</code>, <code>plots/</code>, <code>images/</code>, <code>results/</code>, and <code>docs/</code>. Extra folders can be added without disrupting the defaults.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Standard project</span></span>
 <span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Add extra folders</span></span>
-<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
-<span>             extra_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"notebooks"</span>, <span class="st">"presentations"</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Skip renv and git</span></span>
-<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
-<span>             use_renv <span class="op">=</span> <span class="cn">FALSE</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p>The default folder structure includes: <code>data/</code>, <code>data-raw/</code>, <code>R/</code>, <code>scripts/</code>, <code>plots/</code>, <code>images/</code>, <code>results/</code>, and <code>docs/</code>.</p>
+<span><span class="co"># With additional folders</span></span>
+<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span></span>
+<span>  path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  extra_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"notebooks"</span>, <span class="st">"presentations"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The <code>renv</code> lockfile that <code><a href="reference/init_project.html">init_project()</a></code> creates is also what <code>containr::generate_dockerfile()</code> reads to containerize the project later. Starting with <code><a href="reference/init_project.html">init_project()</a></code> means that step is already prepared, even if you never need it.</p>
+<hr>
 </div>
 <div class="section level3">
 <h3 id="create_qmd">
 <code>create_qmd()</code><a class="anchor" aria-label="anchor" href="#create_qmd"></a>
 </h3>
-<p>Scaffolds a new Quarto document from a reproducible template, including a sample dataset, UW-Madison branded assets, and an optional post-render purl hook that extracts R code from the rendered document into a companion <code>.R</code> file. Optionally pre-populates the YAML header from a user-supplied YAML config file.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create a document with placeholder YAML</span></span>
+<p>Scaffolds a new Quarto document from a reproducible template, including a sample dataset, UW-Madison branded assets, optional YAML pre-population, and an optional post-render hook that automatically extracts the R code from the rendered document into a companion <code>.R</code> file.</p>
+<p>The function has two main motivations.</p>
+<p>First, it reduces repetitive setup work. If you regularly create Quarto documents with the same author information, institutional metadata, preferred format settings, or project conventions, the <code>yaml_data</code> argument lets you pre-populate the YAML header from a personal configuration file instead of rebuilding the same header by hand.</p>
+<p>Second, it helps reduce code drift. In a literate programming workflow, the <code>.qmd</code> document can serve as the source of truth: prose, code, results, and interpretation live together. The post-render hook derives the standalone <code>.R</code> script from the document automatically, so you do not have to maintain a separate script by hand. This pattern is discussed in more detail in the post <a href="https://connect.doit.wisc.edu/nb2cl-p1-the-document/" class="external-link">From the Notebook to the Cluster. Part 1: Start with the Document</a>.</p>
+<p>That companion <code>.R</code> script can become the script you run with <code>Rscript</code>, containerize with <code>containr</code>, or send to CHTC with <code>submitr</code>, after you confirm it runs cleanly outside the interactive session. Writing your analysis once as a Quarto document and deriving the executable script automatically helps prevent the report and the runnable analysis from drifting apart.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Create an analysis document with the purl hook (default)</span></span>
 <span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Create without the purl hook</span></span>
-<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span>,</span>
-<span>           use_purl <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co"># Without the purl hook</span></span>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span></span>
+<span>  path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  filename <span class="op">=</span> <span class="st">"report.qmd"</span>,</span>
+<span>  use_purl <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Pre-populate YAML from a personal config file</span></span>
-<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
-<span>           yaml_data <span class="op">=</span> <span class="st">"~/my_config.yml"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span></span>
+<span>  path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
+<span>  yaml_data <span class="op">=</span> <span class="st">"~/my_config.yml"</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<hr>
 </div>
 <div class="section level3">
 <h3 id="read_clean_csv">
 <code>read_clean_csv()</code><a class="anchor" aria-label="anchor" href="#read_clean_csv"></a>
 </h3>
-<p>Reads a CSV file and cleans the column names in one step, producing a tidyverse-friendly tibble.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"path/to/file.csv"</span><span class="op">)</span></span>
+<p>Reads a CSV file into a tibble and cleans the column names in one step. Column names become lowercase, spaces become underscores, and special characters are removed. It is a small thing, but doing it consistently from the start prevents subtle downstream errors.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data-raw/input.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Show column type messages</span></span>
-<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"path/to/file.csv"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data-raw/input.csv"</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="reference/read_clean_csv.html">read_clean_csv()</a></code> is built from common data-ingest tools in the <code>toolero</code> dependency stack, including <code>readr</code>, <code>janitor</code>, and <code>tibble</code>.</p>
+<hr>
 </div>
 <div class="section level3">
 <h3 id="detect_execution_context">
 <code>detect_execution_context()</code><a class="anchor" aria-label="anchor" href="#detect_execution_context"></a>
 </h3>
-<p>Identifies which of three execution environments the code is currently running in: an interactive R session, a <code>quarto render</code> call, or a plain <code>Rscript</code> invocation. Returns one of <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code>.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
+<p>Many reproducibility problems come from code that only works in the place where it was written. <code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code> helps one analysis behave correctly whether it is run interactively, rendered through Quarto, or called with <code>Rscript</code>.</p>
+<p>The function identifies which of three environments the code is currently running in — an interactive R session, a <code>quarto render</code> call, or a plain <code>Rscript</code> invocation — and returns <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code>.</p>
+<p>This matters because code drift often begins with tiny differences in how a script is launched. You write one input path while working interactively, another while rendering the document, and a third when preparing a command-line version for a scheduler. Over time, those entry points drift apart. A path is updated in one place but not another. A parameter is handled differently. The local version works, but the rendered or scheduled version does not.</p>
+<p>Using <code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code> gives you one place to decide how inputs are resolved:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
 <span>  interactive <span class="op">=</span> <span class="st">"data/sample.csv"</span>,</span>
 <span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
 <span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<p>This pattern keeps the same source logic portable across RStudio, Quarto, and command-line execution. When a Quarto document is later converted into a standalone <code>.R</code> script, the context-aware input logic comes along with it. That is the important part: the document and the script do not need separate versions of the data-loading code.</p>
+<hr>
 </div>
 <div class="section level3">
 <h3 id="write_by_group">
 <code>write_by_group()</code><a class="anchor" aria-label="anchor" href="#write_by_group"></a>
 </h3>
-<p>Splits a data frame by a single grouping column and writes each group to a separate CSV file. Filenames are derived from sanitized group values – converted to lowercase with spaces and special characters replaced by dashes. Optionally writes a <code>manifest.csv</code> listing output files, group values, and row counts.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Load the bundled sample dataset</span></span>
-<span><span class="va">sample_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"templates"</span>, <span class="st">"sample.csv"</span>, package <span class="op">=</span> <span class="st">"toolero"</span><span class="op">)</span></span>
+<p>Splits a data frame by a grouping column and writes each group to a separate CSV file. Filenames are derived from sanitized group values — lowercase, with spaces and special characters replaced by dashes. Optionally writes a <code>manifest.csv</code> listing all output files, group values, and row counts.</p>
+<p>This is useful any time a project needs independent input files: one file per county, participant, simulation parameter, model specification, bootstrap replicate, image tile, or study site. The manifest becomes a map of the work to be done.</p>
+<p>For high-throughput workflows, the manifest is the input to <code>submitr::htc_gen_submit()</code> in multiple-job mode. Splitting your data with <code>write_by_group(manifest = TRUE)</code> produces the structure needed to submit one HTCondor job per group.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sample_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"templates"</span>, <span class="st">"sample.csv"</span>, package <span class="op">=</span> <span class="st">"toolero"</span><span class="op">)</span></span>
 <span><span class="va">penguins</span>    <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="va">sample_path</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Split by species</span></span>
-<span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span><span class="va">penguins</span>, group_col <span class="op">=</span> <span class="st">"species"</span>, output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Also write a manifest</span></span>
-<span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span><span class="va">penguins</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span>
-<span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># Split by species and write a manifest</span></span>
+<span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
+<span>  <span class="va">penguins</span>,</span>
+<span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"data/jobs"</span>,</span>
+<span>  manifest   <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<hr>
 </div>
+</div>
+<div class="section level2">
+<h2 id="documentation-and-communication-utilities">Documentation and communication utilities<a class="anchor" aria-label="anchor" href="#documentation-and-communication-utilities"></a>
+</h2>
+<p>Not every reproducibility problem lives in the analysis script. Some live in the documentation around the analysis: tutorials, technical guides, teaching materials, and discipline-specific figures. <code>toolero</code> includes a small set of utilities that treat documentation as something that can be generated, versioned, and maintained like code.</p>
 <div class="section level3">
 <h3 id="generate_kb_xml">
 <code>generate_kb_xml()</code><a class="anchor" aria-label="anchor" href="#generate_kb_xml"></a>
 </h3>
-<p>Produces a UW-Madison Knowledge Base importable XML file from a rendered Quarto document. Re-renders the source <code>.qmd</code> with all assets embedded, extracts the HTML body, and wraps it in the KB XML structure along with metadata drawn from the document’s YAML header – <code>title</code> to <code>kb_title</code>, <code>description</code> to <code>kb_summary</code>, <code>categories</code> to <code>kb_keywords</code>.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
+<p>Produces a UW-Madison Knowledge Base importable XML file from a rendered Quarto document. This is useful for publishing technical tutorials and research guides in the campus-wide Knowledge Base without manually reformatting the same article in multiple places.</p>
+<p>The motivation is documentation as code. Write and maintain the guide in Quarto, where prose, code, images, links, and rendered examples can live together. Then generate the KB-ready XML from that source. The Quarto document remains the maintained version, and the XML becomes a derived artifact. That reduces documentation drift: the campus KB article does not have to become a second manually maintained version of the same tutorial.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
 <span>  html_path  <span class="op">=</span> <span class="st">"docs/analysis.html"</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="st">"exports"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>When importing the resulting XML into the KB, check the <em>Decode HTML entity in body content</em> option.</p>
+<hr>
 </div>
 <div class="section level3">
 <h3 id="arborize">
 <code>arborize()</code><a class="anchor" aria-label="anchor" href="#arborize"></a>
 </h3>
-<p>Renders a syntactic tree as a standalone PNG image using Quarto’s Typst engine. Accepts two input formats controlled by the <code>tree_notation</code> argument:</p>
-<ul>
-<li>
-<code>"simple"</code> (default) – bracket notation string, e.g. <code>"[S [NP [Det the] [N cat]] [VP [V sat]]]"</code>. Uses the <code>@preview/syntree</code> Typst package.</li>
-<li>
-<code>"structured"</code> – nested <code>tree()</code> call string for the <code>@preview/lingotree</code> Typst package. Supports per-node styling, movement arrows, and multi-dominant trees.</li>
-</ul>
-<p>The <code>papersize</code> and <code>margin</code> arguments control how tightly the PNG is cropped around the tree. Start with <code>papersize = "a6"</code> for simple trees and increase to <code>"a5"</code> or <code>"a4"</code> for wider or deeper structures.</p>
-<p>By default, a companion <code>.yaml</code> provenance file is written alongside the PNG recording the tree string and all rendering arguments, making it easy to reproduce or modify the render later.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Simple bracket notation -- also writes np-tree.yaml</span></span>
+<p>Renders a syntactic tree as a standalone PNG image using Quarto’s Typst engine. Accepts bracket notation for simple trees or structured notation for trees requiring movement arrows and per-node styling.</p>
+<p>This function comes from a practical problem in linguistics: creating good-looking syntactic trees is often more work than it should be. <code><a href="reference/arborize.html">arborize()</a></code> gives linguists a reproducible way to generate clean tree images from text-based notation. The tree specification can live in a script, vignette, Quarto document, or teaching repository, and the image can be regenerated later instead of manually redrawn.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Simple bracket notation</span></span>
 <span><span class="fu"><a href="reference/arborize.html">arborize</a></span><span class="op">(</span></span>
 <span>  <span class="st">"[NP [Det the] [N cat]]"</span>,</span>
 <span>  output    <span class="op">=</span> <span class="st">"figures/np-tree.png"</span>,</span>
 <span>  papersize <span class="op">=</span> <span class="st">"a6"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Wider tree</span></span>
-<span><span class="fu"><a href="reference/arborize.html">arborize</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
-<span>    <span class="st">"[Aspectual Classes "</span>,</span>
-<span>    <span class="st">"[Statives [States]] "</span>,</span>
-<span>    <span class="st">"[Dynamic [Atelic [Activities]] "</span>,</span>
-<span>    <span class="st">"[Telic [Instantaneous [Achievements]] "</span>,</span>
-<span>    <span class="st">"[Durative [Accomplishments]]]]]"</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  output    <span class="op">=</span> <span class="st">"figures/aspectual-classes.png"</span>,</span>
-<span>  papersize <span class="op">=</span> <span class="st">"a4"</span>,</span>
-<span>  dpi       <span class="op">=</span> <span class="fl">600</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Structured notation using lingotree</span></span>
-<span><span class="fu"><a href="reference/arborize.html">arborize</a></span><span class="op">(</span></span>
-<span>  <span class="st">"tree(</span></span>
-<span><span class="st">    tag: [VP],</span></span>
-<span><span class="st">    tree(tag: [DP], [every], [farmer]),</span></span>
-<span><span class="st">    [smiled]</span></span>
-<span><span class="st">  )"</span>,</span>
-<span>  tree_notation <span class="op">=</span> <span class="st">"structured"</span>,</span>
-<span>  output        <span class="op">=</span> <span class="st">"figures/vp-tree.png"</span>,</span>
-<span>  papersize     <span class="op">=</span> <span class="st">"a6"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Requires Quarto 1.4+ with Typst support and the <code>pdftools</code> package. On first use, Typst will download the required package – an internet connection is needed.</p>
+<p>Requires Quarto 1.4+ with Typst support and the <code>pdftools</code> package.</p>
+<hr>
 </div>
+</div>
+<div class="section level2">
+<h2 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a>
+</h2>
+<p><code>toolero</code> builds on a focused set of R packages for project setup, file handling, data import, documentation, and workflow automation:</p>
+<pre class="text"><code>cli, fs, glue, janitor, purrr, readr, renv, tibble, usethis, yaml,
+rlang, rvest, xml2, quarto, withr, lifecycle</code></pre>
+<p>These dependencies support the package’s main goals: clear user messages, safer file paths, cleaner tabular data, project scaffolding, dependency tracking, Quarto integration, and maintainable documentation workflows.</p>
+<hr>
 </div>
 <div class="section level2">
 <h2 id="related-packages">Related packages<a class="anchor" aria-label="anchor" href="#related-packages"></a>
 </h2>
-<p>toolero is one of three sibling packages:</p>
+<p><code>toolero</code> is the first step in a family of packages for reproducible research workflows:</p>
 <ul>
 <li>
-<strong>toolero</strong> – research workflow toolkit (this package)</li>
+<strong>toolero</strong> — organize and scaffold research projects</li>
 <li>
-<a href="https://github.com/erwinlares/containr" class="external-link">containr</a> – Docker containerization</li>
+<a href="https://github.com/erwinlares/containr" class="external-link">containr</a> — containerize an R project</li>
 <li>
-<a href="https://github.com/erwinlares/curriculr" class="external-link">curriculr</a> – data-driven CV generation</li>
+<a href="https://github.com/erwinlares/submitr" class="external-link">submitr</a> — submit containerized R jobs to CHTC and retrieve results</li>
 </ul>
+<p>Each package can be used independently. The shared design goal is to make good research-computing practices easier to adopt before a project becomes difficult to change.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<p>To cite <code>toolero</code> in publications:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
-<p>MIT (c) Erwin Lares</p>
+<p>MIT © Erwin Lares</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

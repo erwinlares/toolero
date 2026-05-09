@@ -1,22 +1,87 @@
 # toolero
 
-![toolero package logo](reference/figures/logo.png)
+## The problem with starting from scratch
 
-`toolero` is an R package designed to help researchers implement best
-practices for their coding projects. It provides a small set of
-opinionated, practical functions that reduce friction at the start of a
-project and during day-to-day data work.
+Every research coding project begins with a blank slate and a set of
+early decisions: where to put the data, how to name the scripts, whether
+to track dependencies, and whether to use version control. These
+decisions feel low-stakes in the moment. They rarely are. The cost
+usually appears later, when the project needs to be shared, reviewed,
+rerun, containerized, or moved to a larger computing system.
+
+A project that starts with a flat folder, no dependency tracking, and
+scripts that mix data loading, cleaning, modeling, and reporting is not
+impossible to rescue later — but it is genuinely hard. Collaborators
+cannot reproduce results because the package versions are unknown. The
+analysis breaks when moved to a different machine. The manuscript
+references outputs that no longer exist in the file system.
+
+`toolero` is a small, opinionated set of tools designed to make good
+research workflow decisions easier to adopt. It does not impose a rigid
+framework. It provides practical defaults for common research projects
+and gets out of the way when you need to customize.
+
+If you are new to research computing, `toolero` gives you a solid
+starting point without requiring you to know in advance why each piece
+matters. If you are experienced, it automates the setup work you would
+otherwise do by hand at the start of every project.
+
+------------------------------------------------------------------------
+
+## When to use toolero
+
+Use `toolero` when you are:
+
+- starting a new research coding project;
+- teaching students or collaborators a reproducible project structure;
+- preparing an analysis that may later need to run outside your laptop;
+- using Quarto as the source of truth for an analysis;
+- splitting data into independent pieces for parallel or high-throughput
+  workflows;
+- standardizing setup across multiple projects;
+- publishing technical documentation that should stay synchronized with
+  its source.
+
+`toolero` is useful on its own. You do not need to containerize your
+project or submit work to a cluster to benefit from better project
+structure, cleaner inputs, literate analysis documents, and repeatable
+workflows.
+
+------------------------------------------------------------------------
+
+## The toolero family
+
+`toolero` is also the first step in a three-package family for
+reproducible research workflows, from local project setup to
+containerization and high-throughput computing submission:
+
+``` text
+toolero     organize, scaffold, split
+  └─ containr   freeze the software environment in a container
+       └─ submitr    send the analysis to CHTC and retrieve results
+```
+
+Each package is useful on its own. Together, they form a path from a new
+local R project to a containerized analysis that can run on
+high-throughput computing infrastructure.
+
+You can adopt these packages one at a time. `toolero` does not require
+`containr`, and `containr` does not require `submitr`. The family exists
+so that each step prepares cleanly for the next when your project is
+ready to scale.
+
+------------------------------------------------------------------------
 
 ## Installation
 
-You can install `toolero` from CRAN:
+Install from CRAN:
 
 ``` r
 
 install.packages("toolero")
 ```
 
-Or install the development version from GitHub:
+Install the development version from GitHub:
 
 ``` r
 
@@ -24,82 +89,181 @@ Or install the development version from GitHub:
 pak::pak("erwinlares/toolero")
 ```
 
-## Functions
+------------------------------------------------------------------------
+
+## A first workflow
+
+The functions below cover a common path from project creation to
+analysis-ready data. This example uses a temporary directory so you can
+try the workflow without writing to your Documents folder.
+
+``` r
+
+library(toolero)
+
+project_dir <- file.path(tempdir(), "my-analysis")
+
+# 1. Create a project with sensible defaults
+init_project(path = project_dir)
+
+# 2. Scaffold a reproducible Quarto analysis document
+create_qmd(path = project_dir, filename = "analysis.qmd")
+
+# 3. Read and clean a CSV file
+input_file <- file.path(project_dir, "data-raw", "input.csv")
+data <- read_clean_csv(input_file)
+
+# 4. Split data into per-group subsets for parallel processing
+write_by_group(
+  data,
+  group_col  = "species",
+  output_dir = file.path(project_dir, "data", "jobs"),
+  manifest   = TRUE
+)
+```
+
+In a real project, replace `project_dir` with the path where you want
+the project to live. The important idea is that `toolero` helps you
+start with a structure that can grow: local analysis first, reproducible
+execution later, and scalable computing when needed.
+
+------------------------------------------------------------------------
+
+## Core workflow functions
 
 ### `init_project()`
 
 Creates a new R project with a standard folder structure suited for
-research workflows. Optionally initializes `renv` for package management
-and `git` for version control.
+research workflows. Optionally initializes `renv` for dependency
+management and `git` for version control — both on by default, because
+both matter.
+
+The default structure includes `data/`, `data-raw/`, `R/`, `scripts/`,
+`plots/`, `images/`, `results/`, and `docs/`. Extra folders can be added
+without disrupting the defaults.
 
 ``` r
 
-library(toolero)
-
-# Create a project with the standard folder structure
+# Standard project
 init_project(path = "~/Documents/my-project")
 
-# Add extra folders
-init_project(path = "~/Documents/my-project",
-             extra_folders = c("notebooks", "presentations"))
-
-# Skip renv and git
-init_project(path = "~/Documents/my-project",
-             use_renv = FALSE, use_git = FALSE)
+# With additional folders
+init_project(
+  path = "~/Documents/my-project",
+  extra_folders = c("notebooks", "presentations")
+)
 ```
 
-The default folder structure includes: `data/`, `data-raw/`, `R/`,
-`scripts/`, `plots/`, `images/`, `results/`, and `docs/`.
+The `renv` lockfile that
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+creates is also what `containr::generate_dockerfile()` reads to
+containerize the project later. Starting with
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+means that step is already prepared, even if you never need it.
+
+------------------------------------------------------------------------
 
 ### `create_qmd()`
 
 Scaffolds a new Quarto document from a reproducible template, including
-a sample dataset, UW-Madison branded assets, and an optional post-render
-purl hook that extracts R code from the rendered document into a
-companion `.R` file. Optionally pre-populates the YAML header from a
-user-supplied YAML config file.
+a sample dataset, UW-Madison branded assets, optional YAML
+pre-population, and an optional post-render hook that automatically
+extracts the R code from the rendered document into a companion `.R`
+file.
+
+The function has two main motivations.
+
+First, it reduces repetitive setup work. If you regularly create Quarto
+documents with the same author information, institutional metadata,
+preferred format settings, or project conventions, the `yaml_data`
+argument lets you pre-populate the YAML header from a personal
+configuration file instead of rebuilding the same header by hand.
+
+Second, it helps reduce code drift. In a literate programming workflow,
+the `.qmd` document can serve as the source of truth: prose, code,
+results, and interpretation live together. The post-render hook derives
+the standalone `.R` script from the document automatically, so you do
+not have to maintain a separate script by hand. This pattern is
+discussed in more detail in the post [From the Notebook to the Cluster.
+Part 1: Start with the
+Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
+
+That companion `.R` script can become the script you run with `Rscript`,
+containerize with `containr`, or send to CHTC with `submitr`, after you
+confirm it runs cleanly outside the interactive session. Writing your
+analysis once as a Quarto document and deriving the executable script
+automatically helps prevent the report and the runnable analysis from
+drifting apart.
 
 ``` r
 
-library(toolero)
-
-# Create a document with placeholder YAML
+# Create an analysis document with the purl hook (default)
 create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd")
 
-# Create without the purl hook
-create_qmd(path = "~/Documents/my-project", filename = "report.qmd",
-           use_purl = FALSE)
+# Without the purl hook
+create_qmd(
+  path = "~/Documents/my-project",
+  filename = "report.qmd",
+  use_purl = FALSE
+)
 
 # Pre-populate YAML from a personal config file
-create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd",
-           yaml_data = "~/my_config.yml")
+create_qmd(
+  path = "~/Documents/my-project",
+  filename = "analysis.qmd",
+  yaml_data = "~/my_config.yml"
+)
 ```
+
+------------------------------------------------------------------------
 
 ### `read_clean_csv()`
 
-Reads a CSV file and cleans the column names in one step, producing a
-tidyverse-friendly tibble.
+Reads a CSV file into a tibble and cleans the column names in one step.
+Column names become lowercase, spaces become underscores, and special
+characters are removed. It is a small thing, but doing it consistently
+from the start prevents subtle downstream errors.
 
 ``` r
 
-library(toolero)
-
-data <- read_clean_csv("path/to/file.csv")
+data <- read_clean_csv("data-raw/input.csv")
 
 # Show column type messages
-data <- read_clean_csv("path/to/file.csv", verbose = TRUE)
+data <- read_clean_csv("data-raw/input.csv", verbose = TRUE)
 ```
+
+[`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md)
+is built from common data-ingest tools in the `toolero` dependency
+stack, including `readr`, `janitor`, and `tibble`.
+
+------------------------------------------------------------------------
 
 ### `detect_execution_context()`
 
-Identifies which of three execution environments the code is currently
-running in: an interactive R session, a `quarto render` call, or a plain
-`Rscript` invocation. Returns one of `"interactive"`, `"quarto"`, or
-`"rscript"`.
+Many reproducibility problems come from code that only works in the
+place where it was written.
+[`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
+helps one analysis behave correctly whether it is run interactively,
+rendered through Quarto, or called with `Rscript`.
+
+The function identifies which of three environments the code is
+currently running in — an interactive R session, a `quarto render` call,
+or a plain `Rscript` invocation — and returns `"interactive"`,
+`"quarto"`, or `"rscript"`.
+
+This matters because code drift often begins with tiny differences in
+how a script is launched. You write one input path while working
+interactively, another while rendering the document, and a third when
+preparing a command-line version for a scheduler. Over time, those entry
+points drift apart. A path is updated in one place but not another. A
+parameter is handled differently. The local version works, but the
+rendered or scheduled version does not.
+
+Using
+[`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
+gives you one place to decide how inputs are resolved:
 
 ``` r
-
-library(toolero)
 
 context <- detect_execution_context()
 
@@ -110,41 +274,72 @@ input_file <- switch(context,
 )
 ```
 
+This pattern keeps the same source logic portable across RStudio,
+Quarto, and command-line execution. When a Quarto document is later
+converted into a standalone `.R` script, the context-aware input logic
+comes along with it. That is the important part: the document and the
+script do not need separate versions of the data-loading code.
+
+------------------------------------------------------------------------
+
 ### `write_by_group()`
 
-Splits a data frame by a single grouping column and writes each group to
-a separate CSV file. Filenames are derived from sanitized group values –
-converted to lowercase with spaces and special characters replaced by
-dashes. Optionally writes a `manifest.csv` listing output files, group
+Splits a data frame by a grouping column and writes each group to a
+separate CSV file. Filenames are derived from sanitized group values —
+lowercase, with spaces and special characters replaced by dashes.
+Optionally writes a `manifest.csv` listing all output files, group
 values, and row counts.
+
+This is useful any time a project needs independent input files: one
+file per county, participant, simulation parameter, model specification,
+bootstrap replicate, image tile, or study site. The manifest becomes a
+map of the work to be done.
+
+For high-throughput workflows, the manifest is the input to
+`submitr::htc_gen_submit()` in multiple-job mode. Splitting your data
+with `write_by_group(manifest = TRUE)` produces the structure needed to
+submit one HTCondor job per group.
 
 ``` r
 
-library(toolero)
-
-# Load the bundled sample dataset
 sample_path <- system.file("templates", "sample.csv", package = "toolero")
 penguins    <- read_clean_csv(sample_path)
 
-# Split by species
-write_by_group(penguins, group_col = "species", output_dir = tempdir())
-
-# Also write a manifest
-write_by_group(penguins, group_col = "species",
-               output_dir = tempdir(), manifest = TRUE)
+# Split by species and write a manifest
+write_by_group(
+  penguins,
+  group_col  = "species",
+  output_dir = "data/jobs",
+  manifest   = TRUE
+)
 ```
+
+------------------------------------------------------------------------
+
+## Documentation and communication utilities
+
+Not every reproducibility problem lives in the analysis script. Some
+live in the documentation around the analysis: tutorials, technical
+guides, teaching materials, and discipline-specific figures. `toolero`
+includes a small set of utilities that treat documentation as something
+that can be generated, versioned, and maintained like code.
 
 ### `generate_kb_xml()`
 
 Produces a UW-Madison Knowledge Base importable XML file from a rendered
-Quarto document. Re-renders the source `.qmd` with all assets embedded,
-extracts the HTML body, and wraps it in the KB XML structure along with
-metadata drawn from the document’s YAML header – `title` to `kb_title`,
-`description` to `kb_summary`, `categories` to `kb_keywords`.
+Quarto document. This is useful for publishing technical tutorials and
+research guides in the campus-wide Knowledge Base without manually
+reformatting the same article in multiple places.
+
+The motivation is documentation as code. Write and maintain the guide in
+Quarto, where prose, code, images, links, and rendered examples can live
+together. Then generate the KB-ready XML from that source. The Quarto
+document remains the maintained version, and the XML becomes a derived
+artifact. That reduces documentation drift: the campus KB article does
+not have to become a second manually maintained version of the same
+tutorial.
 
 ``` r
-
-library(toolero)
 
 generate_kb_xml(
   html_path  = "docs/analysis.html",
@@ -155,82 +350,69 @@ generate_kb_xml(
 When importing the resulting XML into the KB, check the *Decode HTML
 entity in body content* option.
 
+------------------------------------------------------------------------
+
 ### `arborize()`
 
 Renders a syntactic tree as a standalone PNG image using Quarto’s Typst
-engine. Accepts two input formats controlled by the `tree_notation`
-argument:
+engine. Accepts bracket notation for simple trees or structured notation
+for trees requiring movement arrows and per-node styling.
 
-- `"simple"` (default) – bracket notation string, e.g.
-  `"[S [NP [Det the] [N cat]] [VP [V sat]]]"`. Uses the
-  `@preview/syntree` Typst package.
-- `"structured"` – nested `tree()` call string for the
-  `@preview/lingotree` Typst package. Supports per-node styling,
-  movement arrows, and multi-dominant trees.
-
-The `papersize` and `margin` arguments control how tightly the PNG is
-cropped around the tree. Start with `papersize = "a6"` for simple trees
-and increase to `"a5"` or `"a4"` for wider or deeper structures.
-
-By default, a companion `.yaml` provenance file is written alongside the
-PNG recording the tree string and all rendering arguments, making it
-easy to reproduce or modify the render later.
+This function comes from a practical problem in linguistics: creating
+good-looking syntactic trees is often more work than it should be.
+[`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
+gives linguists a reproducible way to generate clean tree images from
+text-based notation. The tree specification can live in a script,
+vignette, Quarto document, or teaching repository, and the image can be
+regenerated later instead of manually redrawn.
 
 ``` r
 
-library(toolero)
-
-# Simple bracket notation -- also writes np-tree.yaml
+# Simple bracket notation
 arborize(
   "[NP [Det the] [N cat]]",
   output    = "figures/np-tree.png",
   papersize = "a6"
 )
-
-# Wider tree
-arborize(
-  paste0(
-    "[Aspectual Classes ",
-    "[Statives [States]] ",
-    "[Dynamic [Atelic [Activities]] ",
-    "[Telic [Instantaneous [Achievements]] ",
-    "[Durative [Accomplishments]]]]]"
-  ),
-  output    = "figures/aspectual-classes.png",
-  papersize = "a4",
-  dpi       = 600
-)
-
-# Structured notation using lingotree
-arborize(
-  "tree(
-    tag: [VP],
-    tree(tag: [DP], [every], [farmer]),
-    [smiled]
-  )",
-  tree_notation = "structured",
-  output        = "figures/vp-tree.png",
-  papersize     = "a6"
-)
 ```
 
-Requires Quarto 1.4+ with Typst support and the `pdftools` package. On
-first use, Typst will download the required package – an internet
-connection is needed.
+Requires Quarto 1.4+ with Typst support and the `pdftools` package.
+
+------------------------------------------------------------------------
+
+## Dependencies
+
+`toolero` builds on a focused set of R packages for project setup, file
+handling, data import, documentation, and workflow automation:
+
+``` text
+cli, fs, glue, janitor, purrr, readr, renv, tibble, usethis, yaml,
+rlang, rvest, xml2, quarto, withr, lifecycle
+```
+
+These dependencies support the package’s main goals: clear user
+messages, safer file paths, cleaner tabular data, project scaffolding,
+dependency tracking, Quarto integration, and maintainable documentation
+workflows.
+
+------------------------------------------------------------------------
 
 ## Related packages
 
-toolero is one of three sibling packages:
+`toolero` is the first step in a family of packages for reproducible
+research workflows:
 
-- **toolero** – research workflow toolkit (this package)
-- [containr](https://github.com/erwinlares/containr) – Docker
-  containerization
-- [curriculr](https://github.com/erwinlares/curriculr) – data-driven CV
-  generation
+- **toolero** — organize and scaffold research projects
+- [containr](https://github.com/erwinlares/containr) — containerize an R
+  project
+- [submitr](https://github.com/erwinlares/submitr) — submit
+  containerized R jobs to CHTC and retrieve results
+
+Each package can be used independently. The shared design goal is to
+make good research-computing practices easier to adopt before a project
+becomes difficult to change.
 
 ## Citation
-
-To cite `toolero` in publications:
 
 ``` r
 
@@ -239,4 +421,4 @@ citation("toolero")
 
 ## License
 
-MIT (c) Erwin Lares
+MIT © Erwin Lares

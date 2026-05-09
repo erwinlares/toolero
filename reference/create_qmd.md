@@ -88,31 +88,31 @@ temporary output during testing or exploration.
 # \donttest{
 # Create a document in a temp directory
 create_qmd(path = tempdir(), filename = "analysis.qmd")
-#> ✔ Created /tmp/RtmpTuzRXD/data/sample.csv
-#> ✔ Created /tmp/RtmpTuzRXD/assets/styles.css
-#> ✔ Created /tmp/RtmpTuzRXD/assets/header.html
-#> ✔ Created /tmp/RtmpTuzRXD/analysis.qmd
-#> ✔ Created /tmp/RtmpTuzRXD/_quarto.yml
-#> ✔ Created /tmp/RtmpTuzRXD/R/purl.R
+#> ✔ Created /tmp/Rtmpip9DJO/data/sample.csv
+#> ✔ Created /tmp/Rtmpip9DJO/assets/styles.css
+#> ✔ Created /tmp/Rtmpip9DJO/assets/header.html
+#> ✔ Created /tmp/Rtmpip9DJO/analysis.qmd
+#> ✔ Created /tmp/Rtmpip9DJO/_quarto.yml
+#> ✔ Created /tmp/Rtmpip9DJO/R/purl.R
 
 # Create with a custom filename, without the purl hook
 create_qmd(path = tempdir(), filename = "report.qmd",
             overwrite = TRUE, use_purl = FALSE)
-#> ✔ Created /tmp/RtmpTuzRXD/data/sample.csv
-#> ✔ Created /tmp/RtmpTuzRXD/assets/styles.css
-#> ✔ Created /tmp/RtmpTuzRXD/assets/header.html
-#> ✔ Created /tmp/RtmpTuzRXD/report.qmd
+#> ✔ Created /tmp/Rtmpip9DJO/data/sample.csv
+#> ✔ Created /tmp/Rtmpip9DJO/assets/styles.css
+#> ✔ Created /tmp/Rtmpip9DJO/assets/header.html
+#> ✔ Created /tmp/Rtmpip9DJO/report.qmd
 
 # Create with pre-populated YAML
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
             yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpTuzRXD/data/sample.csv
-#> ✔ Created /tmp/RtmpTuzRXD/assets/styles.css
-#> ✔ Created /tmp/RtmpTuzRXD/assets/header.html
-#> ✔ Created /tmp/RtmpTuzRXD/analysis.qmd
-#> ✔ Created /tmp/RtmpTuzRXD/_quarto.yml
-#> ✔ Created /tmp/RtmpTuzRXD/R/purl.R
+#> ✔ Created /tmp/Rtmpip9DJO/data/sample.csv
+#> ✔ Created /tmp/Rtmpip9DJO/assets/styles.css
+#> ✔ Created /tmp/Rtmpip9DJO/assets/header.html
+#> ✔ Created /tmp/Rtmpip9DJO/analysis.qmd
+#> ✔ Created /tmp/Rtmpip9DJO/_quarto.yml
+#> ✔ Created /tmp/Rtmpip9DJO/R/purl.R
 # }
 ```
