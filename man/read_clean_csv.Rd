@@ -4,31 +4,73 @@
 \alias{read_clean_csv}
 \title{Read and clean a CSV file}
 \usage{
-read_clean_csv(file_path, verbose = FALSE)
+read_clean_csv(
+  path,
+  na = c("", "NA"),
+  drop_na = FALSE,
+  summary = FALSE,
+  verbose = FALSE,
+  ...
+)
 }
 \arguments{
-\item{file_path}{A character string with the path to the CSV file.}
+\item{path}{A character string with the path to the CSV file.}
+
+\item{na}{A character vector of strings to treat as missing values. Passed
+directly to \code{readr::read_csv()}. Defaults to \code{c("", "NA")}, which matches
+\code{readr}'s own default behavior.}
+
+\item{drop_na}{Logical or character vector. If \code{FALSE} (the default), no
+rows are dropped. If \code{TRUE}, drops all rows containing any missing value.
+If a character vector of column names, drops only rows with missing values
+in those columns. Always emits a cli message reporting how many rows were
+dropped and how many remain.}
+
+\item{summary}{Logical. If \code{TRUE}, prints a brief ingest summary after
+reading and cleaning: row and column counts, number of column names
+cleaned, and missing value totals. Reflects the final state of the tibble
+after any \code{drop_na} action. Defaults to \code{FALSE}.}
 
 \item{verbose}{Logical. If \code{TRUE}, displays column type messages from
 \code{readr::read_csv()}. Defaults to \code{FALSE}.}
+
+\item{...}{Additional arguments passed to \code{readr::read_csv()}, such as
+\code{col_types}, \code{skip}, or \code{locale}.}
 }
 \value{
-A tibble with clean column names.
+A tibble with cleaned column names.
 }
 \description{
-\code{read_clean_csv()} reads a CSV file and cleans the column names in one step.
-It leverages \code{readr::read_csv()} for reading and \code{janitor::clean_names()} for
-making column names tidyverse-friendly (lowercase, no spaces, no special
-characters). By default, column type messages are suppressed. Set
-\code{verbose = TRUE} to display them.
+\code{read_clean_csv()} reads a CSV file, standardizes column names, optionally
+handles missing values, and optionally prints an ingest summary. It combines
+\code{readr::read_csv()}, \code{janitor::clean_names()}, and \code{tidyr::drop_na()} into a
+single, reproducibility-friendly step.
 }
 \examples{
 \donttest{
-# Read and clean a CSV file silently
 sample_path <- system.file("templates", "sample.csv", package = "toolero")
+
+# Basic usage
 data <- read_clean_csv(sample_path)
 
-# Show column type messages
-data <- read_clean_csv(sample_path, verbose = TRUE)
+# Explicit missing-value codes
+data <- read_clean_csv(sample_path, na = c("", "NA", "N/A", ".", "-999"))
+
+# Drop rows missing in any column
+data <- read_clean_csv(sample_path, drop_na = TRUE)
+
+# Drop rows missing in specific columns
+data <- read_clean_csv(sample_path, drop_na = c("bill_length_mm", "sex"))
+
+# Print ingest summary
+data <- read_clean_csv(sample_path, summary = TRUE)
+
+# Combine arguments
+data <- read_clean_csv(
+  sample_path,
+  na      = c("", "NA", "N/A", "."),
+  drop_na = TRUE,
+  summary = TRUE
+)
 }
 }

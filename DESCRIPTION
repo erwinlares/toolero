@@ -36,6 +36,7 @@ Imports:
     rlang,
     rvest,
     tibble,
+    tidyr,
     usethis,
     withr,
     xml2,
