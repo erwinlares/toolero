@@ -149,7 +149,7 @@ create_qmd <- function(
         }
 
         user_yaml <- yaml::read_yaml(yaml_data)
-        qmd_content <- substitute_yaml(qmd_content, user_yaml)
+        qmd_content <- .substitute_yaml(qmd_content, user_yaml)
     }
 
     readr::write_file(qmd_content, qmd_dst)
@@ -194,7 +194,7 @@ create_qmd <- function(
 
 # -- Helper: substitute YAML values into template ----------------------------
 
-substitute_yaml <- function(qmd_content, user_yaml) {
+.substitute_yaml <- function(qmd_content, user_yaml) {
 
     # Normalize line endings to \n regardless of platform
     qmd_content <- gsub("\r\n", "\n", qmd_content, fixed = TRUE)

@@ -28,18 +28,18 @@ Imports:
     fs,
     glue,
     janitor,
+    lifecycle,
     purrr,
+    quarto,
     readr,
     renv,
-    tibble,
-    usethis,
-    yaml,
     rlang,
     rvest,
-    xml2,
-    quarto,
+    tibble,
+    usethis,
     withr,
-    lifecycle
+    xml2,
+    yaml
 URL: https://github.com/erwinlares/toolero, https://erwinlares.github.io/toolero/
 BugReports: https://github.com/erwinlares/toolero/issues
 VignetteBuilder: knitr

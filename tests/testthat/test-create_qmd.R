@@ -178,13 +178,13 @@ test_that("skips existing sample.csv without erroring when overwrite is FALSE", 
   )
 })
 
-# -- substitute_yaml() helper -------------------------------------------------
+# -- .substitute_yaml() helper -------------------------------------------------
 
 test_that("substitute_yaml() merges user values into template YAML", {
   template <- "---\ntitle: 'Your Document Title'\nauthor:\n  - name: 'Your Name'\n---\n\nBody text."
   user_yaml <- list(title = "My Real Title")
 
-  result <- substitute_yaml(template, user_yaml)
+  result <- .substitute_yaml(template, user_yaml)
   expect_true(grepl("My Real Title", result, fixed = TRUE))
 })
 
@@ -193,7 +193,7 @@ test_that("substitute_yaml() warns and returns content unchanged when no YAML he
   user_yaml <- list(title = "My Title")
 
   expect_warning(
-    result <- substitute_yaml(content, user_yaml),
+    result <- .substitute_yaml(content, user_yaml),
     "No YAML header found"
   )
   expect_equal(result, content)
@@ -203,7 +203,7 @@ test_that("substitute_yaml() serializes logicals as true/false not yes/no", {
   template <- "---\ntoc: true\nnumber-sections: true\nembed-resources: false\n---\n\nBody."
   user_yaml <- list(title = "My Title")
 
-  result <- substitute_yaml(template, user_yaml)
+  result <- .substitute_yaml(template, user_yaml)
   expect_true(grepl("true", result, fixed = TRUE))
   expect_false(grepl("yes", result, fixed = TRUE))
   expect_false(grepl("no", result, fixed = TRUE))
