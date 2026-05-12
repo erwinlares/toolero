@@ -1,5 +1,7 @@
 # Writing context-aware R code with \`detect_execution_context()\`
 
+![toolero hex sticker](figures/logo.png)
+
 ## The problem
 
 Here is a situation most intermediate R users have encountered, even if

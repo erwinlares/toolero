@@ -1,5 +1,7 @@
 # Getting started with toolero
 
+![toolero hex sticker](figures/logo.png)
+
 ## Background and motivation
 
 `toolero` grew out of a recurring observation made while teaching and

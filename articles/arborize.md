@@ -1,5 +1,7 @@
 # Rendering Syntactic Trees with arborize()
 
+![toolero hex sticker](figures/logo.png)
+
 ## The problem
 
 Syntactic trees are a staple of linguistics. Whether you are analyzing
