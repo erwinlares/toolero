@@ -1,25 +1,55 @@
 # Read and clean a CSV file
 
-`read_clean_csv()` reads a CSV file and cleans the column names in one
-step. It leverages
-[`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html)
-for reading and
-[`janitor::clean_names()`](https://sfirke.github.io/janitor/reference/clean_names.html)
-for making column names tidyverse-friendly (lowercase, no spaces, no
-special characters). By default, column type messages are suppressed.
-Set `verbose = TRUE` to display them.
+`read_clean_csv()` reads a CSV file, standardizes column names,
+optionally handles missing values, and optionally prints an ingest
+summary. It combines
+[`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html),
+[`janitor::clean_names()`](https://sfirke.github.io/janitor/reference/clean_names.html),
+and
+[`tidyr::drop_na()`](https://tidyr.tidyverse.org/reference/drop_na.html)
+into a single, reproducibility-friendly step.
 
 ## Usage
 
 ``` r
-read_clean_csv(file_path, verbose = FALSE)
+read_clean_csv(
+  path,
+  na = c("", "NA"),
+  drop_na = FALSE,
+  summary = FALSE,
+  verbose = FALSE,
+  ...
+)
 ```
 
 ## Arguments
 
-- file_path:
+- path:
 
   A character string with the path to the CSV file.
+
+- na:
+
+  A character vector of strings to treat as missing values. Passed
+  directly to
+  [`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html).
+  Defaults to `c("", "NA")`, which matches `readr`'s own default
+  behavior.
+
+- drop_na:
+
+  Logical or character vector. If `FALSE` (the default), no rows are
+  dropped. If `TRUE`, drops all rows containing any missing value. If a
+  character vector of column names, drops only rows with missing values
+  in those columns. Always emits a cli message reporting how many rows
+  were dropped and how many remain.
+
+- summary:
+
+  Logical. If `TRUE`, prints a brief ingest summary after reading and
+  cleaning: row and column counts, number of column names cleaned, and
+  missing value totals. Reflects the final state of the tibble after any
+  `drop_na` action. Defaults to `FALSE`.
 
 - verbose:
 
@@ -27,27 +57,53 @@ read_clean_csv(file_path, verbose = FALSE)
   [`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html).
   Defaults to `FALSE`.
 
+- ...:
+
+  Additional arguments passed to
+  [`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html),
+  such as `col_types`, `skip`, or `locale`.
+
 ## Value
 
-A tibble with clean column names.
+A tibble with cleaned column names.
 
 ## Examples
 
 ``` r
 # \donttest{
-# Read and clean a CSV file silently
 sample_path <- system.file("templates", "sample.csv", package = "toolero")
+
+# Basic usage
 data <- read_clean_csv(sample_path)
 
-# Show column type messages
-data <- read_clean_csv(sample_path, verbose = TRUE)
-#> Rows: 344 Columns: 8
-#> ── Column specification ────────────────────────────────────────────────────────
-#> Delimiter: ","
-#> chr (3): species, island, sex
-#> dbl (5): bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g, year
-#> 
-#> ℹ Use `spec()` to retrieve the full column specification for this data.
-#> ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+# Explicit missing-value codes
+data <- read_clean_csv(sample_path, na = c("", "NA", "N/A", ".", "-999"))
+
+# Drop rows missing in any column
+data <- read_clean_csv(sample_path, drop_na = TRUE)
+#> Dropped 11 rows with missing values across all columns -- 333 rows remaining.
+
+# Drop rows missing in specific columns
+data <- read_clean_csv(sample_path, drop_na = c("bill_length_mm", "sex"))
+#> Dropped 11 rows with missing values in columns: "bill_length_mm" and "sex" --
+#> 333 rows remaining.
+
+# Print ingest summary
+data <- read_clean_csv(sample_path, summary = TRUE)
+#> ✔ Read 344 rows and 8 columns.
+#> ℹ 0 column names cleaned.
+#> ℹ 5 columns contain missing values (19 total missing values).
+
+# Combine arguments
+data <- read_clean_csv(
+  sample_path,
+  na      = c("", "NA", "N/A", "."),
+  drop_na = TRUE,
+  summary = TRUE
+)
+#> Dropped 11 rows with missing values across all columns -- 333 rows remaining.
+#> ✔ Read 333 rows and 8 columns.
+#> ℹ 0 column names cleaned.
+#> ℹ 0 columns contain missing values (0 total missing values).
 # }
 ```

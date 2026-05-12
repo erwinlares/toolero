@@ -19,6 +19,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="articles/arborize.html">Rendering Syntactic Trees with arborize()</a></li>
+    <li><a class="dropdown-item" href="articles/detect-execution-context.html">Writing context-aware R code with `detect_execution_context()`</a></li>
     <li><a class="dropdown-item" href="articles/toolero-intro.html">Getting started with toolero</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -188,6 +189,86 @@ PLAN.md</code></pre>
 <p>The fix: remove vignettes/figures/ from .Rbuildignore. With the PNGs included in the tarball, plain relative paths work correctly:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>knitr<span class="sc">::</span><span class="fu">include_graphics</span>(<span class="st">"figures/np-tree.png"</span>)</span></code></pre></div>
 <p>Lesson: when include_graphics() fails during R CMD check, verify the files are actually in the tarball before debugging paths. pkgbuild::build() tar -tzf toolero_0.4.0.tar.gz | grep figures</p>
+<hr></div>
+</div>
+<div class="section level2">
+<h2 id="session-3--2026-05-11-v040-housekeeping-and-new-functions">Session 3 – 2026-05-11 (v0.4.0 housekeeping and new functions)<a class="anchor" aria-label="anchor" href="#session-3--2026-05-11-v040-housekeeping-and-new-functions"></a></h2>
+<div class="section level3">
+<h3 id="what-we-set-out-to-do-1">What we set out to do<a class="anchor" aria-label="anchor" href="#what-we-set-out-to-do-1"></a></h3>
+<p>Complete v0.4.0 housekeeping before the July 2026 CRAN submission and add new functions identified as v0.5.0 roadmap items that were pulled forward since v0.4.0 had not yet been submitted to CRAN. The rationale: version numbers communicate change to CRAN and to users; bumping one prematurely just creates noise.</p>
+</div>
+<div class="section level3">
+<h3 id="description-updates">DESCRIPTION updates<a class="anchor" aria-label="anchor" href="#description-updates"></a></h3>
+<p>Updated the Description field to reflect the full function inventory, including arborize() and generate_kb_xml() which were missing from the v0.3.0-era prose. Added SystemRequirements: Quarto CLI (&gt;= 1.4) as a hard system dependency – the package is genuinely Quarto-dependent by design, not incidentally, so keeping quarto in Imports and declaring it explicitly is the honest approach.</p>
+<p>Confirmed that Config/roxygen2/version is roxygen2 8.0.0’s replacement for the older RoxygenNote field – nothing broken, just a version-specific change in how roxygen2 records itself in DESCRIPTION.</p>
+<p>Confirmed withr belongs in Imports after verifying it appears in arborize.R, generate_kb_xml.R, and init_project.R function bodies, not only in tests.</p>
+<p>tidyr added to Imports via usethis::use_package(“tidyr”) for the drop_na argument in read_clean_csv().</p>
+</div>
+<div class="section level3">
+<h3 id="cran-commentsmd">cran-comments.md<a class="anchor" aria-label="anchor" href="#cran-commentsmd"></a></h3>
+<p>Drafted a skeleton cran-comments.md with placeholder markers for progressive updates as work continues before the July submission. Includes resubmission note explaining the gap since v0.3.0, test environments, system requirements note for Quarto CLI, and downstream dependencies section.</p>
+</div>
+<div class="section level3">
+<h3 id="substitute_yaml-naming-fix">.substitute_yaml() naming fix<a class="anchor" aria-label="anchor" href="#substitute_yaml-naming-fix"></a></h3>
+<p>Renamed substitute_yaml() to .substitute_yaml() in create-qmd.R to follow the internal helper naming convention established elsewhere in the package. Two changes: the function definition and the single internal call site inside create_qmd(). Clean check confirmed.</p>
+</div>
+<div class="section level3">
+<h3 id="read_clean_csv-improvements">read_clean_csv() improvements<a class="anchor" aria-label="anchor" href="#read_clean_csv-improvements"></a></h3>
+<p>Extended read_clean_csv() with three new arguments:</p>
+<p>na – passes through to readr::read_csv()’s own na argument, making missing-value handling explicit. Default c(““,”NA”) matches readr’s behavior so existing code is not broken.</p>
+<p>drop_na – accepts FALSE (default, no rows dropped), TRUE (drop any row with a missing value), or a character vector of column names (drop rows missing in those specific columns). Uses tidyr::drop_na() internally. Always emits a cli message reporting rows dropped and rows remaining, independent of the summary argument. drop_na and summary are deliberately decoupled: each reports its own action without coupling to the other.</p>
+<p>summary – when TRUE, prints a brief ingest report after reading: row and column counts, number of column names cleaned, missing value counts. Reflects the final state after any drop_na action.</p>
+<p>The … argument passes additional arguments through to readr::read_csv() for flexibility without wrapper bloat. Tradeoff: … arguments don’t appear in autocomplete and aren’t documented unless listed explicitly in roxygen. Accepted as standard practice given the tidyverse orientation of the package.</p>
+<p>The function reads the file twice: once with n_max = 0 to capture original column names before cleaning, then again for the actual data. Small overhead justified by accurate name-change reporting in the summary.</p>
+<p>Argument renamed from file_path to path for consistency with the rest of the package API. Breaking change noted for NEWS.md.</p>
+<p>Double hyphens used in cli messages rather than em dashes. Em dashes (Unicode 014) caused encoding errors in earlier versions and are avoided going forward.</p>
+<p>verbose argument retained but narrowly scoped: it only passes show_col_types through to readr. The summary argument handles ingest narration. Keeping them separate preserves a clear separation of concerns.</p>
+</div>
+<div class="section level3">
+<h3 id="write_clean_csv">write_clean_csv()<a class="anchor" aria-label="anchor" href="#write_clean_csv"></a></h3>
+<p>New exported function. Writes a data frame to CSV using readr::write_csv() with cli feedback. Key design decisions:</p>
+<p>overwrite = FALSE default – consistent with create_qmd() and init_project() conservative defaults. Errors clearly if the file exists and overwrite is not set.</p>
+<p>Name validation – checks whether column names are already clean by comparing to janitor::clean_names() output. If names are dirty, emits a cli warning listing affected columns, applies janitor::clean_names(), then writes. This makes the function self-contained and honest rather than silently accepting dirty names or silently cleaning them without telling the user.</p>
+<p>janitor::clean_names() is called twice when dirty names are detected: once to check, once to apply. Consistent with the double-read pattern in read_clean_csv(). Overhead negligible for typical research CSV sizes.</p>
+<p>Returns path invisibly – consistent with the rest of the package.</p>
+<p>… passes through to readr::write_csv() for flexibility.</p>
+<p>The function reinforces the project convention that data-raw/ holds original inputs and data/ holds cleaned, analysis-ready outputs.</p>
+</div>
+<div class="section level3">
+<h3 id="check_project">check_project()<a class="anchor" aria-label="anchor" href="#check_project"></a></h3>
+<p>New exported function. Audits a project directory and reports whether it follows toolero conventions. Two modes:</p>
+<p>error = TRUE (default) – prints a formatted cli report using cli_alert_* symbols and returns the results invisibly.</p>
+<p>error = FALSE – returns a tibble with columns check, status, and message without printing. Suitable for programmatic use or CI.</p>
+<p>path argument defaults to “.” for auditing the current project.</p>
+<p>Checks performed and their severity: - .Rproj file: fail if missing - renv.lock: fail if missing - git repository (.git/): fail if missing - .gitignore: warn if missing - data-raw/: warn if missing - data/: warn if missing - docs/: warn if missing - R/ or scripts/: warn if missing (either satisfies the check) - README.md, README.Rmd, or README.qmd: warn if missing</p>
+<p>Hidden files reported only when present (conditional checks): - .RData: warn – stale session data risk - .Rhistory: warn – consider adding to .gitignore - .Rprofile: info – ensure customizations are documented - .Renviron: info – ensure it is in .gitignore to avoid leaking credentials</p>
+<p>Internal helpers: .check_result() builds a named list for each check; .print_check_project() handles the cli rendering. glue::glue() was removed from .check_result() after discovering it tried to evaluate cli inline markup like {.fn usethis::create_project} as R expressions and failed. Messages are stored as plain strings; cli interprets the markup at print time in .print_check_project(). The one call site that needs R variable interpolation (the .Rproj pass message) uses paste0() directly before passing to .check_result().</p>
+<p>The tibble is assembled with unname(vapply(…)) to strip list names from the resulting vectors. Named vectors caused expect_equal() failures in tests because the names on actual and expected didn’t match.</p>
+</div>
+<div class="section level3">
+<h3 id="test-suite-notes">Test suite notes<a class="anchor" aria-label="anchor" href="#test-suite-notes"></a></h3>
+<p>231 passing at session end, up from 172 at session start.</p>
+<p>check_project() tests use a shared project created once at the top of the test file with a custom make_project() helper. The helper uses plain fs and base R calls rather than init_project() because usethis::create_project() proved environment-sensitive under R CMD check – the shared project directory disappeared before tests ran.</p>
+<p>The withr::local_tempdir() scoping problem: calling it inside a helper function scopes the temp directory to the function’s call frame, not the test file’s lifetime. The fix is to create the root temp directory at the top level of the test file and pass it into make_project() as an argument. This was a recurring issue across multiple iterations before the root cause was identified.</p>
+<p>withr::defer() used for mutating tests – those that add or remove files from the shared project. Each mutating test registers cleanup before its assertion, restoring the project to its baseline state when the test exits. Read-only tests use the shared project directly without cleanup.</p>
+<p>expect_no_error() does not accept an info argument – use expect_error(…, NA) instead when a label is needed. This pattern was established earlier in the session and applied consistently.</p>
+</div>
+<div class="section level3">
+<h3 id="files-added-this-session">Files added this session<a class="anchor" aria-label="anchor" href="#files-added-this-session"></a></h3>
+<pre><code><span><span class="va">R</span><span class="op">/</span><span class="va">write</span><span class="op">-</span><span class="va">clean</span><span class="op">-</span><span class="va">csv.R</span></span>
+<span><span class="va">R</span><span class="op">/</span><span class="va">check</span><span class="op">-</span><span class="va">project.R</span></span>
+<span><span class="va">tests</span><span class="op">/</span><span class="va">testthat</span><span class="op">/</span><span class="va">test</span><span class="op">-</span><span class="va">write</span><span class="op">-</span><span class="va">clean</span><span class="op">-</span><span class="va">csv.R</span></span>
+<span><span class="va">tests</span><span class="op">/</span><span class="va">testthat</span><span class="op">/</span><span class="va">test</span><span class="op">-</span><span class="va">check</span><span class="op">-</span><span class="va">project.R</span></span>
+<span><span class="va">cran</span><span class="op">-</span><span class="va">comments.md</span></span></code></pre>
+<p>DESCRIPTION changes: SystemRequirements added, Description prose updated, tidyr added to Imports, withr confirmed in Imports.</p>
+</div>
+<div class="section level3">
+<h3 id="qmd_to_r">qmd_to_r()<a class="anchor" aria-label="anchor" href="#qmd_to_r"></a></h3>
+<p>New exported function. Extracts R code chunks from any .qmd file into a standalone .R script using knitr::purl() under the hood. Works on any .qmd regardless of whether it was created with create_qmd(), which is the key motivation – the existing purl hook only works for documents scaffolded through toolero.</p>
+<p>knitr kept in Suggests and gated with requireNamespace() rather than promoted to Imports. The function errors clearly if knitr is not installed.</p>
+<p>The documentation argument (0, 1, 2) maps directly to knitr::purl()’s own documentation argument. Default 1 preserves chunk labels as comments without the full roxygen overhead. The … argument was considered and rejected – no knitr::purl() arguments are realistically needed by toolero users beyond what the signature exposes.</p>
+<p>output defaults to the same directory as input with the .qmd extension replaced by .R. Explicit path overrides this.</p>
+<p>Files added: R/qmd-to-r.R, tests/testthat/test-qmd-to-r.R. Test count: up from 231 to [N] passing.</p>
 </div>
 </div>
 </div>

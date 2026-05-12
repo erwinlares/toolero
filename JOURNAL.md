@@ -345,3 +345,220 @@ knitr::include_graphics("figures/np-tree.png")
 Lesson: when include_graphics() fails during R CMD check, verify the
 files are actually in the tarball before debugging paths.
 pkgbuild::build() tar -tzf toolero_0.4.0.tar.gz \| grep figures
+
+------------------------------------------------------------------------
+
+## Session 3 – 2026-05-11 (v0.4.0 housekeeping and new functions)
+
+### What we set out to do
+
+Complete v0.4.0 housekeeping before the July 2026 CRAN submission and
+add new functions identified as v0.5.0 roadmap items that were pulled
+forward since v0.4.0 had not yet been submitted to CRAN. The rationale:
+version numbers communicate change to CRAN and to users; bumping one
+prematurely just creates noise.
+
+### DESCRIPTION updates
+
+Updated the Description field to reflect the full function inventory,
+including arborize() and generate_kb_xml() which were missing from the
+v0.3.0-era prose. Added SystemRequirements: Quarto CLI (\>= 1.4) as a
+hard system dependency – the package is genuinely Quarto-dependent by
+design, not incidentally, so keeping quarto in Imports and declaring it
+explicitly is the honest approach.
+
+Confirmed that Config/roxygen2/version is roxygen2 8.0.0’s replacement
+for the older RoxygenNote field – nothing broken, just a
+version-specific change in how roxygen2 records itself in DESCRIPTION.
+
+Confirmed withr belongs in Imports after verifying it appears in
+arborize.R, generate_kb_xml.R, and init_project.R function bodies, not
+only in tests.
+
+tidyr added to Imports via usethis::use_package(“tidyr”) for the drop_na
+argument in read_clean_csv().
+
+### cran-comments.md
+
+Drafted a skeleton cran-comments.md with placeholder markers for
+progressive updates as work continues before the July submission.
+Includes resubmission note explaining the gap since v0.3.0, test
+environments, system requirements note for Quarto CLI, and downstream
+dependencies section.
+
+### .substitute_yaml() naming fix
+
+Renamed substitute_yaml() to .substitute_yaml() in create-qmd.R to
+follow the internal helper naming convention established elsewhere in
+the package. Two changes: the function definition and the single
+internal call site inside create_qmd(). Clean check confirmed.
+
+### read_clean_csv() improvements
+
+Extended read_clean_csv() with three new arguments:
+
+na – passes through to readr::read_csv()’s own na argument, making
+missing-value handling explicit. Default c(““,”NA”) matches readr’s
+behavior so existing code is not broken.
+
+drop_na – accepts FALSE (default, no rows dropped), TRUE (drop any row
+with a missing value), or a character vector of column names (drop rows
+missing in those specific columns). Uses tidyr::drop_na() internally.
+Always emits a cli message reporting rows dropped and rows remaining,
+independent of the summary argument. drop_na and summary are
+deliberately decoupled: each reports its own action without coupling to
+the other.
+
+summary – when TRUE, prints a brief ingest report after reading: row and
+column counts, number of column names cleaned, missing value counts.
+Reflects the final state after any drop_na action.
+
+The … argument passes additional arguments through to readr::read_csv()
+for flexibility without wrapper bloat. Tradeoff: … arguments don’t
+appear in autocomplete and aren’t documented unless listed explicitly in
+roxygen. Accepted as standard practice given the tidyverse orientation
+of the package.
+
+The function reads the file twice: once with n_max = 0 to capture
+original column names before cleaning, then again for the actual data.
+Small overhead justified by accurate name-change reporting in the
+summary.
+
+Argument renamed from file_path to path for consistency with the rest of
+the package API. Breaking change noted for NEWS.md.
+
+Double hyphens used in cli messages rather than em dashes. Em dashes
+(Unicode 014) caused encoding errors in earlier versions and are avoided
+going forward.
+
+verbose argument retained but narrowly scoped: it only passes
+show_col_types through to readr. The summary argument handles ingest
+narration. Keeping them separate preserves a clear separation of
+concerns.
+
+### write_clean_csv()
+
+New exported function. Writes a data frame to CSV using
+readr::write_csv() with cli feedback. Key design decisions:
+
+overwrite = FALSE default – consistent with create_qmd() and
+init_project() conservative defaults. Errors clearly if the file exists
+and overwrite is not set.
+
+Name validation – checks whether column names are already clean by
+comparing to janitor::clean_names() output. If names are dirty, emits a
+cli warning listing affected columns, applies janitor::clean_names(),
+then writes. This makes the function self-contained and honest rather
+than silently accepting dirty names or silently cleaning them without
+telling the user.
+
+janitor::clean_names() is called twice when dirty names are detected:
+once to check, once to apply. Consistent with the double-read pattern in
+read_clean_csv(). Overhead negligible for typical research CSV sizes.
+
+Returns path invisibly – consistent with the rest of the package.
+
+… passes through to readr::write_csv() for flexibility.
+
+The function reinforces the project convention that data-raw/ holds
+original inputs and data/ holds cleaned, analysis-ready outputs.
+
+### check_project()
+
+New exported function. Audits a project directory and reports whether it
+follows toolero conventions. Two modes:
+
+error = TRUE (default) – prints a formatted cli report using
+cli_alert\_\* symbols and returns the results invisibly.
+
+error = FALSE – returns a tibble with columns check, status, and message
+without printing. Suitable for programmatic use or CI.
+
+path argument defaults to “.” for auditing the current project.
+
+Checks performed and their severity: - .Rproj file: fail if missing -
+renv.lock: fail if missing - git repository (.git/): fail if missing -
+.gitignore: warn if missing - data-raw/: warn if missing - data/: warn
+if missing - docs/: warn if missing - R/ or scripts/: warn if missing
+(either satisfies the check) - README.md, README.Rmd, or README.qmd:
+warn if missing
+
+Hidden files reported only when present (conditional checks): - .RData:
+warn – stale session data risk - .Rhistory: warn – consider adding to
+.gitignore - .Rprofile: info – ensure customizations are documented -
+.Renviron: info – ensure it is in .gitignore to avoid leaking
+credentials
+
+Internal helpers: .check_result() builds a named list for each check;
+.print_check_project() handles the cli rendering. glue::glue() was
+removed from .check_result() after discovering it tried to evaluate cli
+inline markup like {.fn usethis::create_project} as R expressions and
+failed. Messages are stored as plain strings; cli interprets the markup
+at print time in .print_check_project(). The one call site that needs R
+variable interpolation (the .Rproj pass message) uses paste0() directly
+before passing to .check_result().
+
+The tibble is assembled with unname(vapply(…)) to strip list names from
+the resulting vectors. Named vectors caused expect_equal() failures in
+tests because the names on actual and expected didn’t match.
+
+### Test suite notes
+
+231 passing at session end, up from 172 at session start.
+
+check_project() tests use a shared project created once at the top of
+the test file with a custom make_project() helper. The helper uses plain
+fs and base R calls rather than init_project() because
+usethis::create_project() proved environment-sensitive under R CMD check
+– the shared project directory disappeared before tests ran.
+
+The withr::local_tempdir() scoping problem: calling it inside a helper
+function scopes the temp directory to the function’s call frame, not the
+test file’s lifetime. The fix is to create the root temp directory at
+the top level of the test file and pass it into make_project() as an
+argument. This was a recurring issue across multiple iterations before
+the root cause was identified.
+
+withr::defer() used for mutating tests – those that add or remove files
+from the shared project. Each mutating test registers cleanup before its
+assertion, restoring the project to its baseline state when the test
+exits. Read-only tests use the shared project directly without cleanup.
+
+expect_no_error() does not accept an info argument – use expect_error(…,
+NA) instead when a label is needed. This pattern was established earlier
+in the session and applied consistently.
+
+### Files added this session
+
+    R/write-clean-csv.R
+    R/check-project.R
+    tests/testthat/test-write-clean-csv.R
+    tests/testthat/test-check-project.R
+    cran-comments.md
+
+DESCRIPTION changes: SystemRequirements added, Description prose
+updated, tidyr added to Imports, withr confirmed in Imports.
+
+### qmd_to_r()
+
+New exported function. Extracts R code chunks from any .qmd file into a
+standalone .R script using knitr::purl() under the hood. Works on any
+.qmd regardless of whether it was created with create_qmd(), which is
+the key motivation – the existing purl hook only works for documents
+scaffolded through toolero.
+
+knitr kept in Suggests and gated with requireNamespace() rather than
+promoted to Imports. The function errors clearly if knitr is not
+installed.
+
+The documentation argument (0, 1, 2) maps directly to knitr::purl()’s
+own documentation argument. Default 1 preserves chunk labels as comments
+without the full roxygen overhead. The … argument was considered and
+rejected – no knitr::purl() arguments are realistically needed by
+toolero users beyond what the signature exposes.
+
+output defaults to the same directory as input with the .qmd extension
+replaced by .R. Explicit path overrides this.
+
+Files added: R/qmd-to-r.R, tests/testthat/test-qmd-to-r.R. Test count:
+up from 231 to \[N\] passing.

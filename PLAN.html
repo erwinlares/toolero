@@ -19,6 +19,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="articles/arborize.html">Rendering Syntactic Trees with arborize()</a></li>
+    <li><a class="dropdown-item" href="articles/detect-execution-context.html">Writing context-aware R code with `detect_execution_context()`</a></li>
     <li><a class="dropdown-item" href="articles/toolero-intro.html">Getting started with toolero</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -85,16 +86,26 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 <li>test-coverage GitHub Action</li>
 <li>arborize vignette with papersize/margin crop guidance</li>
 <li>JOURNAL.md and PLAN.md added, in .Rbuildignore</li>
+<li>.substitute_yaml() naming fix – internal helper renamed from substitute_yaml()</li>
+<li>read_clean_csv() extended – na, drop_na, summary, … arguments added</li>
+<li>write_clean_csv() – new exported function</li>
+<li>check_project() – new exported function</li>
+<li>DESCRIPTION updated – SystemRequirements, Description prose, tidyr in Imports</li>
+<li>cran-comments.md drafted – skeleton with progressive update markers</li>
+<li>qmd_to_r() – extracts R code from any .qmd into a standalone .R script</li>
 </ul><hr></div>
 <div class="section level2">
 <h2 id="source-file-organization">Source file organization<a class="anchor" aria-label="anchor" href="#source-file-organization"></a></h2>
 <pre><code><span><span class="va">R</span><span class="op">/</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">init</span><span class="op">-</span><span class="va">project.R</span>              <span class="co"># init_project()</span></span>
-<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">create</span><span class="op">-</span><span class="va">qmd.R</span>                <span class="co"># create_qmd()</span></span>
+<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">create</span><span class="op">-</span><span class="va">qmd.R</span>                <span class="co"># create_qmd(), .substitute_yaml()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">read</span><span class="op">-</span><span class="va">clean</span><span class="op">-</span><span class="va">csv.R</span>            <span class="co"># read_clean_csv()</span></span>
+<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">write</span><span class="op">-</span><span class="va">clean</span><span class="op">-</span><span class="va">csv.R</span>           <span class="co"># write_clean_csv()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">detect</span><span class="op">-</span><span class="va">execution</span><span class="op">-</span><span class="va">context.R</span>  <span class="co"># detect_execution_context()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">write</span><span class="op">-</span><span class="va">by</span><span class="op">-</span><span class="va">group.R</span>            <span class="co"># write_by_group()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">generate</span><span class="op">-</span><span class="va">kb</span><span class="op">-</span><span class="va">xml.R</span>           <span class="co"># generate_kb_xml()</span></span>
+<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">check</span><span class="op">-</span><span class="va">project.R</span>             <span class="co"># check_project(), .check_result(),</span></span>
+<span>                                <span class="co">#   .print_check_project()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">arborize.R</span>                  <span class="co"># arborize(), .build_arborize_qmd(),</span></span>
 <span>                                <span class="co">#   .write_arborize_provenance()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">toolero</span><span class="op">-</span><span class="va">package.R</span>           <span class="co"># package sentinel</span></span></code></pre>
@@ -110,12 +121,13 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 <div class="section level3">
 <h3 id="high-priority">High priority<a class="anchor" aria-label="anchor" href="#high-priority"></a></h3>
 <ul><li><p>template argument for create_qmd(). Currently create_qmd() always uses the internal toolero template. Adding a template argument would allow curriculr’s create_cv() to delegate to create_qmd() for Quarto scaffolding instead of handling it independently. This is the primary blocker for restoring the intended delegation model across the package suite.</p></li>
-<li><p>read_clean_<em>() function family. read_clean_csv() as the first member, already in the package. Planned additions: read_clean_excel() – same pattern via readxl Shared conventions: janitor::clean_names() as core, optional na_handling, type_inference, verbose arguments, returning tibbles. The drop_na argument for read_clean_csv() accepts TRUE or c(col1, col2) for column-specific dropping with cli feedback. Prefix convention is read_clean_</em>().</p></li>
-<li><p>arborize() v2 – R list input for structured notation. Currently the structured backend passes the user’s tree() string verbatim into #render(). A future version could accept an R list structure and generate the nested tree() calls programmatically, removing the need for the user to know Typst syntax at all.</p></li>
+<li><p>qmd_to_r() – extracts R code from any .qmd file into a standalone .R script. Complements the existing use_purl hook in create_qmd() by working on any .qmd regardless of origin. In progress.</p></li>
+<li><p>read_clean_excel() – companion to read_clean_csv() via readxl. Same conventions: janitor::clean_names() as core, na, drop_na, summary, verbose, … arguments, returning tibbles. Prefix convention is read_clean_*().</p></li>
 </ul></div>
 <div class="section level3">
 <h3 id="medium-priority">Medium priority<a class="anchor" aria-label="anchor" href="#medium-priority"></a></h3>
-<ul><li><p>arborize() node styling arguments. Expose lingotree’s layer-spacing, child-spacing, branch-stroke, and color parameters as R arguments so users can control appearance without writing Typst.</p></li>
+<ul><li><p>arborize() v2 – R list input for structured notation. Currently the structured backend passes the user’s tree() string verbatim into #render(). A future version could accept an R list structure and generate the nested tree() calls programmatically, removing the need for the user to know Typst syntax at all.</p></li>
+<li><p>arborize() node styling arguments. Expose lingotree’s layer-spacing, child-spacing, branch-stroke, and color parameters as R arguments so users can control appearance without writing Typst.</p></li>
 <li><p>arborize() SVG output option. Typst can produce SVG directly – offer it as an alternative to PNG for web embedding.</p></li>
 <li><p>rearborize() – re-render from a provenance .yaml file. Currently the manual pattern (read yaml, call arborize() with recovered fields) is only five lines and does not justify an exported function. Implement if user demand materializes via GitHub issues.</p></li>
 <li><p>toolero delegation from curriculr – once template argument is added to create_qmd(), restore create_cv() in curriculr to delegate to toolero::create_qmd() rather than handling scaffolding independently.</p></li>
@@ -136,27 +148,36 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 </tr><tr><td>create_qmd()</td>
 <td>Scaffolds Quarto document from reproducible template</td>
 </tr><tr><td>read_clean_csv()</td>
-<td>Reads CSV and cleans column names</td>
+<td>Reads CSV, cleans names, handles missing values</td>
+</tr><tr><td>write_clean_csv()</td>
+<td>Writes cleaned data frame to CSV with cli feedback</td>
 </tr><tr><td>detect_execution_context()</td>
 <td>Identifies interactive/quarto/rscript environment</td>
 </tr><tr><td>write_by_group()</td>
 <td>Splits data frame by group, writes CSVs</td>
 </tr><tr><td>generate_kb_xml()</td>
 <td>Produces UW-Madison KB importable XML</td>
+</tr><tr><td>check_project()</td>
+<td>Audits project structure against toolero conventions</td>
 </tr><tr><td>arborize()</td>
 <td>Renders syntactic tree as PNG via Quarto + Typst</td>
+</tr><tr><td>qmd_to_r()</td>
+<td>Extracts R code from a Quarto document into a .R script</td>
 </tr></tbody></table><hr></div>
 <div class="section level2">
 <h2 id="relationship-to-curriculr-and-containr">Relationship to curriculr and containr<a class="anchor" aria-label="anchor" href="#relationship-to-curriculr-and-containr"></a></h2>
 <pre><code>toolero v0.4.0
   +-- arborize() added
+  +-- read_clean_csv() extended
+  +-- write_clean_csv() added
+  +-- check_project() added
   +-- pushed to GitHub
   +-- CRAN submission planned July 2026
   When ready to push to CRAN
 
     devtools::check() clean
     devtools::check_rhub() for cross-platform verification
-    Update cran-comments.md
+    Update cran-comments.md (skeleton drafted, append as work continues)
     devtools::submit_cran()
 
 curriculr v0.2.0
