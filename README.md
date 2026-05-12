@@ -29,6 +29,7 @@ Use `toolero` when you are:
 - teaching students or collaborators a reproducible project structure;
 - preparing an analysis that may later need to run outside your laptop;
 - using Quarto as the source of truth for an analysis;
+- reading and cleaning tabular data files at the start of a workflow;
 - splitting data into independent pieces for parallel or high-throughput workflows;
 - standardizing setup across multiple projects;
 - publishing technical documentation that should stay synchronized with its source.
@@ -82,14 +83,29 @@ project_dir <- file.path(tempdir(), "my-analysis")
 # 1. Create a project with sensible defaults
 init_project(path = project_dir)
 
-# 2. Scaffold a reproducible Quarto analysis document
+# 2. Audit the project structure
+check_project(path = project_dir)
+
+# 3. Scaffold a reproducible Quarto analysis document
 create_qmd(path = project_dir, filename = "analysis.qmd")
 
-# 3. Read and clean a CSV file
-input_file <- file.path(project_dir, "data-raw", "input.csv")
-data <- read_clean_csv(input_file)
+# 4. Extract the R code from the document into a standalone script
+qmd_to_r(
+  input  = file.path(project_dir, "analysis.qmd"),
+  output = file.path(project_dir, "R", "analysis.R")
+)
 
-# 4. Split data into per-group subsets for parallel processing
+# 5. Read and clean a CSV file
+data <- read_clean_csv(
+  file.path(project_dir, "data-raw", "input.csv"),
+  na      = c("", "NA", "N/A", "."),
+  summary = TRUE
+)
+
+# 6. Write the cleaned data
+write_clean_csv(data, file.path(project_dir, "data", "clean.csv"))
+
+# 7. Split data into per-group subsets for parallel processing
 write_by_group(
   data,
   group_col  = "species",
@@ -116,7 +132,7 @@ init_project(path = "~/Documents/my-project")
 
 # With additional folders
 init_project(
-  path = "~/Documents/my-project",
+  path          = "~/Documents/my-project",
   extra_folders = c("notebooks", "presentations")
 )
 ```
@@ -125,17 +141,29 @@ The `renv` lockfile that `init_project()` creates is also what `containr::genera
 
 ---
 
+### `check_project()`
+
+Audits an existing project directory and reports whether it follows toolero conventions. Useful both for projects initialized with `init_project()` and for any existing R project you want to evaluate.
+
+The report checks for the expected folder structure, an `.Rproj` file, `renv.lock`, a git repository, a README, and a `.gitignore`. It also notes the presence of hidden files like `.RData` and `.Rhistory` that are common sources of reproducibility problems.
+
+```r
+# Audit the current project
+check_project()
+
+# Return results as a tibble for programmatic use
+issues <- check_project(error = FALSE)
+```
+
+---
+
 ### `create_qmd()`
 
 Scaffolds a new Quarto document from a reproducible template, including a sample dataset, UW-Madison branded assets, optional YAML pre-population, and an optional post-render hook that automatically extracts the R code from the rendered document into a companion `.R` file.
 
-The function has two main motivations.
-
-First, it reduces repetitive setup work. If you regularly create Quarto documents with the same author information, institutional metadata, preferred format settings, or project conventions, the `yaml_data` argument lets you pre-populate the YAML header from a personal configuration file instead of rebuilding the same header by hand.
+The function has two main motivations. First, it reduces repetitive setup work. If you regularly create Quarto documents with the same author information, institutional metadata, or preferred format settings, the `yaml_data` argument lets you pre-populate the YAML header from a personal configuration file instead of rebuilding the same header by hand.
 
 Second, it helps reduce code drift. In a literate programming workflow, the `.qmd` document can serve as the source of truth: prose, code, results, and interpretation live together. The post-render hook derives the standalone `.R` script from the document automatically, so you do not have to maintain a separate script by hand. This pattern is discussed in more detail in the post [From the Notebook to the Cluster. Part 1: Start with the Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
-
-That companion `.R` script can become the script you run with `Rscript`, containerize with `containr`, or send to CHTC with `submitr`, after you confirm it runs cleanly outside the interactive session. Writing your analysis once as a Quarto document and deriving the executable script automatically helps prevent the report and the runnable analysis from drifting apart.
 
 ```r
 # Create an analysis document with the purl hook (default)
@@ -143,16 +171,35 @@ create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd")
 
 # Without the purl hook
 create_qmd(
-  path = "~/Documents/my-project",
+  path     = "~/Documents/my-project",
   filename = "report.qmd",
   use_purl = FALSE
 )
 
 # Pre-populate YAML from a personal config file
 create_qmd(
-  path = "~/Documents/my-project",
-  filename = "analysis.qmd",
+  path      = "~/Documents/my-project",
+  filename  = "analysis.qmd",
   yaml_data = "~/my_config.yml"
+)
+```
+
+---
+
+### `qmd_to_r()`
+
+Extracts R code chunks from any `.qmd` file into a standalone `.R` script. This is the direct counterpart to the purl hook in `create_qmd()` — it works on any Quarto document regardless of how it was created.
+
+The output path defaults to the same directory as the input with the `.qmd` extension replaced by `.R`. The `documentation` argument controls how much context is preserved in the extracted script: chunk labels only (`1`, the default), full roxygen blocks (`2`), or pure code with no comments (`0`).
+
+```r
+# Default output: same directory, .R extension
+qmd_to_r(input = "analysis.qmd")
+
+# Explicit output path
+qmd_to_r(
+  input  = "analysis.qmd",
+  output = "scripts/analysis.R"
 )
 ```
 
@@ -160,28 +207,48 @@ create_qmd(
 
 ### `read_clean_csv()`
 
-Reads a CSV file into a tibble and cleans the column names in one step. Column names become lowercase, spaces become underscores, and special characters are removed. It is a small thing, but doing it consistently from the start prevents subtle downstream errors.
+Reads a CSV file into a tibble and cleans the column names in one step. Column names become lowercase, spaces become underscores, and special characters are removed. Beyond name cleaning, the function supports explicit missing-value handling, selective row dropping, and an optional ingest summary that surfaces common data problems immediately.
+
+```r
+# Basic usage
+data <- read_clean_csv("data-raw/input.csv")
+
+# Explicit missing-value codes and ingest summary
+data <- read_clean_csv(
+  "data-raw/input.csv",
+  na      = c("", "NA", "N/A", ".", "-999", "unknown"),
+  summary = TRUE
+)
+
+# Drop rows missing in specific columns
+data <- read_clean_csv(
+  "data-raw/input.csv",
+  drop_na = c("participant_id", "response_score")
+)
+```
+
+---
+
+### `write_clean_csv()`
+
+Writes a cleaned data frame to a CSV file with cli feedback. The natural counterpart to `read_clean_csv()`, reinforcing the convention that `data-raw/` holds original inputs and `data/` holds analysis-ready outputs.
+
+If the data frame's column names are not already clean, `write_clean_csv()` applies `janitor::clean_names()` before writing and warns you about the affected columns, so the output file always has consistent names regardless of what was passed in.
 
 ```r
 data <- read_clean_csv("data-raw/input.csv")
 
-# Show column type messages
-data <- read_clean_csv("data-raw/input.csv", verbose = TRUE)
-```
+write_clean_csv(data, "data/clean.csv")
 
-`read_clean_csv()` is built from common data-ingest tools in the `toolero` dependency stack, including `readr`, `janitor`, and `tibble`.
+# Overwrite an existing file
+write_clean_csv(data, "data/clean.csv", overwrite = TRUE)
+```
 
 ---
 
 ### `detect_execution_context()`
 
-Many reproducibility problems come from code that only works in the place where it was written. `detect_execution_context()` helps one analysis behave correctly whether it is run interactively, rendered through Quarto, or called with `Rscript`.
-
-The function identifies which of three environments the code is currently running in — an interactive R session, a `quarto render` call, or a plain `Rscript` invocation — and returns `"interactive"`, `"quarto"`, or `"rscript"`.
-
-This matters because code drift often begins with tiny differences in how a script is launched. You write one input path while working interactively, another while rendering the document, and a third when preparing a command-line version for a scheduler. Over time, those entry points drift apart. A path is updated in one place but not another. A parameter is handled differently. The local version works, but the rendered or scheduled version does not.
-
-Using `detect_execution_context()` gives you one place to decide how inputs are resolved:
+Identifies which of three environments the code is currently running in — an interactive R session, a `quarto render` call, or a plain `Rscript` invocation — and returns `"interactive"`, `"quarto"`, or `"rscript"`. Useful for writing code that resolves input file paths correctly across all three contexts without maintaining separate versions.
 
 ```r
 context <- detect_execution_context()
@@ -193,23 +260,18 @@ input_file <- switch(context,
 )
 ```
 
-This pattern keeps the same source logic portable across RStudio, Quarto, and command-line execution. When a Quarto document is later converted into a standalone `.R` script, the context-aware input logic comes along with it. That is the important part: the document and the script do not need separate versions of the data-loading code.
-
 ---
 
 ### `write_by_group()`
 
 Splits a data frame by a grouping column and writes each group to a separate CSV file. Filenames are derived from sanitized group values — lowercase, with spaces and special characters replaced by dashes. Optionally writes a `manifest.csv` listing all output files, group values, and row counts.
 
-This is useful any time a project needs independent input files: one file per county, participant, simulation parameter, model specification, bootstrap replicate, image tile, or study site. The manifest becomes a map of the work to be done.
-
-For high-throughput workflows, the manifest is the input to `submitr::htc_gen_submit()` in multiple-job mode. Splitting your data with `write_by_group(manifest = TRUE)` produces the structure needed to submit one HTCondor job per group.
+This is useful any time a project needs independent input files: one file per county, participant, simulation parameter, model specification, or study site. For high-throughput workflows, the manifest is the input to `submitr::htc_gen_submit()` in multiple-job mode.
 
 ```r
 sample_path <- system.file("templates", "sample.csv", package = "toolero")
 penguins    <- read_clean_csv(sample_path)
 
-# Split by species and write a manifest
 write_by_group(
   penguins,
   group_col  = "species",
@@ -222,13 +284,9 @@ write_by_group(
 
 ## Documentation and communication utilities
 
-Not every reproducibility problem lives in the analysis script. Some live in the documentation around the analysis: tutorials, technical guides, teaching materials, and discipline-specific figures. `toolero` includes a small set of utilities that treat documentation as something that can be generated, versioned, and maintained like code.
-
 ### `generate_kb_xml()`
 
-Produces a UW-Madison Knowledge Base importable XML file from a rendered Quarto document. This is useful for publishing technical tutorials and research guides in the campus-wide Knowledge Base without manually reformatting the same article in multiple places.
-
-The motivation is documentation as code. Write and maintain the guide in Quarto, where prose, code, images, links, and rendered examples can live together. Then generate the KB-ready XML from that source. The Quarto document remains the maintained version, and the XML becomes a derived artifact. That reduces documentation drift: the campus KB article does not have to become a second manually maintained version of the same tutorial.
+Produces a UW-Madison Knowledge Base importable XML file from a rendered Quarto document. Write and maintain the guide in Quarto, then generate the KB-ready XML from that source. The Quarto document remains the maintained version and the XML becomes a derived artifact, reducing documentation drift.
 
 ```r
 generate_kb_xml(
@@ -243,9 +301,7 @@ When importing the resulting XML into the KB, check the *Decode HTML entity in b
 
 ### `arborize()`
 
-Renders a syntactic tree as a standalone PNG image using Quarto's Typst engine. Accepts bracket notation for simple trees or structured notation for trees requiring movement arrows and per-node styling.
-
-This function comes from a practical problem in linguistics: creating good-looking syntactic trees is often more work than it should be. `arborize()` gives linguists a reproducible way to generate clean tree images from text-based notation. The tree specification can live in a script, vignette, Quarto document, or teaching repository, and the image can be regenerated later instead of manually redrawn.
+Renders a syntactic tree as a standalone PNG image using Quarto's Typst engine. Accepts bracket notation for simple trees or structured notation for trees requiring movement arrows and per-node styling. A provenance `.yaml` file is written alongside the PNG by default, recording the tree string and render settings so the image can be reproduced or modified later.
 
 ```r
 # Simple bracket notation
@@ -256,7 +312,7 @@ arborize(
 )
 ```
 
-Requires Quarto 1.4+ with Typst support and the `pdftools` package.
+The `papersize` argument controls how tightly the image is cropped around the tree. Use `"a6"` or `"a7"` for small trees, `"a5"` (the default) for medium trees, and `"a4"` or `"a3"` for wide or deep trees. Requires Quarto 1.4+ with Typst support and the `pdftools` package.
 
 ---
 
@@ -265,11 +321,9 @@ Requires Quarto 1.4+ with Typst support and the `pdftools` package.
 `toolero` builds on a focused set of R packages for project setup, file handling, data import, documentation, and workflow automation:
 
 ```text
-cli, fs, glue, janitor, purrr, readr, renv, tibble, usethis, yaml,
-rlang, rvest, xml2, quarto, withr, lifecycle
+cli, fs, glue, janitor, purrr, readr, renv, tibble, tidyr, usethis,
+yaml, rlang, rvest, xml2, quarto, withr, lifecycle
 ```
-
-These dependencies support the package’s main goals: clear user messages, safer file paths, cleaner tabular data, project scaffolding, dependency tracking, Quarto integration, and maintainable documentation workflows.
 
 ---
 
@@ -282,6 +336,8 @@ These dependencies support the package’s main goals: clear user messages, safe
 - [submitr](https://github.com/erwinlares/submitr) — submit containerized R jobs to CHTC and retrieve results
 
 Each package can be used independently. The shared design goal is to make good research-computing practices easier to adopt before a project becomes difficult to change.
+
+---
 
 ## Citation
 

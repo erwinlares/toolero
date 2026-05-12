@@ -59,6 +59,13 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)
 - test-coverage GitHub Action
 - arborize vignette with papersize/margin crop guidance
 - JOURNAL.md and PLAN.md added, in .Rbuildignore
+- .substitute_yaml() naming fix -- internal helper renamed from substitute_yaml()
+- read_clean_csv() extended -- na, drop_na, summary, ... arguments added
+- write_clean_csv() -- new exported function
+- check_project() -- new exported function
+- DESCRIPTION updated -- SystemRequirements, Description prose, tidyr in Imports
+- cran-comments.md drafted -- skeleton with progressive update markers
+- qmd_to_r() -- extracts R code from any .qmd into a standalone .R script
 
 ---
 
@@ -67,11 +74,14 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)
 ```
 R/
 +-- init-project.R              # init_project()
-+-- create-qmd.R                # create_qmd()
++-- create-qmd.R                # create_qmd(), .substitute_yaml()
 +-- read-clean-csv.R            # read_clean_csv()
++-- write-clean-csv.R           # write_clean_csv()
 +-- detect-execution-context.R  # detect_execution_context()
 +-- write-by-group.R            # write_by_group()
 +-- generate-kb-xml.R           # generate_kb_xml()
++-- check-project.R             # check_project(), .check_result(),
+                                #   .print_check_project()
 +-- arborize.R                  # arborize(), .build_arborize_qmd(),
                                 #   .write_arborize_provenance()
 +-- toolero-package.R           # package sentinel
@@ -95,21 +105,21 @@ R/
   instead of handling it independently. This is the primary blocker for
   restoring the intended delegation model across the package suite.
 
-- read_clean_*() function family. read_clean_csv() as the first member,
-  already in the package. Planned additions:
-    read_clean_excel() -- same pattern via readxl
-  Shared conventions: janitor::clean_names() as core, optional na_handling,
-  type_inference, verbose arguments, returning tibbles. The drop_na argument
-  for read_clean_csv() accepts TRUE or c(col1, col2) for column-specific
-  dropping with cli feedback. Prefix convention is read_clean_*().
+- qmd_to_r() -- extracts R code from any .qmd file into a standalone .R
+  script. Complements the existing use_purl hook in create_qmd() by working
+  on any .qmd regardless of origin. In progress.
+
+- read_clean_excel() -- companion to read_clean_csv() via readxl. Same
+  conventions: janitor::clean_names() as core, na, drop_na, summary, verbose,
+  ... arguments, returning tibbles. Prefix convention is read_clean_*().
+
+### Medium priority
 
 - arborize() v2 -- R list input for structured notation. Currently the
   structured backend passes the user's tree() string verbatim into #render().
   A future version could accept an R list structure and generate the nested
   tree() calls programmatically, removing the need for the user to know
   Typst syntax at all.
-
-### Medium priority
 
 - arborize() node styling arguments. Expose lingotree's layer-spacing,
   child-spacing, branch-stroke, and color parameters as R arguments so users
@@ -147,11 +157,14 @@ R/
 |---|---|
 | init_project() | Creates R project with standard folder structure |
 | create_qmd() | Scaffolds Quarto document from reproducible template |
-| read_clean_csv() | Reads CSV and cleans column names |
+| read_clean_csv() | Reads CSV, cleans names, handles missing values |
+| write_clean_csv() | Writes cleaned data frame to CSV with cli feedback |
 | detect_execution_context() | Identifies interactive/quarto/rscript environment |
 | write_by_group() | Splits data frame by group, writes CSVs |
 | generate_kb_xml() | Produces UW-Madison KB importable XML |
+| check_project() | Audits project structure against toolero conventions |
 | arborize() | Renders syntactic tree as PNG via Quarto + Typst |
+| qmd_to_r() | Extracts R code from a Quarto document into a .R script |
 
 ---
 
@@ -160,13 +173,16 @@ R/
 ```
 toolero v0.4.0
   +-- arborize() added
+  +-- read_clean_csv() extended
+  +-- write_clean_csv() added
+  +-- check_project() added
   +-- pushed to GitHub
   +-- CRAN submission planned July 2026
-  When ready to push to CRAN 
+  When ready to push to CRAN
 
     devtools::check() clean
     devtools::check_rhub() for cross-platform verification
-    Update cran-comments.md
+    Update cran-comments.md (skeleton drafted, append as work continues)
     devtools::submit_cran()
 
 curriculr v0.2.0
@@ -177,7 +193,6 @@ containr v0.1.2
   +-- CRAN submission pending
   +-- Will eventually depend on toolero
 ```
-
 
 ---
 

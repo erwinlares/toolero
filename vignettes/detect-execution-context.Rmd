@@ -1,0 +1,204 @@
+---
+title: "Writing context-aware R code with `detect_execution_context()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Writing context-aware R code with `detect_execution_context()`}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE
+)
+library(toolero)
+```
+
+## The problem
+
+Here is a situation most intermediate R users have encountered, even if they
+have not quite named it. You write an analysis script interactively in RStudio.
+You load your data with a path relative to your working directory, run
+everything, and it works. A week later, you fold that script into a Quarto
+document. Suddenly the path is wrong — `data/input.csv` no longer resolves
+because the working directory inside a `quarto render` call is the document's
+directory, not the project root you were working from. You patch the path. Then
+you want to run the same logic with `Rscript` from the command line, maybe to
+test it before sending it to a computing cluster. The path is wrong again, and
+this time the fix is different.
+
+You now have three versions of the same input-loading logic, maintained in
+three places, and they can drift. This is a small thing that compounds over
+time into a larger problem: the report and the runnable analysis are no longer
+the same code.
+
+The root cause is that R code does not know, by default, how it is being
+executed. It cannot tell whether it is running in an interactive session, being
+rendered as part of a Quarto document, or being called directly by `Rscript`.
+Each of these contexts has different conventions for how the working directory
+is set, how parameters are passed, and how input files are found. Writing code
+that works correctly across all three without any context awareness means either
+hardcoding paths (fragile) or maintaining multiple entry points (tedious).
+
+## The three contexts
+
+It helps to be explicit about what we mean. In a typical research workflow,
+R code runs in one of three contexts.
+
+**Interactive.** You are working in RStudio or another IDE. The working
+directory is typically the project root, set by the `.Rproj` file. Input paths
+are usually relative to that root. Parameters are set by hand or read from a
+config file.
+
+**Quarto.** Your code lives inside a `.qmd` document. When `quarto render` is
+called, knitr sets the working directory to the directory containing the `.qmd`
+file, not the project root. Parameters are often passed through the `params`
+key in the YAML header. This is a natural fit for a reproducible report, but it
+can be a source of subtle path errors if the document does not live at the
+project root.
+
+**Rscript.** The code is run from the command line as a standalone script, or
+dispatched by a job scheduler like HTCondor. The working directory is wherever
+the script is launched from, which may or may not be the project root.
+Parameters are passed via `commandArgs(trailingOnly = TRUE)`. This is the
+context that matters most when you are preparing an analysis for a computing
+cluster.
+
+These three contexts do not share a common convention for how input files are
+located or how parameters arrive. Code written with only one context in mind
+will need adaptation — or will silently fail — in the other two.
+
+## The solution
+
+`detect_execution_context()` returns a single string identifying which of
+these three contexts the code is currently running in: `"interactive"`,
+`"quarto"`, or `"rscript"`. That is the entire interface. The function takes
+no arguments and produces one output.
+
+```{r}
+library(toolero)
+
+context <- detect_execution_context()
+context
+#> [1] "interactive"
+```
+
+The value of this simple function lies in what it enables downstream. Once you
+know the context, you can resolve inputs, parameters, and paths correctly for
+each one in a single place, using a pattern you write once and carry across
+projects.
+
+```{r}
+context <- detect_execution_context()
+
+input_file <- switch(context,
+  interactive = "data/input.csv",
+  quarto      = params$input_file,
+  rscript     = commandArgs(trailingOnly = TRUE)[1]
+)
+```
+
+This block replaces three separate entry points with one. Whether the analysis
+runs interactively, renders as a report, or executes as a scheduled job, the
+same logic handles it. Recall that this is exactly the kind of drift we
+identified as the root cause of the problem: `detect_execution_context()` gives
+you one place to manage it.
+
+It may not be unreasonable to assume that many researchers already handle this
+implicitly, either by keeping separate scripts for each context or by
+commenting and uncommenting lines depending on how they plan to run the code.
+Both are workable but both obscure intent. The `switch` pattern above makes the
+branching explicit and readable: anyone who opens the file can see immediately
+that the code was written to run in three contexts and understand what each one
+does.
+
+## A worked example
+
+Consider a Quarto document that reads a data file, summarizes it, and produces
+a figure. In an early draft of this workflow, the input path might be
+hardcoded:
+
+```{r}
+data <- readr::read_csv("data/penguins.csv")
+```
+
+This works when rendering from the project root. It fails as soon as the
+document moves to a subdirectory, when the script is extracted and run
+standalone, or when it is dispatched on a cluster. In other words, it is
+fragile precisely at the moments that matter most.
+
+A more portable version uses `detect_execution_context()` to resolve the path
+appropriate for each launch method:
+
+```{r}
+library(toolero)
+
+context <- detect_execution_context()
+
+input_file <- switch(context,
+  interactive = "data/penguins.csv",
+  quarto      = params$input_file,
+  rscript     = commandArgs(trailingOnly = TRUE)[1]
+)
+
+data <- read_clean_csv(input_file)
+```
+
+This version runs correctly in all three contexts without modification. It also
+documents intent: a reader can see that the code was designed to be portable,
+not just locally convenient.
+
+## Connecting to `create_qmd()` and `qmd_to_r()`
+
+`detect_execution_context()` fits naturally into the broader `toolero`
+workflow for literate, portable analysis documents. `create_qmd()` scaffolds a
+new Quarto document from a template that includes context-aware input
+resolution by default -- the sample document it generates already uses
+`detect_execution_context()` in the data-loading section. You do not have to
+add it manually.
+
+```{r}
+# Scaffold a new document with context-aware input resolution built in
+create_qmd(path = ".", filename = "analysis.qmd")
+```
+
+Once the analysis is written and verified, `qmd_to_r()` extracts the R code
+from the document into a standalone script.
+
+```{r}
+qmd_to_r(
+  input  = "analysis.qmd",
+  output = "scripts/analysis.R"
+)
+```
+
+The extracted script inherits the `switch` block from the document, so it
+resolves inputs correctly when run with `Rscript` or dispatched by a job
+scheduler. That is the important point: because context detection was baked
+into the document from the beginning, the standalone script is already
+portable. You do not have to adapt it for the command-line context after the
+fact.
+
+In other words, `detect_execution_context()` is the piece that makes the
+`create_qmd()` -- `qmd_to_r()` pipeline genuinely portable rather than
+portable in theory. Write the analysis once, render it as a report, extract
+it as a script, and submit it to a cluster -- the same input-resolution logic
+works throughout.
+
+## Summary
+
+`detect_execution_context()` solves a small but persistent problem: R code
+does not know by default how it is being run, and that ignorance is a common
+source of path errors, parameter mismatches, and diverging entry points.
+
+The function does one thing -- identify the current execution context -- and
+returns a value you can act on immediately with a `switch` block. The result
+is code that is explicit about its portability, easy to read, and correct
+across interactive, Quarto, and command-line execution without maintaining
+separate versions.
+
+Used alongside `create_qmd()` and `qmd_to_r()`, it closes the loop between
+a literate analysis document and a runnable standalone script, making the path
+from local notebook to computing cluster a little more direct.
