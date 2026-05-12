@@ -1,11 +1,15 @@
 ---
 title: "Getting started with toolero"
 author: "Erwin Lares"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    css: 
+      - !expr system.file("assets", "styles.css", package = "toolero")
 vignette: >
   %\VignetteIndexEntry{Getting started with toolero}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+date: "Created 2026-04-30 | Last updated `r Sys.Date()`"
 ---
 
 ```{r setup, include = FALSE}
@@ -14,6 +18,10 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 ```
+
+
+
+<img src="figures/logo.png" align="right" height="139" alt="toolero hex sticker"/>
 
 ## Background and motivation
 

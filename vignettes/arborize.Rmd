@@ -1,6 +1,9 @@
 ---
 title: "Rendering Syntactic Trees with arborize()"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    css: 
+      - !expr system.file("assets", "styles.css", package = "toolero")
 vignette: >
   %\VignetteIndexEntry{Rendering Syntactic Trees with arborize()}
   %\VignetteEngine{knitr::rmarkdown}
@@ -31,6 +34,9 @@ library(toolero)
 vig_dir <- dirname(knitr::current_input(dir = TRUE))
 fig_dir  <- file.path(vig_dir, "figures")
 ```
+
+
+<img src="figures/logo.png" align="right" height="139" alt="toolero hex sticker"/>
 
 ## The problem
 

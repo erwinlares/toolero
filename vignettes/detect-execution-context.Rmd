@@ -1,10 +1,14 @@
 ---
 title: "Writing context-aware R code with `detect_execution_context()`"
-output: rmarkdown::html_vignette
+output:
+  rmarkdown::html_vignette:
+    css: 
+      - !expr system.file("assets", "styles.css", package = "toolero")
 vignette: >
   %\VignetteIndexEntry{Writing context-aware R code with `detect_execution_context()`}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+date: "Created 2026-04-30 | Last updated `r Sys.Date()`"
 ---
 
 ```{r setup, include = FALSE}
@@ -15,6 +19,9 @@ knitr::opts_chunk$set(
 )
 library(toolero)
 ```
+
+<img src="figures/logo.png" align="right" height="139" alt="toolero hex sticker"/>
+
 
 ## The problem
 
