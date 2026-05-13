@@ -215,10 +215,10 @@ do not have to add it manually.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Scaffold a new document with context-aware input resolution built in</span></span>
 <span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"."</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span></code></pre></div>
-<p>Once the analysis is written and verified, <code>qmd_to_r()</code>
+<p>Once the analysis is written and verified, <code><a href="../reference/qmd_to_r.html">qmd_to_r()</a></code>
 extracts the R code from the document into a standalone script.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">qmd_to_r</span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/qmd_to_r.html">qmd_to_r</a></span><span class="op">(</span></span>
 <span>  input  <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
 <span>  output <span class="op">=</span> <span class="st">"scripts/analysis.R"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -229,7 +229,7 @@ important point: because context detection was baked into the document
 from the beginning, the standalone script is already portable. You do
 not have to adapt it for the command-line context after the fact.</p>
 <p>In other words, <code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> is the piece
-that makes the <code><a href="../reference/create_qmd.html">create_qmd()</a></code> – <code>qmd_to_r()</code>
+that makes the <code><a href="../reference/create_qmd.html">create_qmd()</a></code> – <code><a href="../reference/qmd_to_r.html">qmd_to_r()</a></code>
 pipeline genuinely portable rather than portable in theory. Write the
 analysis once, render it as a report, extract it as a script, and submit
 it to a cluster – the same input-resolution logic works throughout.</p>
@@ -246,7 +246,7 @@ diverging entry points.</p>
 <code>switch</code> block. The result is code that is explicit about its
 portability, easy to read, and correct across interactive, Quarto, and
 command-line execution without maintaining separate versions.</p>
-<p>Used alongside <code><a href="../reference/create_qmd.html">create_qmd()</a></code> and <code>qmd_to_r()</code>,
+<p>Used alongside <code><a href="../reference/create_qmd.html">create_qmd()</a></code> and <code><a href="../reference/qmd_to_r.html">qmd_to_r()</a></code>,
 it closes the loop between a literate analysis document and a runnable
 standalone script, making the path from local notebook to computing
 cluster a little more direct.</p>

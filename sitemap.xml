@@ -13,6 +13,7 @@
 <url><loc>https://erwinlares.github.io/toolero/index.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/news/index.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/arborize.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/check_project.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/create_qmd.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/detect_execution_context.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-build_arborize_qmd.html</loc></url>
@@ -20,8 +21,10 @@
 <url><loc>https://erwinlares.github.io/toolero/reference/generate_kb_xml.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/index.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/init_project.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/qmd_to_r.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/read_clean_csv.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/toolero-package.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/write_by_group.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/write_clean_csv.html</loc></url>
 </urlset>
 

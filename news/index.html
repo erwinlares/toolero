@@ -40,6 +40,13 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="toolero-040">toolero 0.4.0<a class="anchor" aria-label="anchor" href="#toolero-040"></a></h2>
 <div class="section level4">
+<h4 id="breaking-changes-0-4-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-4-0"></a></h4>
+<ul><li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: no longer copies <code>styles.css</code> and <code>header.html</code> from the package into the project. Custom styling is now controlled exclusively by the new <code>use_style</code> argument. Projects that relied on <code><a href="../reference/create_qmd.html">create_qmd()</a></code> copying UW-branded assets should use <code>init_project(uw_branding = TRUE)</code> to scaffold those files, then pass <code>use_style = TRUE</code> to <code><a href="../reference/create_qmd.html">create_qmd()</a></code> to wire them into the YAML.</li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: sample data is now copied into <code>data-raw/</code> instead of <code>data/</code>, consistent with <code><a href="../reference/init_project.html">init_project()</a></code>’s folder structure.</li>
+</ul></div>
+<div class="section level4">
 <h4 id="new-features-0-4-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-4-0"></a></h4>
 <ul><li>Added <code><a href="../reference/arborize.html">arborize()</a></code> for rendering syntactic trees as standalone PNG images using Quarto’s Typst engine. Accepts two input formats via the <code>tree_notation</code> argument:
 <ul><li>
@@ -48,6 +55,12 @@
 <li>
 <code>"structured"</code> – nested <code>tree()</code> call string, uses <code>@preview/lingotree:1.0.0</code> Output PNG files can be embedded in any document format without requiring a LaTeX installation. Requires Quarto 1.4+ with Typst support and the <code>pdftools</code> package (in Suggests).</li>
 </ul></li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: added <code>include_examples</code> argument (default <code>TRUE</code>). When <code>TRUE</code>, copies a sample dataset (<code>sample.csv</code>) into <code>data-raw/</code>, a placeholder logo (<code>logo.png</code>) into <code>assets/</code>, and uses a worked example template with a <code>params</code> block referencing the sample data. When <code>FALSE</code>, creates a blank skeleton <code>.qmd</code> with only the YAML header and a setup chunk – no sample data, no logo, no example analysis block.</li>
+<li>
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code>: added <code>use_style</code> argument (default <code>FALSE</code>). Accepts <code>FALSE</code> (no custom styling), <code>TRUE</code> (scans <code>assets/</code> for <code>.css</code> and <code>.html</code> files), or a directory path (scans that directory instead). When exactly one <code>.css</code> file is found, it is added as <code>css:</code> in the YAML. When exactly one <code>.html</code> file is found, it is added as <code>include-before-body:</code>. If multiple files of either type are found, the function errors and asks the user to specify which one to use via <code>yaml_data</code>. This decouples styling from <code><a href="../reference/init_project.html">init_project()</a></code> and supports non-UW branding workflows.</li>
+<li>Added <code>inst/templates/skeleton.qmd</code> – a minimal Quarto template used when <code>include_examples = FALSE</code>. Contains the YAML header, a setup chunk with <code><a href="https://github.com/erwinlares/toolero" class="external-link">library(toolero)</a></code>, and a single placeholder heading.</li>
+<li>Added <code>inst/templates/logo.png</code> – a placeholder logo image copied into <code>assets/</code> when <code>include_examples = TRUE</code>. Reads “your logo goes here” so the user knows to replace it with their own branding.</li>
 </ul></div>
 </div>
     <div class="section level2">

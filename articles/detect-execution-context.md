@@ -164,8 +164,9 @@ in the data-loading section. You do not have to add it manually.
 create_qmd(path = ".", filename = "analysis.qmd")
 ```
 
-Once the analysis is written and verified, `qmd_to_r()` extracts the R
-code from the document into a standalone script.
+Once the analysis is written and verified,
+[`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+extracts the R code from the document into a standalone script.
 
 ``` r
 
@@ -186,10 +187,11 @@ In other words,
 [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
 is the piece that makes the
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
-– `qmd_to_r()` pipeline genuinely portable rather than portable in
-theory. Write the analysis once, render it as a report, extract it as a
-script, and submit it to a cluster – the same input-resolution logic
-works throughout.
+–
+[`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+pipeline genuinely portable rather than portable in theory. Write the
+analysis once, render it as a report, extract it as a script, and submit
+it to a cluster – the same input-resolution logic works throughout.
 
 ## Summary
 
@@ -206,6 +208,8 @@ without maintaining separate versions.
 
 Used alongside
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
-and `qmd_to_r()`, it closes the loop between a literate analysis
-document and a runnable standalone script, making the path from local
-notebook to computing cluster a little more direct.
+and
+[`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md),
+it closes the loop between a literate analysis document and a runnable
+standalone script, making the path from local notebook to computing
+cluster a little more direct.
