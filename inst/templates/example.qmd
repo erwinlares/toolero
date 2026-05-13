@@ -23,8 +23,6 @@ format:
     toc-title: "Contents"
     number-sections: true
     embed-resources: false
-    css: assets/styles.css
-    include-before-body: assets/header.html
 params:
   input_file: "data/sample.csv"
 ---

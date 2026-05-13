@@ -1,0 +1,25 @@
+---
+title: "Untitled"
+author:
+  - name: "Your Name"
+    affiliation: "Your Affiliation"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    number-sections: true
+    embed-resources: false
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(toolero)
+```
+
+## Introduction
+
+<!-- Replace this with your analysis. -->

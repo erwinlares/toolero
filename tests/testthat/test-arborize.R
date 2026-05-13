@@ -387,30 +387,36 @@ test_that("arborize() provenance = TRUE writes yaml file", {
 # absent and network conditions unpredictable.
 
 test_that("arborize() simple: produces a non-empty PNG file", {
-    skip_on_ci()
-    skip_on_cran()
-    skip_if_not(
-        isTRUE(tryCatch(quarto::quarto_version() >= "1.4",
-                        error = function(e) FALSE)),
-        "Quarto 1.4+ not available"
-    )
-    skip_if_not(
-        requireNamespace("pdftools", quietly = TRUE),
-        "pdftools not available"
-    )
-
-    tmp <- withr::local_tempfile(fileext = ".png")
-
-    result <- arborize(
-        "[NP [Det the] [N cat]]",
-        output        = tmp,
-        tree_notation = "simple",
-        provenance    = FALSE,
-        overwrite     = TRUE
-    )
-
-    expect_true(fs::file_exists(result))
-    expect_gt(fs::file_size(result), 0)
+  skip_on_ci()
+  skip_on_cran()
+  skip_if_not(
+    isTRUE(tryCatch(quarto::quarto_version() >= "1.4",
+                    error = function(e) FALSE)),
+    "Quarto 1.4+ not available"
+  )
+  skip_if_not(
+    isTRUE(tryCatch({
+      test_qmd <- withr::local_tempfile(fileext = ".qmd")
+      writeLines(c("---", "title: test", "---", "hello"), test_qmd)
+      quarto::quarto_render(test_qmd, output_format = "html", quiet = TRUE)
+      TRUE
+    }, error = function(e) FALSE)),
+    "Quarto CLI cannot render -- possible version mismatch"
+  )
+  skip_if_not(
+    requireNamespace("pdftools", quietly = TRUE),
+    "pdftools not available"
+  )
+  tmp <- withr::local_tempfile(fileext = ".png")
+  result <- arborize(
+    "[NP [Det the] [N cat]]",
+    output        = tmp,
+    tree_notation = "simple",
+    provenance    = FALSE,
+    overwrite     = TRUE
+  )
+  expect_true(fs::file_exists(result))
+  expect_gt(fs::file_size(result), 0)
 })
 
 test_that("arborize() simple: returns the output path invisibly", {

@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Provides utility functions to help researchers implement best practices for their coding projects. Includes tools for reading and cleaning data files, initializing R projects with a standard folder structure, creating Quarto documents from a reproducible template, detecting the execution context across interactive, Quarto, and script-based workflows, and splitting data frames into group-level output files.
+Provides utility functions to help researchers implement best practices for their coding projects. Includes tools for reading and cleaning data files, initializing R projects with a standard folder structure, creating 'Quarto' documents from reproducible templates with optional sample data and custom styling, detecting the execution context across interactive, 'Quarto', and script-based workflows, splitting data frames into group-level output files, and rendering syntactic tree diagrams as standalone PNG images via 'Typst'.
 }
 \seealso{
 Useful links:

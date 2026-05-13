@@ -9,7 +9,9 @@ create_qmd(
   path = ".",
   yaml_data = NULL,
   overwrite = FALSE,
-  use_purl = TRUE
+  use_purl = TRUE,
+  include_examples = TRUE,
+  use_style = FALSE
 )
 }
 \arguments{
@@ -31,29 +33,57 @@ file with a post-render hook and a \code{purl.R} script inside \verb{R/} that
 extracts R code from the rendered document into a \code{.R} file. The target
 document is resolved dynamically by scanning the project root for \code{.qmd}
 files, so the same \code{purl.R} works regardless of the document name.}
+
+\item{include_examples}{Logical. If \code{TRUE} (the default), copies a sample
+dataset (\code{sample.csv}) into \verb{data-raw/}, a placeholder logo (\code{logo.png})
+into \verb{assets/}, and uses a template \code{.qmd} pre-populated with a worked
+analysis example. The YAML header includes a \code{params} block referencing
+the sample data. If \code{FALSE}, creates a blank \code{.qmd} with only the YAML
+header and no example content, and skips copying the sample dataset and
+logo.}
+
+\item{use_style}{Logical or character. Controls whether custom CSS and
+header assets are wired into the YAML.
+\itemize{
+\item \code{FALSE} (the default): no custom styling. The YAML \verb{format: html:}
+block contains only standard Quarto options.
+\item \code{TRUE}: shorthand for \code{"assets/"}. Scans \verb{path/assets/} for \code{.css}
+and \code{.html} files and adds them to the YAML.
+\item A directory path (e.g. \code{"my-branding/"}): scans the given directory
+for \code{.css} and \code{.html} files and adds them to the YAML.
+}
+
+If the directory contains exactly one \code{.css} file, it is added as
+\verb{css:} in the YAML. If exactly one \code{.html} file is found, it is added
+as \verb{include-before-body:}. If multiple \code{.css} or \code{.html} files are
+found, the function errors and asks the user to specify which file
+to use via \code{yaml_data}. If neither is found, a warning is issued.}
 }
 \value{
 Invisibly returns \code{path}.
 }
 \description{
-Creates a new Quarto document in the specified directory, along with a
-sample dataset and UW-Madison branded assets. Optionally pre-populates
-the YAML header with user-supplied metadata.
+Creates a new Quarto document in the specified directory. Optionally
+copies a sample dataset and a worked analysis example, wires up custom
+CSS and header styling from a directory of assets, and scaffolds a
+post-render purl hook for extracting R code.
 }
 \details{
 \code{create_qmd()} performs the following steps:
 \enumerate{
-\item Validates that \code{path} exists.
-\item Validates that \code{filename} is supplied.
-\item Creates a \verb{data/} folder under \code{path} and copies \code{sample.csv} there.
-\item Checks for \code{assets/styles.css} and \code{assets/header.html} - creates the
-\verb{assets/} folder if needed and copies both from the package.
-\item Copies the template \code{.qmd} to \code{path/filename}.
+\item Validates that \code{filename} is supplied and \code{path} exists.
+\item If \code{include_examples = TRUE}: creates \verb{data-raw/} under \code{path} and
+copies \code{sample.csv} there. Creates \verb{assets/} if needed and copies a
+placeholder \code{logo.png}. Uses the example template for the \code{.qmd}.
+\item If \code{include_examples = FALSE}: uses the skeleton template for the
+\code{.qmd}. No sample data or logo is copied.
+\item If \code{use_style} is \code{TRUE} or a directory path: scans the directory for
+\code{.css} and \code{.html} files and injects them into the YAML header.
 \item If \code{yaml_data} is provided, reads the YAML file and substitutes values
-into the document header.
-\item If \code{use_purl = TRUE}, writes a \verb{_quarto.yml} with a post-render hook
-pointing to \code{R/purl.R}, and copies \code{purl.R} from the package templates
-into \code{path/R/purl.R}.
+into the document header. This runs after style injection, so
+\code{yaml_data} can override any auto-generated YAML keys.
+\item If \code{use_purl = TRUE}, writes \verb{_quarto.yml} with a post-render hook
+and copies \code{purl.R} into \verb{path/R/}.
 \item The sample dataset bundled with the template is a subset of the Palmer
 Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB (2020).
 palmerpenguins: Palmer Archipelago (Antarctica) Penguin Data. R package
@@ -66,17 +96,28 @@ exploration.
 }
 \examples{
 \donttest{
-# Create a document in a temp directory
-create_qmd(path = tempdir(), filename = "analysis.qmd")
+# Minimal blank document -- no examples, no styling
+create_qmd(path = tempdir(), filename = "analysis.qmd",
+           include_examples = FALSE)
 
-# Create with a custom filename, without the purl hook
+# Full worked example with sample data and placeholder logo
+create_qmd(path = tempdir(), filename = "analysis.qmd",
+           overwrite = TRUE)
+
+# Blank document wired to UW branding assets (assumes assets/ exists)
 create_qmd(path = tempdir(), filename = "report.qmd",
-            overwrite = TRUE, use_purl = FALSE)
+           include_examples = FALSE, use_style = TRUE,
+           overwrite = TRUE)
 
-# Create with pre-populated YAML
+# Blank document with custom branding from a different directory
+create_qmd(path = tempdir(), filename = "report.qmd",
+           include_examples = FALSE, use_style = "my-branding/",
+           overwrite = TRUE, use_purl = FALSE)
+
+# Pre-populated YAML overrides
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
-            yaml_data = yaml_file, overwrite = TRUE)
+           yaml_data = yaml_file, overwrite = TRUE)
 }
 }

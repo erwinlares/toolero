@@ -1,5 +1,16 @@
 # toolero 0.4.0
 
+### Breaking changes
+
+* `create_qmd()`: no longer copies `styles.css` and `header.html` from the
+  package into the project. Custom styling is now controlled exclusively by
+  the new `use_style` argument. Projects that relied on `create_qmd()`
+  copying UW-branded assets should use `init_project(uw_branding = TRUE)` to
+  scaffold those files, then pass `use_style = TRUE` to `create_qmd()` to
+  wire them into the YAML.
+* `create_qmd()`: sample data is now copied into `data-raw/` instead of
+  `data/`, consistent with `init_project()`'s folder structure.
+
 ### New features
 
 * Added `arborize()` for rendering syntactic trees as standalone PNG images
@@ -12,6 +23,26 @@
   Output PNG files can be embedded in any document format without requiring
   a LaTeX installation. Requires Quarto 1.4+ with Typst support and the
   `pdftools` package (in Suggests).
+* `create_qmd()`: added `include_examples` argument (default `TRUE`). When
+  `TRUE`, copies a sample dataset (`sample.csv`) into `data-raw/`, a
+  placeholder logo (`logo.png`) into `assets/`, and uses a worked example
+  template with a `params` block referencing the sample data. When `FALSE`,
+  creates a blank skeleton `.qmd` with only the YAML header and a setup
+  chunk -- no sample data, no logo, no example analysis block.
+* `create_qmd()`: added `use_style` argument (default `FALSE`). Accepts
+  `FALSE` (no custom styling), `TRUE` (scans `assets/` for `.css` and
+  `.html` files), or a directory path (scans that directory instead). When
+  exactly one `.css` file is found, it is added as `css:` in the YAML. When
+  exactly one `.html` file is found, it is added as `include-before-body:`.
+  If multiple files of either type are found, the function errors and asks
+  the user to specify which one to use via `yaml_data`. This decouples
+  styling from `init_project()` and supports non-UW branding workflows.
+* Added `inst/templates/skeleton.qmd` -- a minimal Quarto template used when
+  `include_examples = FALSE`. Contains the YAML header, a setup chunk with
+  `library(toolero)`, and a single placeholder heading.
+* Added `inst/templates/logo.png` -- a placeholder logo image copied into
+  `assets/` when `include_examples = TRUE`. Reads "your logo goes here" so
+  the user knows to replace it with their own branding.
 
 # toolero 0.3.0
 

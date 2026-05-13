@@ -160,29 +160,57 @@ issues <- check_project(error = FALSE)
 
 ### `create_qmd()`
 
-Scaffolds a new Quarto document from a reproducible template, including a sample dataset, UW-Madison branded assets, optional YAML pre-population, and an optional post-render hook that automatically extracts the R code from the rendered document into a companion `.R` file.
+Scaffolds a new Quarto document from a reproducible template with optional
+sample data, custom styling, YAML pre-population, and a post-render hook
+that automatically extracts R code from the rendered document into a
+companion `.R` file.
 
-The function has two main motivations. First, it reduces repetitive setup work. If you regularly create Quarto documents with the same author information, institutional metadata, or preferred format settings, the `yaml_data` argument lets you pre-populate the YAML header from a personal configuration file instead of rebuilding the same header by hand.
+The function has two main motivations. First, it reduces repetitive setup
+work. If you regularly create Quarto documents with the same author
+information, institutional metadata, or preferred format settings, the
+`yaml_data` argument lets you pre-populate the YAML header from a personal
+configuration file instead of rebuilding the same header by hand.
 
-Second, it helps reduce code drift. In a literate programming workflow, the `.qmd` document can serve as the source of truth: prose, code, results, and interpretation live together. The post-render hook derives the standalone `.R` script from the document automatically, so you do not have to maintain a separate script by hand. This pattern is discussed in more detail in the post [From the Notebook to the Cluster. Part 1: Start with the Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
+Second, it helps reduce code drift. In a literate programming workflow, the
+`.qmd` document can serve as the source of truth: prose, code, results, and
+interpretation live together. The post-render hook derives the standalone
+`.R` script from the document automatically, so you do not have to maintain
+a separate script by hand. This pattern is discussed in more detail in the
+post [From the Notebook to the Cluster. Part 1: Start with the Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
+
+**Arguments:**
+
+- `filename` -- name of the `.qmd` file. Must be supplied explicitly.
+- `path` -- directory where the document is created. Defaults to `"."`.
+- `yaml_data` -- path to a YAML file for pre-populating the header.
+- `overwrite` -- whether to overwrite existing files. Defaults to `FALSE`.
+- `use_purl` -- if `TRUE` (default), scaffolds `_quarto.yml` and `R/purl.R`.
+- `include_examples` -- if `TRUE` (default), copies a sample dataset into
+  `data-raw/`, a placeholder logo into `assets/`, and uses a worked example
+  template. If `FALSE`, creates a blank skeleton.
+- `use_style` -- controls custom styling. `FALSE` (default) produces plain
+  Quarto output. `TRUE` scans `assets/` for `.css` and `.html` files and
+  wires them into the YAML. A directory path scans that directory instead.
 
 ```r
-# Create an analysis document with the purl hook (default)
-create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd")
+# Blank skeleton -- no examples, no styling, no purl hook
+create_qmd(path = "my-project", filename = "analysis.qmd",
+           include_examples = FALSE, use_purl = FALSE)
 
-# Without the purl hook
-create_qmd(
-  path     = "~/Documents/my-project",
-  filename = "report.qmd",
-  use_purl = FALSE
-)
+# Full worked example with sample data and placeholder logo (default)
+create_qmd(path = "my-project", filename = "analysis.qmd")
+
+# Blank document wired to branding assets in assets/
+create_qmd(path = "my-project", filename = "report.qmd",
+           include_examples = FALSE, use_style = TRUE)
+
+# Blank document with custom branding from another directory
+create_qmd(path = "my-project", filename = "report.qmd",
+           include_examples = FALSE, use_style = "my-branding/")
 
 # Pre-populate YAML from a personal config file
-create_qmd(
-  path      = "~/Documents/my-project",
-  filename  = "analysis.qmd",
-  yaml_data = "~/my_config.yml"
-)
+create_qmd(path = "my-project", filename = "analysis.qmd",
+           yaml_data = "my-config.yml")
 ```
 
 ---

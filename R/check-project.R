@@ -16,15 +16,14 @@
 #' @export
 #'
 #' @examples
+#' # Audit the current working directory
 #' \donttest{
-#' # Audit the current project
 #' check_project()
+#' }
 #'
 #' # Audit a specific project directory
+#' \dontrun{
 #' check_project(path = "path/to/project")
-#'
-#' # Return results as a tibble for programmatic use
-#' issues <- check_project(error = FALSE)
 #' }
 check_project <- function(
         path  = ".",
