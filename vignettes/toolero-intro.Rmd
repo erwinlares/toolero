@@ -39,10 +39,10 @@ to operationalize those principles into a small set of functions that reduce
 the friction of doing the right thing from the start.
 
 The theming and branding support in `toolero` is specifically tailored to
-UW-Madison's Research Computing and Instrumentation (RCI) unit, whose
-Quarto-based reporting templates are baked into the package as defaults. If
-you are not at UW-Madison, the branding files are optional — the rest of the
-package works independently of them.
+UW-Madison's. These Quarto-based reporting templates are baked into the package 
+as defaults. If you are not at UW-Madison, the branding files are optional -- 
+and you can replace with your own.  the rest of the package works independently
+of them.
 
 ---
 
@@ -142,7 +142,7 @@ init_project(
 )
 ```
 
-To apply UW-Madison RCI branding assets to the project:
+To apply UW-Madison branding assets to the project:
 
 ```{r}
 #| eval: false
@@ -255,7 +255,7 @@ instead. If the directory contains multiple `.css` or `.html` files, the
 function errors and asks you to specify which one via `yaml_data`.
 
 Styling is managed by `init_project(uw_branding = TRUE)`, which copies the
-UW-Madison RCI branding files into `assets/`. The `create_qmd()` function
+UW-Madison branding files into `assets/`. The `create_qmd()` function
 does not copy style assets itself -- it only wires up what's already there.
 
 #### The purl hook
