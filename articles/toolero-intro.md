@@ -145,7 +145,15 @@ template scaffolded by
 
 Once the project exists,
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
-adds a working Quarto document to it:
+adds a working Quarto document to it. The function has two modes
+controlled by `include_examples`, and several optional features that can
+be mixed and matched.
+
+#### With examples (the default)
+
+When `include_examples = TRUE` (the default),
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+scaffolds a complete, runnable analysis project:
 
 ``` r
 
@@ -154,24 +162,132 @@ create_qmd(path = "~/Documents/my-project", filename = "analysis.qmd")
 
 This creates:
 
-- `analysis.qmd` — a Quarto document with a fully populated YAML header,
+- `analysis.qmd` – a Quarto document with a fully populated YAML header,
   three-context input resolution via
   [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md),
-  and a sample analysis using the Palmer Penguins dataset
-- `data/sample.csv` — sample data to develop against immediately
-- `assets/styles.css` and `assets/header.html` — UW-Madison RCI branding
-- `_quarto.yml` — a project file with a post-render hook that runs
+  a grouped summary, a scatterplot, and a results-saving section. The
+  document is ready to render immediately.
+- `data-raw/sample.csv` – a subset of the Palmer Penguins dataset to
+  develop against. The template references this file in the `params`
+  block of the YAML header.
+- `assets/logo.png` – a placeholder logo that reads “your logo goes
+  here.” Replace it with your own branding when you’re ready.
+- `_quarto.yml` – a project file with a post-render hook that runs
   `purl.R`
-- `purl.R` — extracts R code from the rendered document into a companion
-  `.R` file automatically on every render
+- `R/purl.R` – extracts R code from the rendered document into a
+  companion `.R` file automatically on every render
 
-> **Why the purl hook?** Having a plain `.R` companion to your `.qmd` is
-> useful for sharing the analysis as a script, running it on a remote
-> cluster, or archiving the code independently of the document. The hook
-> runs automatically so you never have to remember to extract it
-> manually.
+The idea is that you can render the document as-is, see results, and
+then progressively replace the sample analysis with your own. The sample
+data, the analysis blocks, and the results-saving pattern are all
+working examples you can study before modifying.
 
-To pre-populate the YAML header with your own metadata:
+#### Without examples
+
+When `include_examples = FALSE`,
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+creates a minimal skeleton with no sample data and no pre-filled
+analysis:
+
+``` r
+
+create_qmd(
+  path             = "~/Documents/my-project",
+  filename         = "analysis.qmd",
+  include_examples = FALSE
+)
+```
+
+This creates:
+
+- `analysis.qmd` – a Quarto document with the YAML header (title,
+  author, format settings) and a setup chunk that loads
+  [`library(toolero)`](https://github.com/erwinlares/toolero). The body
+  has a single `## Introduction` heading and an HTML comment prompting
+  you to add your content. No `params` block, no analysis code, no
+  references to sample data.
+- `_quarto.yml` and `R/purl.R` – the purl hook is included by default
+  regardless of `include_examples`
+
+No `data-raw/` folder is created. No `sample.csv` is copied. No
+placeholder logo is placed in `assets/`. The document is a blank canvas
+with just enough structure to render.
+
+Use this mode when you already know what your analysis looks like and
+don’t need the worked example as a starting point.
+
+#### Custom styling
+
+The `use_style` argument controls whether CSS and header assets are
+wired into the YAML. It works independently of `include_examples`:
+
+``` r
+
+# Blank document with UW branding (assumes init_project(uw_branding = TRUE) was called)
+create_qmd(
+  path             = "~/Documents/my-project",
+  filename         = "report.qmd",
+  include_examples = FALSE,
+  use_style        = TRUE
+)
+
+# Blank document with custom branding from a different directory
+create_qmd(
+  path             = "~/Documents/my-project",
+  filename         = "report.qmd",
+  include_examples = FALSE,
+  use_style        = "my-branding/"
+)
+```
+
+When `use_style = TRUE`, the function scans `assets/` for `.css` and
+`.html` files and adds them to the YAML (`css:` and
+`include-before-body:` respectively). When `use_style` is a directory
+path, it scans that directory instead. If the directory contains
+multiple `.css` or `.html` files, the function errors and asks you to
+specify which one via `yaml_data`.
+
+Styling is managed by `init_project(uw_branding = TRUE)`, which copies
+the UW-Madison RCI branding files into `assets/`. The
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+function does not copy style assets itself – it only wires up what’s
+already there.
+
+#### The purl hook
+
+By default,
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+scaffolds a post-render hook that extracts R code from the rendered
+document into a companion `.R` file:
+
+- `_quarto.yml` – contains the `post-render: ["Rscript R/purl.R"]`
+  directive
+- `R/purl.R` – scans the project root for `.qmd` files and runs
+  [`knitr::purl()`](https://rdrr.io/pkg/knitr/man/knit.html) on each one
+
+The hook runs automatically on every `quarto render`, so the `.R` file
+always reflects the current state of the `.qmd`. This is useful for
+sharing the analysis as a script, running it on a remote cluster via
+`submitr`, or archiving the code independently of the document.
+
+Set `use_purl = FALSE` to skip the hook if you don’t need the `.R`
+companion:
+
+``` r
+
+create_qmd(
+  path     = "~/Documents/my-project",
+  filename = "notes.qmd",
+  use_purl = FALSE,
+  include_examples = FALSE
+)
+```
+
+#### Pre-populating the YAML header
+
+The `yaml_data` argument accepts a path to a YAML file whose keys
+overwrite the corresponding placeholders in the template. Keys not
+present in the file are left as-is:
 
 ``` r
 
@@ -192,10 +308,21 @@ author:
     email: "you@wisc.edu"
 ```
 
-Any keys present in the YAML file overwrite the corresponding
-placeholders in the template. Keys not present are left as-is.
+This works with both `include_examples = TRUE` and `FALSE`. When
+combined with `use_style`, the YAML substitution runs after the style
+injection, so `yaml_data` can override any auto-generated keys if
+needed.
 
-------------------------------------------------------------------------
+#### Summary of what gets created
+
+| File | `include_examples = TRUE` | `include_examples = FALSE` |
+|----|----|----|
+| `analysis.qmd` | Full example with analysis blocks and `params` | Skeleton with YAML and empty body |
+| `data-raw/sample.csv` | Yes | No |
+| `assets/logo.png` | Yes | No |
+| `_quarto.yml` | Yes (when `use_purl = TRUE`) | Yes (when `use_purl = TRUE`) |
+| `R/purl.R` | Yes (when `use_purl = TRUE`) | Yes (when `use_purl = TRUE`) |
+| CSS/header in YAML | Only when `use_style` is set | Only when `use_style` is set |
 
 ## Working with data: `read_clean_csv()` and `write_by_group()`
 
@@ -207,27 +334,118 @@ just ones set up with `toolero`.
 
 [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md)
 combines
-[`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html)
-and
-[`janitor::clean_names()`](https://sfirke.github.io/janitor/reference/clean_names.html)
-into a single call:
+[`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html),
+[`janitor::clean_names()`](https://sfirke.github.io/janitor/reference/clean_names.html),
+and optionally
+[`tidyr::drop_na()`](https://tidyr.tidyverse.org/reference/drop_na.html)
+into a single call. The goal is to get from a raw CSV to a clean,
+analysis-ready tibble in one step.
+
+The simplest call reads the file and standardizes column names:
 
 ``` r
 
 data <- read_clean_csv("data/my-file.csv")
 ```
 
-Column names are automatically converted to lowercase with underscores —
+Column names are automatically converted to lowercase with underscores –
 consistent, predictable, and tidyverse-friendly. A column called
 `First Name` becomes `first_name`. `Q1 Revenue ($)` becomes
 `q1_revenue`.
 
-By default, column type messages from `readr` are suppressed. Set
-`verbose = TRUE` to see them:
+#### Handling missing values
+
+By default,
+[`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md)
+treats empty strings and `"NA"` as missing – the same behavior as
+[`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html).
+If your data uses other conventions for missing values, pass them via
+the `na` argument:
+
+``` r
+
+# Treat dots, dashes, and -999 as missing in addition to blanks and "NA"
+data <- read_clean_csv("data/my-file.csv", na = c("", "NA", "N/A", ".", "-999"))
+```
+
+#### Dropping rows with missing values
+
+The `drop_na` argument controls whether incomplete rows are removed
+after reading. It accepts three forms:
+
+``` r
+
+# Keep all rows, including those with missing values (default)
+data <- read_clean_csv("data/my-file.csv", drop_na = FALSE)
+
+# Drop any row that has a missing value in any column
+data <- read_clean_csv("data/my-file.csv", drop_na = TRUE)
+
+# Drop rows only where specific columns are missing
+data <- read_clean_csv("data/my-file.csv", drop_na = c("bill_length_mm", "sex"))
+```
+
+When rows are dropped, a message reports how many were removed and how
+many remain. This makes the data cleaning step visible in your console
+output rather than happening silently.
+
+#### Ingest summary
+
+Set `summary = TRUE` to print a brief report after reading: row and
+column counts, how many column names were cleaned, and the total number
+of missing values. The summary reflects the final state of the tibble
+after any `drop_na` action:
+
+``` r
+
+data <- read_clean_csv("data/my-file.csv", summary = TRUE)
+```
+
+#### Seeing column type messages
+
+By default, the column type messages from `readr` are suppressed to keep
+the console clean. Set `verbose = TRUE` to see them – useful when
+debugging unexpected column types:
 
 ``` r
 
 data <- read_clean_csv("data/my-file.csv", verbose = TRUE)
+```
+
+#### Combining arguments
+
+The arguments compose naturally. A common pattern for a first look at a
+new dataset combines custom missing value codes, row dropping, and the
+ingest summary:
+
+``` r
+
+data <- read_clean_csv(
+  "data/my-file.csv",
+  na      = c("", "NA", "N/A", "."),
+  drop_na = TRUE,
+  summary = TRUE
+)
+```
+
+#### Passing arguments through to `readr`
+
+Any additional arguments are forwarded to
+[`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html)
+via `...`. This means you can use `col_types` to force column types,
+`skip` to skip header rows, or `locale` to handle non-standard decimal
+separators:
+
+``` r
+
+# Force a column to character instead of letting readr guess
+data <- read_clean_csv("data/my-file.csv", col_types = cols(zip_code = col_character()))
+
+# Skip the first two rows (e.g. metadata rows before the header)
+data <- read_clean_csv("data/my-file.csv", skip = 2)
+
+# Handle European-style decimals (comma as decimal separator)
+data <- read_clean_csv("data/my-file.csv", locale = locale(decimal_mark = ","))
 ```
 
 ### Splitting data by group with `write_by_group()`
