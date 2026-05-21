@@ -93,11 +93,10 @@ foundational skills — not advanced topics. <code>toolero</code> tries to
 operationalize those principles into a small set of functions that
 reduce the friction of doing the right thing from the start.</p>
 <p>The theming and branding support in <code>toolero</code> is
-specifically tailored to UW-Madison’s Research Computing and
-Instrumentation (RCI) unit, whose Quarto-based reporting templates are
-baked into the package as defaults. If you are not at UW-Madison, the
-branding files are optional — the rest of the package works
-independently of them.</p>
+specifically tailored to UW-Madison’s. These Quarto-based reporting
+templates are baked into the package as defaults. If you are not at
+UW-Madison, the branding files are optional – and you can replace with
+your own. the rest of the package works independently of them.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -184,7 +183,7 @@ the start than to retrofit later.</p>
 <span>  path          <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
 <span>  extra_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"notebooks"</span>, <span class="st">"presentations"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>To apply UW-Madison RCI branding assets to the project:</p>
+<p>To apply UW-Madison branding assets to the project:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/init_project.html">init_project</a></span><span class="op">(</span></span>
 <span>  path        <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
@@ -303,9 +302,9 @@ instead. If the directory contains multiple <code>.css</code> or
 <code>.html</code> files, the function errors and asks you to specify
 which one via <code>yaml_data</code>.</p>
 <p>Styling is managed by <code>init_project(uw_branding = TRUE)</code>,
-which copies the UW-Madison RCI branding files into
-<code>assets/</code>. The <code><a href="../reference/create_qmd.html">create_qmd()</a></code> function does not
-copy style assets itself – it only wires up what’s already there.</p>
+which copies the UW-Madison branding files into <code>assets/</code>.
+The <code><a href="../reference/create_qmd.html">create_qmd()</a></code> function does not copy style assets itself
+– it only wires up what’s already there.</p>
 </div>
 <div class="section level4">
 <h4 id="the-purl-hook">The purl hook<a class="anchor" aria-label="anchor" href="#the-purl-hook"></a>
