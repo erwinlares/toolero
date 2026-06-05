@@ -551,6 +551,19 @@ metadata without any extra work.
 
 ------------------------------------------------------------------------
 
+## Quick reference
+
+| Function | Brief description |
+|----|----|
+| [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new RStudio project with a reproducible folder structure. Can optionally initialize `renv`, initialize `git`, add extra folders, and copy UW-Madison branding assets. |
+| [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Creates a Quarto document scaffold. Can generate a full worked example or a minimal skeleton, pre-fill YAML metadata, add styling, and set up the purl post-render hook. |
+| [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md) | Reads a CSV file with [`readr::read_csv()`](https://readr.tidyverse.org/reference/read_delim.html), cleans column names with [`janitor::clean_names()`](https://sfirke.github.io/janitor/reference/clean_names.html), and can optionally drop rows with missing values or print an ingest summary. |
+| [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) | Splits a data frame by a grouping column and writes one CSV file per group. Can also write a manifest listing output files, group values, and row counts. |
+| [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md) | Detects whether code is running interactively, during `quarto render`, or as an `Rscript` job. Useful for writing one codebase that works across local, rendered, and batch execution contexts. |
+| [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md) | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base-ready XML with embedded resources and metadata extracted from the source `.qmd`. |
+
+------------------------------------------------------------------------
+
 ## Citation
 
 If you use `toolero` in your work, please cite it:

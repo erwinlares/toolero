@@ -145,6 +145,23 @@ execution later, and scalable computing when needed.
 
 ------------------------------------------------------------------------
 
+## Quick reference
+
+| Function | What it does |
+|----|----|
+| [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, add extra folders, and optionally copy UW-Madison branding assets. |
+| [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. |
+| [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling, and set up a purl post-render hook. |
+| [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md) | Extracts R code chunks from a Quarto document into a standalone `.R` script. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
+| [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md) | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
+| [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md) | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
+| [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) | Splits a data frame by group and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows. |
+| [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md) | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
+| [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md) | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
+| [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md) | Renders syntactic trees as PNG images using Quarto’s Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later. |
+
+------------------------------------------------------------------------
+
 ## Core workflow functions
 
 ### `init_project()`

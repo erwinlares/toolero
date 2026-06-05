@@ -59,15 +59,15 @@ writeLines(c(
 
 # Default output path: same directory, .R extension
 qmd_to_r(input = qmd)
-#> ✔ Extracted R code from /tmp/RtmpCGYXJ9/file4de57a8b6fde.qmd to /tmp/RtmpCGYXJ9/file4de57a8b6fde.R.
+#> ✔ Extracted R code from /tmp/Rtmpkktyx4/file4f36d1c3e5f.qmd to /tmp/Rtmpkktyx4/file4f36d1c3e5f.R.
 
 # Explicit output path
 out <- tempfile(fileext = ".R")
 qmd_to_r(input = qmd, output = out)
-#> ✔ Extracted R code from /tmp/RtmpCGYXJ9/file4de57a8b6fde.qmd to /tmp/RtmpCGYXJ9/file4de5416141ef.R.
+#> ✔ Extracted R code from /tmp/Rtmpkktyx4/file4f36d1c3e5f.qmd to /tmp/Rtmpkktyx4/file4f364a558fc9.R.
 
 # Strip all documentation
 qmd_to_r(input = qmd, output = out, documentation = 0L)
-#> ✔ Extracted R code from /tmp/RtmpCGYXJ9/file4de57a8b6fde.qmd to /tmp/RtmpCGYXJ9/file4de5416141ef.R.
+#> ✔ Extracted R code from /tmp/Rtmpkktyx4/file4f36d1c3e5f.qmd to /tmp/Rtmpkktyx4/file4f364a558fc9.R.
 # }
 ```

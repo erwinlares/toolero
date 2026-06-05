@@ -67,7 +67,7 @@
 Lares</h4>
             
             <h4 data-toc-skip class="date">Created 2026-04-30 | Last
-updated 2026-05-21</h4>
+updated 2026-06-05</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/vignettes/toolero-intro.Rmd" class="external-link"><code>vignettes/toolero-intro.Rmd</code></a></small>
       <div class="d-none name"><code>toolero-intro.Rmd</code></div>
@@ -600,6 +600,61 @@ work.</p>
 <p><strong>When importing into the KB</strong>, check the <em>Decode
 HTML entity in body content</em> option.</p>
 </blockquote>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="quick-reference">Quick reference<a class="anchor" aria-label="anchor" href="#quick-reference"></a>
+</h2>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Function</th>
+<th>Brief description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code><a href="../reference/init_project.html">init_project()</a></code></td>
+<td>Creates a new RStudio project with a reproducible folder structure.
+Can optionally initialize <code>renv</code>, initialize
+<code>git</code>, add extra folders, and copy UW-Madison branding
+assets.</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/create_qmd.html">create_qmd()</a></code></td>
+<td>Creates a Quarto document scaffold. Can generate a full worked
+example or a minimal skeleton, pre-fill YAML metadata, add styling, and
+set up the purl post-render hook.</td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/read_clean_csv.html">read_clean_csv()</a></code></td>
+<td>Reads a CSV file with <code><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">readr::read_csv()</a></code>, cleans column
+names with <code><a href="https://sfirke.github.io/janitor/reference/clean_names.html" class="external-link">janitor::clean_names()</a></code>, and can optionally drop
+rows with missing values or print an ingest summary.</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/write_by_group.html">write_by_group()</a></code></td>
+<td>Splits a data frame by a grouping column and writes one CSV file per
+group. Can also write a manifest listing output files, group values, and
+row counts.</td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code></td>
+<td>Detects whether code is running interactively, during
+<code>quarto render</code>, or as an <code>Rscript</code> job. Useful
+for writing one codebase that works across local, rendered, and batch
+execution contexts.</td>
+</tr>
+<tr class="even">
+<td><code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code></td>
+<td>Converts a rendered Quarto HTML document into UW-Madison Knowledge
+Base-ready XML with embedded resources and metadata extracted from the
+source <code>.qmd</code>.</td>
+</tr>
+</tbody>
+</table>
 <hr>
 </div>
 <div class="section level2">

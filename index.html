@@ -161,6 +161,63 @@
 <hr>
 </div>
 <div class="section level2">
+<h2 id="quick-reference">Quick reference<a class="anchor" aria-label="anchor" href="#quick-reference"></a>
+</h2>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Function</th>
+<th>What it does</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code><a href="reference/init_project.html">init_project()</a></code></td>
+<td>Creates a new R project with a standard research-oriented folder structure. Can initialize <code>renv</code>, initialize <code>git</code>, add extra folders, and optionally copy UW-Madison branding assets.</td>
+</tr>
+<tr>
+<td><code><a href="reference/check_project.html">check_project()</a></code></td>
+<td>Audits an existing project for common reproducibility scaffolding, including expected folders, an <code>.Rproj</code> file, <code>renv.lock</code>, git, README, <code>.gitignore</code>, and hidden files such as <code>.RData</code> or <code>.Rhistory</code>.</td>
+</tr>
+<tr>
+<td><code><a href="reference/create_qmd.html">create_qmd()</a></code></td>
+<td>Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling, and set up a purl post-render hook.</td>
+</tr>
+<tr>
+<td><code><a href="reference/qmd_to_r.html">qmd_to_r()</a></code></td>
+<td>Extracts R code chunks from a Quarto document into a standalone <code>.R</code> script. Useful when the <code>.qmd</code> is the source of truth but a script is needed for batch execution or sharing.</td>
+</tr>
+<tr>
+<td><code><a href="reference/read_clean_csv.html">read_clean_csv()</a></code></td>
+<td>Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary.</td>
+</tr>
+<tr>
+<td><code><a href="reference/write_clean_csv.html">write_clean_csv()</a></code></td>
+<td>Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in <code>data-raw/</code> and analysis-ready outputs in <code>data/</code>.</td>
+</tr>
+<tr>
+<td><code><a href="reference/write_by_group.html">write_by_group()</a></code></td>
+<td>Splits a data frame by group and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows.</td>
+</tr>
+<tr>
+<td><code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code></td>
+<td>Returns <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code> so one codebase can adapt to local exploration, document rendering, or batch execution.</td>
+</tr>
+<tr>
+<td><code><a href="reference/generate_kb_xml.html">generate_kb_xml()</a></code></td>
+<td>Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document.</td>
+</tr>
+<tr>
+<td><code><a href="reference/arborize.html">arborize()</a></code></td>
+<td>Renders syntactic trees as PNG images using Quarto’s Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</div>
+<div class="section level2">
 <h2 id="core-workflow-functions">Core workflow functions<a class="anchor" aria-label="anchor" href="#core-workflow-functions"></a>
 </h2>
 <div class="section level3">

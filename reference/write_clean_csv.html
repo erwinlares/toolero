@@ -101,11 +101,11 @@ the affected columns.</p>
 <span class="r-in"><span><span class="co"># Write to a temp file</span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".csv"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">write_clean_csv</span><span class="op">(</span><span class="va">data</span>, <span class="va">out</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 344 rows and 8 columns to <span style="color: #0000BB;">/tmp/RtmpCGYXJ9/file4de54950458a.csv</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 344 rows and 8 columns to <span style="color: #0000BB;">/tmp/Rtmpkktyx4/file4f3619acd241.csv</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Overwrite an existing file</span></span></span>
 <span class="r-in"><span><span class="fu">write_clean_csv</span><span class="op">(</span><span class="va">data</span>, <span class="va">out</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 344 rows and 8 columns to <span style="color: #0000BB;">/tmp/RtmpCGYXJ9/file4de54950458a.csv</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 344 rows and 8 columns to <span style="color: #0000BB;">/tmp/Rtmpkktyx4/file4f3619acd241.csv</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Dirty names are cleaned automatically with a warning</span></span></span>
 <span class="r-in"><span><span class="va">dirty</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="st">"First Name"</span> <span class="op">=</span> <span class="st">"Jane"</span>, <span class="st">"Last Name"</span> <span class="op">=</span> <span class="st">"Doe"</span>,</span></span>
@@ -113,7 +113,7 @@ the affected columns.</p>
 <span class="r-in"><span><span class="fu">write_clean_csv</span><span class="op">(</span><span class="va">dirty</span>, <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".csv"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Column names were not clean -- applying `janitor::clean_names()` before</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> writing. Affected columns: <span style="color: #0000BB;">"First Name"</span> and <span style="color: #0000BB;">"Last Name"</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 1 row and 2 columns to <span style="color: #0000BB;">/tmp/RtmpCGYXJ9/file4de55573e509.csv</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 1 row and 2 columns to <span style="color: #0000BB;">/tmp/Rtmpkktyx4/file4f3612d33054.csv</span>.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
