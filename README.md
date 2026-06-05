@@ -119,6 +119,23 @@ In a real project, replace `project_dir` with the path where you want the projec
 
 ---
 
+## Quick reference
+
+| Function | What it does |
+|---|---|
+| `init_project()` | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, add extra folders, and optionally copy UW-Madison branding assets. |
+| `check_project()` | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. |
+| `create_qmd()` | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling, and set up a purl post-render hook. |
+| `qmd_to_r()` | Extracts R code chunks from a Quarto document into a standalone `.R` script. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
+| `read_clean_csv()` | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
+| `write_clean_csv()` | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
+| `write_by_group()` | Splits a data frame by group and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows. |
+| `detect_execution_context()` | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
+| `generate_kb_xml()` | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
+| `arborize()` | Renders syntactic trees as PNG images using Quarto’s Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later. |
+
+---
+
 ## Core workflow functions
 
 ### `init_project()`

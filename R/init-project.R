@@ -41,6 +41,7 @@ init_project <- function(path,
                          open = FALSE,
                          uw_branding = FALSE) {
 
+    path <- fs::path_abs(path)  # normalize early, before usethis shifts context
     withr::with_dir(getwd(), {
 
         # 1. create the RStudio project
