@@ -147,18 +147,13 @@
 #'   .f       = fit_model
 #' )
 #'
-#' # Parallel execution across 3 workers
-#' results <- run_by_group(
-#'   manifest = file.path(tmp, "manifest.csv"),
-#'   .f       = summarise_species,
-#'   workers  = 3L
-#' )
+#' # Parallel execution using available cores
+#' workers <- max(1L, parallelly::availableCores() - 1L)
 #'
-#' # Parallel execution across 3 workers
 #' results <- run_by_group(
 #'   manifest = file.path(tmp, "manifest.csv"),
 #'   .f       = summarise_species,
-#'   workers  = 3L
+#'   workers  = workers
 #' )
 #'
 #' # Reproducible parallel execution with a fixed seed
@@ -169,7 +164,7 @@
 #' results <- run_by_group(
 #'   manifest = file.path(tmp, "manifest.csv"),
 #'   .f       = random_summary,
-#'   workers  = 2L,
+#'   workers  = workers,
 #'   seed     = 1234
 #' )
 #' }
