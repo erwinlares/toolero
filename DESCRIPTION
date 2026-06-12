@@ -18,6 +18,9 @@ Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
 Suggests: 
+    dplyr,
+    furrr,
+    future,
     knitr,
     pdftools,
     rmarkdown,

@@ -5,3 +5,5 @@
 #' @importFrom lifecycle deprecated
 ## usethis namespace: end
 NULL
+
+utils::globalVariables("results")

@@ -528,3 +528,27 @@ replaced by .R. Explicit path overrides this.
 
 Files added: R/qmd-to-r.R, tests/testthat/test-qmd-to-r.R.
 Test count: up from 231 to [N] passing.
+
+2026-06-12
+
+Added `run_by_group()` to toolero
+Asked clauder to assess the function and implemented this bugs Claude caught 
+
+
+Here's a summary of what changed and where:
+
+**Step 1 — `.read_fn` validation** added right after the `.f` check, same pattern, same error style.
+
+**Step 2 — `workers` validation** (new block before the data source dispatch). It coerces to integer first so a bare `workers = 2` double behaves correctly, then checks for `< 1L`, then computes `parallel::detectCores(logical = FALSE) - 1L` and aborts with a message that tells the user exactly what they requested, what the ceiling is, and why.
+
+**Step 3 — seed cleanup** in the parallel branch. `furrr_options(seed = seed)` replaces the redundant conditional — `seed = NULL` is already valid and means no seed management.
+
+**Step 4 — `withr::local_envvar()`** replaces the `Sys.setenv()` / `on.exit(Sys.unsetenv())` pair. The prior value is captured and restored correctly rather than deleted outright.
+
+**Step 5 — missing files error** now uses cli's vectorized `{.path {missing_files}}` inline markup instead of a bare `paste0()` vector, so each path gets the proper `{.path}` rendering and the pluralization is handled by the first bullet.
+
+**Step 6 — manifest `data_list` naming** — `names(data_list) <- group_names` is now assigned immediately after reading the files, so both the manifest path and the `groups` path produce a named list before the apply step. The comment explains the intentional symmetry.
+
+**Step 7 — verbose parallel message** — the existing logic already fires only when `verbose = TRUE`, which is the right behavior. The message itself is unchanged since the concern was framing rather than logic — a user who passed `verbose = TRUE` will see the parallel summary message, and a user who didn't won't be surprised by an unsolicited warning.
+
+

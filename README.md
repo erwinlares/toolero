@@ -12,13 +12,35 @@
 
 ## The problem with starting from scratch
 
-Every research coding project begins with a blank slate and a set of early decisions: where to put the data, how to name the scripts, whether to track dependencies, and whether to use version control. These decisions feel low-stakes in the moment. They rarely are. The cost usually appears later, when the project needs to be shared, reviewed, rerun, containerized, or moved to a larger computing system.
+Every research coding project begins with a blank slate and a set of early
+decisions: where to put the data, how to name the scripts, whether to track
+dependencies, and whether to use version control. These decisions feel
+low-stakes in the moment. They rarely are. The cost usually appears later,
+when the project needs to be shared, reviewed, rerun, containerized, or moved
+to a larger computing system.
 
-A project that starts with a flat folder, no dependency tracking, and scripts that mix data loading, cleaning, modeling, and reporting is not impossible to rescue later — but it is genuinely hard. Collaborators cannot reproduce results because the package versions are unknown. The analysis breaks when moved to a different machine. The manuscript references outputs that no longer exist in the file system.
+A project that starts with a flat folder, no dependency tracking, and scripts
+that mix data loading, cleaning, modeling, and reporting is not impossible to
+rescue later — but it is genuinely hard. Collaborators cannot reproduce
+results because the package versions are unknown. The analysis breaks when
+moved to a different machine. The manuscript references outputs that no longer
+exist in the file system.
 
-`toolero` is a small, opinionated set of tools designed to make good research workflow decisions easier to adopt. It does not impose a rigid framework. It provides practical defaults for common research projects and gets out of the way when you need to customize.
+These are not exotic failure modes. They are the ordinary cost of skipping
+setup decisions that feel optional at the start of a project. The
+*From the Notebook to the Cluster* package family exists to make those
+decisions easier to get right the first time. `toolero` is the first step in
+that family.
 
-If you are new to research computing, `toolero` gives you a solid starting point without requiring you to know in advance why each piece matters. If you are experienced, it automates the setup work you would otherwise do by hand at the start of every project.
+`toolero` is a small, opinionated set of tools designed to make good research
+workflow decisions easier to adopt. It does not impose a rigid framework. It
+provides practical defaults for common research projects and gets out of the
+way when you need to customize.
+
+If you are new to research computing, `toolero` gives you a solid starting
+point without requiring you to know in advance why each piece matters. If you
+are experienced, it automates the setup work you would otherwise do by hand
+at the start of every project.
 
 ---
 
@@ -31,27 +53,43 @@ Use `toolero` when you are:
 - preparing an analysis that may later need to run outside your laptop;
 - using Quarto as the source of truth for an analysis;
 - reading and cleaning tabular data files at the start of a workflow;
-- splitting data into independent pieces for parallel or high-throughput workflows;
+- splitting data into independent pieces and applying an analysis function to each;
+- preparing split data for parallel or high-throughput workflows;
 - standardizing setup across multiple projects;
 - publishing technical documentation that should stay synchronized with its source.
 
-`toolero` is useful on its own. You do not need to containerize your project or submit work to a cluster to benefit from better project structure, cleaner inputs, literate analysis documents, and repeatable workflows.
+`toolero` is useful on its own. You do not need to containerize your project
+or submit work to a cluster to benefit from better project structure, cleaner
+inputs, literate analysis documents, and repeatable workflows. That said,
+starting with `toolero` means your project is already prepared for the next
+step when the time comes.
 
 ---
 
-## The toolero family
+## From the Notebook to the Cluster
 
-`toolero` is also the first step in a three-package family for reproducible research workflows, from local project setup to containerization and high-throughput computing submission:
+`toolero` is the first package in *From the Notebook to the Cluster*, a
+three-package family for reproducible research workflows. The family covers
+the full arc from local project setup to high-throughput computing:
 
 ```text
-toolero     organize, scaffold, split
+toolero     organize, scaffold, split, apply
   └─ containr   freeze the software environment in a container
        └─ submitr    send the analysis to CHTC and retrieve results
 ```
 
-Each package is useful on its own. Together, they form a path from a new local R project to a containerized analysis that can run on high-throughput computing infrastructure.
+The organizing idea behind the family is that good practices at each stage
+make the next stage easier. A project structured with `toolero` — with
+dependency tracking, a clean folder layout, and data split into independent
+pieces — is already most of the way to being containerizable. A containerized
+project is already most of the way to being submittable to a high-throughput
+computing cluster. The family does not require you to commit to the full arc
+upfront. Each package is useful on its own, and you can adopt them one at a
+time as your project's needs grow.
 
-You can adopt these packages one at a time. `toolero` does not require `containr`, and `containr` does not require `submitr`. The family exists so that each step prepares cleanly for the next when your project is ready to scale.
+`toolero` does not require `containr`, and `containr` does not require
+`submitr`. The dependencies run in one direction only: each package prepares
+cleanly for the next, but none reaches backward.
 
 ---
 
@@ -106,12 +144,18 @@ data <- read_clean_csv(
 # 6. Write the cleaned data
 write_clean_csv(data, file.path(project_dir, "data", "clean.csv"))
 
-# 7. Split data into per-group subsets for parallel processing
+# 7. Split data into per-group subsets
 write_by_group(
   data,
   group_col  = "species",
   output_dir = file.path(project_dir, "data", "jobs"),
   manifest   = TRUE
+)
+
+# 8. Apply an analysis function to each subset and collect the results
+results <- run_by_group(
+  manifest = file.path(project_dir, "data", "jobs", "manifest.csv"),
+  .f       = my_analysis
 )
 ```
 
@@ -130,9 +174,10 @@ In a real project, replace `project_dir` with the path where you want the projec
 | `read_clean_csv()` | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
 | `write_clean_csv()` | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
 | `write_by_group()` | Splits a data frame by group and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows. |
+| `run_by_group()` | Applies a function to each group subset and collects the results. Accepts a manifest from `write_by_group()` or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns. |
 | `detect_execution_context()` | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
 | `generate_kb_xml()` | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
-| `arborize()` | Renders syntactic trees as PNG images using Quarto’s Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later. |
+| `arborize()` | Renders syntactic trees as PNG images using Quarto's Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later. |
 
 ---
 
@@ -292,6 +337,84 @@ write_clean_csv(data, "data/clean.csv", overwrite = TRUE)
 
 ---
 
+### `write_by_group()` and `run_by_group()`
+
+These two functions form the split-apply pair at the heart of toolero's
+workflow support. The idea is simple: split the data once, then apply an
+analysis function to each piece and collect the results. The split and the
+apply are deliberately separate steps so you can iterate on the analysis
+function without re-splitting the data each time.
+
+`write_by_group()` handles the split. It partitions a data frame by a
+grouping column, writes one CSV per group with sanitized filenames, and
+optionally produces a `manifest.csv` that records each group's name, file
+path, and row count. That manifest is the input to `run_by_group()`.
+
+`run_by_group()` handles the apply. It reads each subset from the manifest,
+calls your function on each one, and assembles the results into a single
+tibble. If your function returns a data frame, the output is automatically
+unnested into a flat tibble with a group ID column prepended. If it returns
+anything else — a model, a plot, a file path — the results come back as a
+nested tibble with a list-column.
+
+```r
+sample_path <- system.file("templates", "sample.csv", package = "toolero")
+penguins    <- read_clean_csv(sample_path)
+
+# Split to disk
+write_by_group(
+  penguins,
+  group_col  = "species",
+  output_dir = "data/jobs",
+  manifest   = TRUE
+)
+
+# Define an analysis function
+summarise_species <- function(data) {
+  dplyr::summarise(data,
+    n            = dplyr::n(),
+    mean_mass    = mean(body_mass_g, na.rm = TRUE),
+    mean_flipper = mean(flipper_length_mm, na.rm = TRUE)
+  )
+}
+
+# Apply from disk via manifest -- returns a flat tibble
+results <- run_by_group(
+  manifest = "data/jobs/manifest.csv",
+  .f       = summarise_species
+)
+
+# Apply from memory via named list -- same result, no disk reads
+subsets <- split(penguins, penguins$species)
+
+results <- run_by_group(
+  groups = subsets,
+  .f     = summarise_species
+)
+```
+
+For analyses that are slow or computationally independent across groups,
+`run_by_group()` supports parallel execution via `furrr`. The `workers`
+argument controls how many R sessions to use. The ceiling is
+`parallel::detectCores(logical = FALSE) - 1L`, which reserves one core for
+the main session.
+
+```r
+# Parallel execution across 3 workers
+results <- run_by_group(
+  manifest = "data/jobs/manifest.csv",
+  .f       = summarise_species,
+  workers  = 3L
+)
+```
+
+The manifest produced by `write_by_group()` is also the input to
+`submitr::htc_gen_submit()` in multiple-job mode, making this split-apply
+pattern the natural on-ramp to high-throughput computing when local
+parallelism is not enough.
+
+---
+
 ### `detect_execution_context()`
 
 Identifies which of three environments the code is currently running in — an interactive R session, a `quarto render` call, or a plain `Rscript` invocation — and returns `"interactive"`, `"quarto"`, or `"rscript"`. Useful for writing code that resolves input file paths correctly across all three contexts without maintaining separate versions.
@@ -303,26 +426,6 @@ input_file <- switch(context,
   interactive = "data/sample.csv",
   quarto      = params$input_file,
   rscript     = commandArgs(trailingOnly = TRUE)[1]
-)
-```
-
----
-
-### `write_by_group()`
-
-Splits a data frame by a grouping column and writes each group to a separate CSV file. Filenames are derived from sanitized group values — lowercase, with spaces and special characters replaced by dashes. Optionally writes a `manifest.csv` listing all output files, group values, and row counts.
-
-This is useful any time a project needs independent input files: one file per county, participant, simulation parameter, model specification, or study site. For high-throughput workflows, the manifest is the input to `submitr::htc_gen_submit()` in multiple-job mode.
-
-```r
-sample_path <- system.file("templates", "sample.csv", package = "toolero")
-penguins    <- read_clean_csv(sample_path)
-
-write_by_group(
-  penguins,
-  group_col  = "species",
-  output_dir = "data/jobs",
-  manifest   = TRUE
 )
 ```
 

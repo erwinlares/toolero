@@ -9,6 +9,7 @@ Horst
 JS
 Lifecycle
 ORCID
+Pre
 QMD
 RCI
 README
@@ -21,7 +22,9 @@ Vendlerian
 arborize
 aspectual
 cli
+codebase
 containr
+ggplot
 hardcoded
 hardcoding
 knitr
@@ -43,3 +46,4 @@ theming
 tibble
 tidyverse
 uncommenting
+unnested
