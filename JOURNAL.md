@@ -9,8 +9,9 @@
 toolero is an R package designed to help researchers implement best practices
 for their coding projects. It provides a small set of opinionated, practical
 functions that reduce friction at the start of a project and during day-to-day
-data work. It is the foundational package in a three-package suite alongside
-containr (Docker containerization) and curriculr (data-driven CV generation).
+data work. It is the foundational package in the *From the Notebook to the
+Cluster* three-package suite alongside containr (Docker containerization) and
+submitr (CHTC job submission).
 
 toolero is on CRAN at v0.3.0. It was developed prior to the formal journaling
 practice established during curriculr development. This journal captures the
@@ -527,28 +528,183 @@ output defaults to the same directory as input with the .qmd extension
 replaced by .R. Explicit path overrides this.
 
 Files added: R/qmd-to-r.R, tests/testthat/test-qmd-to-r.R.
-Test count: up from 231 to [N] passing.
 
-2026-06-12
+---
 
-Added `run_by_group()` to toolero
-Asked clauder to assess the function and implemented this bugs Claude caught 
+## Session 4 -- 2026-06-12 (run_by_group() and README revision)
 
+### What we set out to do
 
-Here's a summary of what changed and where:
+Add `run_by_group()` -- the apply half of the split-apply workflow that
+`write_by_group()` has been waiting for since v0.2.0. Update the README and
+NEWS.md to reflect the full v0.4.0 function inventory. Revise the opening
+sections of the README to situate toolero within the *From the Notebook to
+the Cluster* family.
 
-**Step 1 — `.read_fn` validation** added right after the `.f` check, same pattern, same error style.
+### run_by_group() design
 
-**Step 2 — `workers` validation** (new block before the data source dispatch). It coerces to integer first so a bare `workers = 2` double behaves correctly, then checks for `< 1L`, then computes `parallel::detectCores(logical = FALSE) - 1L` and aborts with a message that tells the user exactly what they requested, what the ceiling is, and why.
+The function is the apply counterpart to `write_by_group()`. The split is
+done once; the apply step can be run many times as the analysis function
+evolves. Two data sources are supported:
 
-**Step 3 — seed cleanup** in the parallel branch. `furrr_options(seed = seed)` replaces the redundant conditional — `seed = NULL` is already valid and means no seed management.
+manifest path -- reads subset CSVs listed in a manifest produced by
+write_by_group(manifest = TRUE). The manifest is a CSV with `group_value`
+and `file_path` columns.
 
-**Step 4 — `withr::local_envvar()`** replaces the `Sys.setenv()` / `on.exit(Sys.unsetenv())` pair. The prior value is captured and restored correctly rather than deleted outright.
+groups path -- accepts a named list of data frames already in memory,
+bypassing disk reads entirely. All elements must have identical column names
+and types, consistent with subsets from a single source dataset.
 
-**Step 5 — missing files error** now uses cli's vectorized `{.path {missing_files}}` inline markup instead of a bare `paste0()` vector, so each path gets the proper `{.path}` rendering and the pluralization is handled by the first bullet.
+Output shape is determined by what .f returns. If .f returns a data frame,
+results are automatically unnested into a flat tibble with a group ID column
+prepended. If .f returns anything else (a model, a plot, a file path), results
+come back as a nested tibble with a list-column named `results`.
 
-**Step 6 — manifest `data_list` naming** — `names(data_list) <- group_names` is now assigned immediately after reading the files, so both the manifest path and the `groups` path produce a named list before the apply step. The comment explains the intentional symmetry.
+Parallel execution is supported via furrr and future through the `workers`
+argument. The hard ceiling is `parallel::detectCores(logical = FALSE) - 1L`
+to reserve one core for the main session -- this is enforced with a cli_abort()
+rather than left to the user to discover by experience.
 
-**Step 7 — verbose parallel message** — the existing logic already fires only when `verbose = TRUE`, which is the right behavior. The message itself is unchanged since the concern was framing rather than logic — a user who passed `verbose = TRUE` will see the parallel summary message, and a user who didn't won't be surprised by an unsolicited warning.
+### Code review and seven fixes applied
 
+After drafting the initial implementation, a code review identified seven
+issues that were corrected before the function was finalized.
 
+1. `.read_fn` validation -- the initial version validated `.f` but not
+   `.read_fn`. Added the same is.function() check immediately after the .f
+   check.
+
+2. `workers` validation -- no input validation existed on the workers argument.
+   Added: coerce to integer defensively (so bare doubles like workers = 2
+   behave correctly), check for < 1L, check against
+   parallel::detectCores(logical = FALSE) - 1L ceiling with a clear error
+   message reporting what was requested and what the maximum is.
+
+3. `seed` readability -- the conditional `seed = if (!is.null(seed)) seed else NULL`
+   simplified to `seed = seed` since furrr_options(seed = NULL) is valid and
+   already means no seed management.
+
+4. `renv` autoloader envvar -- the original used Sys.setenv() with
+   on.exit(Sys.unsetenv()), which deletes the variable entirely rather than
+   restoring its prior value. Replaced with withr::local_envvar() which
+   captures and restores the prior state correctly.
+
+5. Missing files error message -- the original used paste0("- ", missing_files)
+   as an unnamed vector in cli_abort(), which rendered without cli's path
+   styling. Replaced with cli's vectorized {.path {missing_files}} inline
+   markup for proper rendering and pluralization.
+
+6. Manifest data_list naming -- the manifest path produced an unnamed
+   data_list while the groups path produced a named one. Fixed by assigning
+   names(data_list) <- group_names immediately after reading the files, so
+   both paths produce a named list before the apply step. Added a comment
+   explaining the intentional symmetry.
+
+7. `.read_fn` validation -- see item 1 above (listed separately in the
+   original review; consolidated here).
+
+### cli pluralization bug in groups element type check
+
+After the function was implemented and tests were written, one test failed
+with a cli internal error: `length(object) == 1 is not TRUE` from
+cli:::make_quantity(). The error was in the production code, not the test.
+
+The offending message:
+    "i" = "Element{?s} {bad} {?is/are} not a data frame."
+
+The problem: {?is/are} requires a single scalar quantity to count against.
+{bad} is a vector, so cli cannot resolve the pluralization.
+
+Fix: restructure the message so cli counts length(bad) explicitly:
+    "i" = "{length(bad)} element{?s} {?is/are} not a data frame: position{?s} {.val {bad}}."
+
+### @importFrom rlang := placement
+
+The := operator (used in `!!.id := group_names`) must be imported from rlang.
+The @importFrom tag was placed in the roxygen block but failed to appear in
+NAMESPACE after devtools::document(). Investigation revealed the cause: a
+blank line between the closing #' } of the @examples block and the
+run_by_group <- function(...) definition. Roxygen requires the block to be
+immediately adjacent to the function with no blank lines. Removing the blank
+line caused @importFrom(rlang, ":=") to appear in NAMESPACE correctly.
+
+Lesson: if an @importFrom tag appears correct but does not show up in NAMESPACE
+after devtools::document(), a stray blank line before the function signature
+is the first thing to check.
+
+### utils::globalVariables("results")
+
+R CMD check emitted a NOTE: `run_by_group: no visible binding for global
+variable 'results'`. This arises from `tidyr::unnest(output, results)` where
+`results` is a bare column name rather than a variable. Suppressed by adding
+`utils::globalVariables("results")` to toolero-package.R at the top level,
+alongside the package sentinel. This is the correct location for package-wide
+suppression declarations -- not in the individual function file.
+
+### dplyr dependency
+
+The examples block uses dplyr::summarise(), dplyr::n(), and dplyr::group_split().
+The test file uses dplyr::arrange(). Adding dplyr to Imports produced a NOTE
+("Namespace in Imports field not imported from: 'dplyr'") because no package
+function uses @importFrom dplyr -- all calls are namespace-qualified with ::.
+Resolution: move dplyr to Suggests in DESCRIPTION, since all calls are already
+qualified and the package body itself has no unqualified dplyr imports.
+
+### Test suite for run_by_group()
+
+Tests organized into five groups: input validation, data source dispatch,
+output shape, parallel execution, and verbose messaging.
+
+The make_manifest() helper follows the same pattern as make_project() in
+test-check-project.R -- plain fs and readr calls, no toolero functions, root
+temp directory created at file level with withr::local_tempdir() and passed
+in as an argument to avoid the call-frame scoping problem.
+
+Parallel tests all guarded with skip_on_cran() and skip_on_ci() following
+the arborize() precedent. The "different seeds produce different results"
+test uses four groups and a 1:1e6 sample space to make a false negative
+astronomically unlikely.
+
+Notable test: the ... passthrough test. Verifies that extra arguments passed
+to run_by_group() reach .f on every call. Worth having explicitly because
+refactoring worker_fn without carrying dots along is an easy mistake.
+
+### README revision
+
+Two updates made to the README:
+
+run_by_group() added to the quick reference table immediately after
+write_by_group(). A combined `write_by_group() and run_by_group()` section
+replaced the standalone write_by_group() section, framing the split-apply
+pattern as a whole. The section closes with a forward link to
+submitr::htc_gen_submit() -- the manifest from write_by_group() is the
+direct input to submitr's multiple-job mode, and this is the first place
+in the README where that connection is made explicit.
+
+The first three README sections were rewritten to name the
+*From the Notebook to the Cluster* family explicitly. The "The problem with
+starting from scratch" section gained a new paragraph introducing the family
+name as the response to the problem. "When to use toolero" gained a closing
+sentence pointing forward to the next step. "The toolero family" was renamed
+to "From the Notebook to the Cluster" with prose foregrounding the organizing
+idea: good practices at each stage make the next stage easier.
+
+### Decision: hold version bump to 0.5.0
+
+run_by_group() is a substantial addition that could justify a version bump to
+0.5.0. The decision was to hold the bump until read_clean_tsv() and
+read_clean_parquet() are also complete, so the version history reflects a
+coherent feature set rather than a single function. The read_clean_*() family
+becomes the first priority for v0.5.0.
+
+### Files added this session
+
+```
+R/run-by-group.R
+tests/testthat/test-run-by-group.R
+```
+
+DESCRIPTION changes: furrr and future added to Suggests, dplyr moved from
+Imports to Suggests, rlang := importFrom added to NAMESPACE via roxygen.
+
+toolero-package.R changes: utils::globalVariables("results") added.
