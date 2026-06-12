@@ -72,6 +72,7 @@
 </h2>
 <p>Every research coding project begins with a blank slate and a set of early decisions: where to put the data, how to name the scripts, whether to track dependencies, and whether to use version control. These decisions feel low-stakes in the moment. They rarely are. The cost usually appears later, when the project needs to be shared, reviewed, rerun, containerized, or moved to a larger computing system.</p>
 <p>A project that starts with a flat folder, no dependency tracking, and scripts that mix data loading, cleaning, modeling, and reporting is not impossible to rescue later — but it is genuinely hard. Collaborators cannot reproduce results because the package versions are unknown. The analysis breaks when moved to a different machine. The manuscript references outputs that no longer exist in the file system.</p>
+<p>These are not exotic failure modes. They are the ordinary cost of skipping setup decisions that feel optional at the start of a project. The <em>From the Notebook to the Cluster</em> package family exists to make those decisions easier to get right the first time. <code>toolero</code> is the first step in that family.</p>
 <p><code>toolero</code> is a small, opinionated set of tools designed to make good research workflow decisions easier to adopt. It does not impose a rigid framework. It provides practical defaults for common research projects and gets out of the way when you need to customize.</p>
 <p>If you are new to research computing, <code>toolero</code> gives you a solid starting point without requiring you to know in advance why each piece matters. If you are experienced, it automates the setup work you would otherwise do by hand at the start of every project.</p>
 <hr>
@@ -86,22 +87,23 @@
 <li>preparing an analysis that may later need to run outside your laptop;</li>
 <li>using Quarto as the source of truth for an analysis;</li>
 <li>reading and cleaning tabular data files at the start of a workflow;</li>
-<li>splitting data into independent pieces for parallel or high-throughput workflows;</li>
+<li>splitting data into independent pieces and applying an analysis function to each;</li>
+<li>preparing split data for parallel or high-throughput workflows;</li>
 <li>standardizing setup across multiple projects;</li>
 <li>publishing technical documentation that should stay synchronized with its source.</li>
 </ul>
-<p><code>toolero</code> is useful on its own. You do not need to containerize your project or submit work to a cluster to benefit from better project structure, cleaner inputs, literate analysis documents, and repeatable workflows.</p>
+<p><code>toolero</code> is useful on its own. You do not need to containerize your project or submit work to a cluster to benefit from better project structure, cleaner inputs, literate analysis documents, and repeatable workflows. That said, starting with <code>toolero</code> means your project is already prepared for the next step when the time comes.</p>
 <hr>
 </div>
 <div class="section level2">
-<h2 id="the-toolero-family">The toolero family<a class="anchor" aria-label="anchor" href="#the-toolero-family"></a>
+<h2 id="from-the-notebook-to-the-cluster">From the Notebook to the Cluster<a class="anchor" aria-label="anchor" href="#from-the-notebook-to-the-cluster"></a>
 </h2>
-<p><code>toolero</code> is also the first step in a three-package family for reproducible research workflows, from local project setup to containerization and high-throughput computing submission:</p>
-<pre class="text"><code>toolero     organize, scaffold, split
+<p><code>toolero</code> is the first package in <em>From the Notebook to the Cluster</em>, a three-package family for reproducible research workflows. The family covers the full arc from local project setup to high-throughput computing:</p>
+<pre class="text"><code>toolero     organize, scaffold, split, apply
   └─ containr   freeze the software environment in a container
        └─ submitr    send the analysis to CHTC and retrieve results</code></pre>
-<p>Each package is useful on its own. Together, they form a path from a new local R project to a containerized analysis that can run on high-throughput computing infrastructure.</p>
-<p>You can adopt these packages one at a time. <code>toolero</code> does not require <code>containr</code>, and <code>containr</code> does not require <code>submitr</code>. The family exists so that each step prepares cleanly for the next when your project is ready to scale.</p>
+<p>The organizing idea behind the family is that good practices at each stage make the next stage easier. A project structured with <code>toolero</code> — with dependency tracking, a clean folder layout, and data split into independent pieces — is already most of the way to being containerizable. A containerized project is already most of the way to being submittable to a high-throughput computing cluster. The family does not require you to commit to the full arc upfront. Each package is useful on its own, and you can adopt them one at a time as your project’s needs grow.</p>
+<p><code>toolero</code> does not require <code>containr</code>, and <code>containr</code> does not require <code>submitr</code>. The dependencies run in one direction only: each package prepares cleanly for the next, but none reaches backward.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -150,12 +152,18 @@
 <span><span class="co"># 6. Write the cleaned data</span></span>
 <span><span class="fu"><a href="reference/write_clean_csv.html">write_clean_csv</a></span><span class="op">(</span><span class="va">data</span>, <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"data"</span>, <span class="st">"clean.csv"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 7. Split data into per-group subsets for parallel processing</span></span>
+<span><span class="co"># 7. Split data into per-group subsets</span></span>
 <span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
 <span>  <span class="va">data</span>,</span>
 <span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"data"</span>, <span class="st">"jobs"</span><span class="op">)</span>,</span>
 <span>  manifest   <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 8. Apply an analysis function to each subset and collect the results</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
+<span>  manifest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"data"</span>, <span class="st">"jobs"</span>, <span class="st">"manifest.csv"</span><span class="op">)</span>,</span>
+<span>  .f       <span class="op">=</span> <span class="va">my_analysis</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>In a real project, replace <code>project_dir</code> with the path where you want the project to live. The important idea is that <code>toolero</code> helps you start with a structure that can grow: local analysis first, reproducible execution later, and scalable computing when needed.</p>
 <hr>
@@ -200,6 +208,10 @@
 <tr>
 <td><code><a href="reference/write_by_group.html">write_by_group()</a></code></td>
 <td>Splits a data frame by group and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows.</td>
+</tr>
+<tr>
+<td><code><a href="reference/run_by_group.html">run_by_group()</a></code></td>
+<td>Applies a function to each group subset and collects the results. Accepts a manifest from <code><a href="reference/write_by_group.html">write_by_group()</a></code> or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns.</td>
 </tr>
 <tr>
 <td><code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code></td>
@@ -353,35 +365,70 @@
 <hr>
 </div>
 <div class="section level3">
+<h3 id="write_by_group-and-run_by_group">
+<code>write_by_group()</code> and <code>run_by_group()</code>
+<a class="anchor" aria-label="anchor" href="#write_by_group-and-run_by_group"></a>
+</h3>
+<p>These two functions form the split-apply pair at the heart of toolero’s workflow support. The idea is simple: split the data once, then apply an analysis function to each piece and collect the results. The split and the apply are deliberately separate steps so you can iterate on the analysis function without re-splitting the data each time.</p>
+<p><code><a href="reference/write_by_group.html">write_by_group()</a></code> handles the split. It partitions a data frame by a grouping column, writes one CSV per group with sanitized filenames, and optionally produces a <code>manifest.csv</code> that records each group’s name, file path, and row count. That manifest is the input to <code><a href="reference/run_by_group.html">run_by_group()</a></code>.</p>
+<p><code><a href="reference/run_by_group.html">run_by_group()</a></code> handles the apply. It reads each subset from the manifest, calls your function on each one, and assembles the results into a single tibble. If your function returns a data frame, the output is automatically unnested into a flat tibble with a group ID column prepended. If it returns anything else — a model, a plot, a file path — the results come back as a nested tibble with a list-column.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sample_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"templates"</span>, <span class="st">"sample.csv"</span>, package <span class="op">=</span> <span class="st">"toolero"</span><span class="op">)</span></span>
+<span><span class="va">penguins</span>    <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="va">sample_path</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Split to disk</span></span>
+<span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
+<span>  <span class="va">penguins</span>,</span>
+<span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
+<span>  output_dir <span class="op">=</span> <span class="st">"data/jobs"</span>,</span>
+<span>  manifest   <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Define an analysis function</span></span>
+<span><span class="va">summarise_species</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">data</span>,</span>
+<span>    n            <span class="op">=</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/context.html" class="external-link">n</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    mean_mass    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">body_mass_g</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>    mean_flipper <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">flipper_length_mm</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># Apply from disk via manifest -- returns a flat tibble</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
+<span>  manifest <span class="op">=</span> <span class="st">"data/jobs/manifest.csv"</span>,</span>
+<span>  .f       <span class="op">=</span> <span class="va">summarise_species</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Apply from memory via named list -- same result, no disk reads</span></span>
+<span><span class="va">subsets</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="va">penguins</span>, <span class="va">penguins</span><span class="op">$</span><span class="va">species</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
+<span>  groups <span class="op">=</span> <span class="va">subsets</span>,</span>
+<span>  .f     <span class="op">=</span> <span class="va">summarise_species</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>For analyses that are slow or computationally independent across groups, <code><a href="reference/run_by_group.html">run_by_group()</a></code> supports parallel execution via <code>furrr</code>. The <code>workers</code> argument controls how many R sessions to use. The ceiling is <code>parallel::detectCores(logical = FALSE) - 1L</code>, which reserves one core for the main session.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Parallel execution across 3 workers</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
+<span>  manifest <span class="op">=</span> <span class="st">"data/jobs/manifest.csv"</span>,</span>
+<span>  .f       <span class="op">=</span> <span class="va">summarise_species</span>,</span>
+<span>  workers  <span class="op">=</span> <span class="fl">3L</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The manifest produced by <code><a href="reference/write_by_group.html">write_by_group()</a></code> is also the input to <code>submitr::htc_gen_submit()</code> in multiple-job mode, making this split-apply pattern the natural on-ramp to high-throughput computing when local parallelism is not enough.</p>
+<hr>
+</div>
+<div class="section level3">
 <h3 id="detect_execution_context">
 <code>detect_execution_context()</code><a class="anchor" aria-label="anchor" href="#detect_execution_context"></a>
 </h3>
 <p>Identifies which of three environments the code is currently running in — an interactive R session, a <code>quarto render</code> call, or a plain <code>Rscript</code> invocation — and returns <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code>. Useful for writing code that resolves input file paths correctly across all three contexts without maintaining separate versions.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
 <span>  interactive <span class="op">=</span> <span class="st">"data/sample.csv"</span>,</span>
 <span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
 <span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<hr>
-</div>
-<div class="section level3">
-<h3 id="write_by_group">
-<code>write_by_group()</code><a class="anchor" aria-label="anchor" href="#write_by_group"></a>
-</h3>
-<p>Splits a data frame by a grouping column and writes each group to a separate CSV file. Filenames are derived from sanitized group values — lowercase, with spaces and special characters replaced by dashes. Optionally writes a <code>manifest.csv</code> listing all output files, group values, and row counts.</p>
-<p>This is useful any time a project needs independent input files: one file per county, participant, simulation parameter, model specification, or study site. For high-throughput workflows, the manifest is the input to <code>submitr::htc_gen_submit()</code> in multiple-job mode.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">sample_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"templates"</span>, <span class="st">"sample.csv"</span>, package <span class="op">=</span> <span class="st">"toolero"</span><span class="op">)</span></span>
-<span><span class="va">penguins</span>    <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="va">sample_path</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
-<span>  <span class="va">penguins</span>,</span>
-<span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
-<span>  output_dir <span class="op">=</span> <span class="st">"data/jobs"</span>,</span>
-<span>  manifest   <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
@@ -394,7 +441,7 @@
 <code>generate_kb_xml()</code><a class="anchor" aria-label="anchor" href="#generate_kb_xml"></a>
 </h3>
 <p>Produces a UW-Madison Knowledge Base importable XML file from a rendered Quarto document. Write and maintain the guide in Quarto, then generate the KB-ready XML from that source. The Quarto document remains the maintained version and the XML becomes a derived artifact, reducing documentation drift.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
 <span>  html_path  <span class="op">=</span> <span class="st">"docs/analysis.html"</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="st">"exports"</span></span>
@@ -407,7 +454,7 @@
 <code>arborize()</code><a class="anchor" aria-label="anchor" href="#arborize"></a>
 </h3>
 <p>Renders a syntactic tree as a standalone PNG image using Quarto’s Typst engine. Accepts bracket notation for simple trees or structured notation for trees requiring movement arrows and per-node styling. A provenance <code>.yaml</code> file is written alongside the PNG by default, recording the tree string and render settings so the image can be reproduced or modified later.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Simple bracket notation</span></span>
 <span><span class="fu"><a href="reference/arborize.html">arborize</a></span><span class="op">(</span></span>
 <span>  <span class="st">"[NP [Det the] [N cat]]"</span>,</span>
@@ -444,7 +491,7 @@ yaml, rlang, rvest, xml2, quarto, withr, lifecycle</code></pre>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

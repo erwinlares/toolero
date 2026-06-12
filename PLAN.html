@@ -42,10 +42,10 @@
 <div class="section level2">
 <h2 id="what-is-toolero">What is toolero?<a class="anchor" aria-label="anchor" href="#what-is-toolero"></a></h2>
 <p>toolero is an R package designed to help researchers implement best practices for their coding projects. It provides a small set of opinionated, practical functions that reduce friction at the start of a project and during day-to-day data work.</p>
-<p>toolero is the foundational package in a three-package suite:</p>
+<p>toolero is the foundational package in the <em>From the Notebook to the Cluster</em> three-package suite:</p>
 <pre><code>toolero     -- research workflow toolkit (CRAN v0.4.0)
 containr    -- Docker containerization toolkit (CRAN pending)
-curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></pre>
+submitr     -- CHTC job submission toolkit (CRAN pending)</code></pre>
 <hr></div>
 <div class="section level2">
 <h2 id="package-identity">Package identity<a class="anchor" aria-label="anchor" href="#package-identity"></a></h2>
@@ -90,9 +90,12 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 <li>read_clean_csv() extended – na, drop_na, summary, … arguments added</li>
 <li>write_clean_csv() – new exported function</li>
 <li>check_project() – new exported function</li>
-<li>DESCRIPTION updated – SystemRequirements, Description prose, tidyr in Imports</li>
-<li>cran-comments.md drafted – skeleton with progressive update markers</li>
 <li>qmd_to_r() – extracts R code from any .qmd into a standalone .R script</li>
+<li>run_by_group() – applies a function to each group subset, collects results; supports manifest or named-list input, parallel execution via furrr/future, tabular and non-tabular output routing</li>
+<li>DESCRIPTION updated – furrr and future added to Suggests, dplyr moved to Suggests, rlang := imported</li>
+<li>README updated – run_by_group() added to quick reference and core workflow sections; first three sections rewritten to reflect From the Notebook to the Cluster family name</li>
+<li>NEWS.md updated – full v0.4.0 entry drafted</li>
+<li>cran-comments.md drafted – skeleton with progressive update markers</li>
 </ul><hr></div>
 <div class="section level2">
 <h2 id="source-file-organization">Source file organization<a class="anchor" aria-label="anchor" href="#source-file-organization"></a></h2>
@@ -103,12 +106,15 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">write</span><span class="op">-</span><span class="va">clean</span><span class="op">-</span><span class="va">csv.R</span>           <span class="co"># write_clean_csv()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">detect</span><span class="op">-</span><span class="va">execution</span><span class="op">-</span><span class="va">context.R</span>  <span class="co"># detect_execution_context()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">write</span><span class="op">-</span><span class="va">by</span><span class="op">-</span><span class="va">group.R</span>            <span class="co"># write_by_group()</span></span>
+<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">run</span><span class="op">-</span><span class="va">by</span><span class="op">-</span><span class="va">group.R</span>              <span class="co"># run_by_group()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">generate</span><span class="op">-</span><span class="va">kb</span><span class="op">-</span><span class="va">xml.R</span>           <span class="co"># generate_kb_xml()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">check</span><span class="op">-</span><span class="va">project.R</span>             <span class="co"># check_project(), .check_result(),</span></span>
 <span>                                <span class="co">#   .print_check_project()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">arborize.R</span>                  <span class="co"># arborize(), .build_arborize_qmd(),</span></span>
 <span>                                <span class="co">#   .write_arborize_provenance()</span></span>
-<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">toolero</span><span class="op">-</span><span class="va">package.R</span>           <span class="co"># package sentinel</span></span></code></pre>
+<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">qmd</span><span class="op">-</span><span class="va">to</span><span class="op">-</span><span class="va">r.R</span>                  <span class="co"># qmd_to_r()</span></span>
+<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">toolero</span><span class="op">-</span><span class="va">package.R</span>           <span class="co"># package sentinel,</span></span>
+<span>                                <span class="co">#   utils::globalVariables("results")</span></span></code></pre>
 <div class="section level3">
 <h3 id="naming-conventions">Naming conventions<a class="anchor" aria-label="anchor" href="#naming-conventions"></a></h3>
 <ul><li>Exported functions: snake_case</li>
@@ -120,9 +126,9 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 <h2 id="v050-roadmap">v0.5.0 roadmap<a class="anchor" aria-label="anchor" href="#v050-roadmap"></a></h2>
 <div class="section level3">
 <h3 id="high-priority">High priority<a class="anchor" aria-label="anchor" href="#high-priority"></a></h3>
-<ul><li><p>template argument for create_qmd(). Currently create_qmd() always uses the internal toolero template. Adding a template argument would allow curriculr’s create_cv() to delegate to create_qmd() for Quarto scaffolding instead of handling it independently. This is the primary blocker for restoring the intended delegation model across the package suite.</p></li>
-<li><p>qmd_to_r() – extracts R code from any .qmd file into a standalone .R script. Complements the existing use_purl hook in create_qmd() by working on any .qmd regardless of origin. In progress.</p></li>
-<li><p>read_clean_excel() – companion to read_clean_csv() via readxl. Same conventions: janitor::clean_names() as core, na, drop_na, summary, verbose, … arguments, returning tibbles. Prefix convention is read_clean_*().</p></li>
+<ul><li><p>read_clean_tsv() and read_clean_parquet() – the two most immediately useful members of the read_clean_*() family. Both are flat rectangular formats that work cleanly with janitor::clean_names(). Same argument signature as read_clean_csv(): na, drop_na, summary, …, returning tibbles. read_clean_json() and read_clean_sqlite() are deferred pending design decisions about nested structures and table selection.</p></li>
+<li><p>template argument for create_qmd(). Currently create_qmd() always uses the internal toolero template. Adding a template argument would allow curriculr’s create_cv() to delegate to create_qmd() for Quarto scaffolding instead of handling it independently. This is the primary blocker for restoring the intended delegation model across the package suite.</p></li>
+<li><p>read_clean_excel() – companion to read_clean_csv() via readxl. Same conventions: janitor::clean_names() as core, na, drop_na, summary, verbose, … arguments, returning tibbles.</p></li>
 </ul></div>
 <div class="section level3">
 <h3 id="medium-priority">Medium priority<a class="anchor" aria-label="anchor" href="#medium-priority"></a></h3>
@@ -131,6 +137,7 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 <li><p>arborize() SVG output option. Typst can produce SVG directly – offer it as an alternative to PNG for web embedding.</p></li>
 <li><p>rearborize() – re-render from a provenance .yaml file. Currently the manual pattern (read yaml, call arborize() with recovered fields) is only five lines and does not justify an exported function. Implement if user demand materializes via GitHub issues.</p></li>
 <li><p>toolero delegation from curriculr – once template argument is added to create_qmd(), restore create_cv() in curriculr to delegate to toolero::create_qmd() rather than handling scaffolding independently.</p></li>
+<li><p>split-apply vignette – document write_by_group() and run_by_group() as a paired workflow. Narrative arc: split once, iterate the analysis function, connect to submitr for scale.</p></li>
 </ul></div>
 <div class="section level3">
 <h3 id="lower-priority">Lower priority<a class="anchor" aria-label="anchor" href="#lower-priority"></a></h3>
@@ -154,7 +161,9 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 </tr><tr><td>detect_execution_context()</td>
 <td>Identifies interactive/quarto/rscript environment</td>
 </tr><tr><td>write_by_group()</td>
-<td>Splits data frame by group, writes CSVs</td>
+<td>Splits data frame by group, writes CSVs, optional manifest</td>
+</tr><tr><td>run_by_group()</td>
+<td>Applies a function to each group subset, collects results</td>
 </tr><tr><td>generate_kb_xml()</td>
 <td>Produces UW-Madison KB importable XML</td>
 </tr><tr><td>check_project()</td>
@@ -165,36 +174,34 @@ curriculr   -- data-driven CV generation (GitHub v0.2.0, CRAN pending)</code></p
 <td>Extracts R code from a Quarto document into a .R script</td>
 </tr></tbody></table><hr></div>
 <div class="section level2">
-<h2 id="relationship-to-curriculr-and-containr">Relationship to curriculr and containr<a class="anchor" aria-label="anchor" href="#relationship-to-curriculr-and-containr"></a></h2>
+<h2 id="relationship-to-containr-and-submitr">Relationship to containr and submitr<a class="anchor" aria-label="anchor" href="#relationship-to-containr-and-submitr"></a></h2>
 <pre><code>toolero v0.4.0
-  +-- arborize() added
-  +-- read_clean_csv() extended
-  +-- write_clean_csv() added
-  +-- check_project() added
+  +-- run_by_group() added -- completes the split-apply workflow
   +-- pushed to GitHub
   +-- CRAN submission planned July 2026
-  When ready to push to CRAN
-
+  When ready to push to CRAN:
     devtools::check() clean
     devtools::check_rhub() for cross-platform verification
     Update cran-comments.md (skeleton drafted, append as work continues)
     devtools::submit_cran()
 
-curriculr v0.2.0
-  +-- create_cv() currently self-contained (no toolero delegation)
-  +-- Will delegate to toolero::create_qmd() once template argument added (v0.5.0)
-
 containr v0.1.2
   +-- CRAN submission pending
-  +-- Will eventually depend on toolero</code></pre>
+  +-- Will eventually depend on toolero
+
+submitr v0.1.0
+  +-- CRAN submission pending
+  +-- manifest from write_by_group() is input to htc_gen_submit() in
+      multiple-job mode -- direct integration point with toolero</code></pre>
 <hr></div>
 <div class="section level2">
 <h2 id="open-design-questions">Open design questions<a class="anchor" aria-label="anchor" href="#open-design-questions"></a></h2>
 <ol style="list-style-type: decimal"><li><p>Should arborize() eventually support a notation = “lingotree_r” mode that accepts an R list structure and generates nested tree() calls programmatically? This would remove the Typst knowledge requirement for the structured backend.</p></li>
 <li><p>Should create_qmd() gain a template argument in v0.5.0 to support curriculr delegation, or should curriculr continue to handle its own scaffolding independently?</p></li>
-<li><p>Should read_clean_*() functions grow into a larger family or stay minimal? The family could expand significantly if demand emerges.</p></li>
+<li><p>Should read_clean_*() functions grow into a larger family or stay minimal? The family could expand significantly if demand emerges. Current plan: tsv and parquet in v0.5.0, json and sqlite deferred.</p></li>
 <li><p>Should arborize() cache the rendered PDF alongside the PNG so that subsequent calls with the same tree string and settings skip the render step? Useful for documents with many trees.</p></li>
 <li><p>Should the informational message about which Typst package is being used be gated behind a verbose argument? Currently fires on every call. Useful for debugging but potentially chatty in production use.</p></li>
+<li><p>Should run_by_group() gain a progress bar via cli::cli_progress_bar() for sequential execution? Currently verbose = TRUE emits one message per group but does not render a progress bar.</p></li>
 </ol></div>
 </div>
 

@@ -18,6 +18,8 @@
   : Extract R code from a Quarto document
 - [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md)
   : Read and clean a CSV file
+- [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+  : Apply a function to each group in a manifest or named list
 - [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
   : Split a data frame by a grouping column and write each group to a
   CSV file
