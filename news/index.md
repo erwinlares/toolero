@@ -12,8 +12,8 @@
   collects the results into a flat tibble (when the function returns a
   data frame) or a nested tibble with a list-column (when it returns
   anything else). Supports parallel execution via `furrr` and `future`
-  through the `workers` argument, with a hard ceiling at
-  `parallel::detectCores(logical = FALSE) - 1L` to reserve one core for
+  through the `workers` argument, with a ceiling at
+  `max(1L, parallelly::availableCores() - 1L)` to reserve one core for
   the main session. A `seed` argument enables reproducible parallel
   execution for analyses involving randomness.
 - Added
@@ -47,6 +47,16 @@
   path defaults to the same directory as the input with the extension
   replaced. The `documentation` argument controls how much context is
   preserved in the extracted script.
+- Added
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
+  for writing a skeleton YAML project configuration file pre-filled with
+  the standard toolero folder structure. Intended to be edited by the
+  user and passed to
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  via the new `config` argument. `filename` is required and explicit;
+  `path` defaults to `"."`. An `overwrite` argument (default `FALSE`)
+  guards against accidental replacement of an existing config. The file
+  extension is normalized to `.yml` regardless of what is supplied.
 - Added Palmer Penguins attribution (Horst, Hill & Gorman, 2020) to the
   template `.qmd`, the
   [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
@@ -54,6 +64,21 @@
 
 #### Breaking changes
 
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  the standard folder structure has been revised to better reflect
+  research workflow conventions established by The Carpentries and
+  UW-Madison Libraries. The new standard set is `data-raw/`, `data/`,
+  `scripts/`, `output/figures/`, `output/tables/`, and `reports/`. The
+  previous set (`data/`, `data-raw/`, `images/`, `plots/`, `results/`,
+  `scripts/`, `docs/`, `R/`) is no longer created by default.
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  `extra_folders` has been renamed to `custom_folders`. The argument now
+  supports a dplyr-select-like syntax: bare names add folders
+  (e.g. `"models"`), names prefixed with `"-"` suppress creation of that
+  folder from the resolved set (e.g. `"-output/figures"`). Suppression
+  removes only the named leaf – parent directories are preserved.
+  Duplicate additions emit an informational message and are skipped;
+  references to non-existent folders via `"-"` emit a warning.
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   no longer copies `styles.css` and `header.html` from the package into
   the project. Custom styling is now controlled exclusively by the new
@@ -72,6 +97,14 @@
 
 #### New features (continued from above)
 
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  added `config` argument. When supplied, the folder list in the YAML
+  file replaces the built-in standard structure entirely.
+  `custom_folders` is still applied on top of the config-derived set.
+  Configs are produced by
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
+  and can be stored in the user home directory for reuse across project
+  types.
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   added `include_examples` argument (default `TRUE`). When `TRUE`,
   copies a sample dataset (`sample.csv`) into `data-raw/`, a placeholder
@@ -98,6 +131,28 @@
 - Added `inst/templates/logo.png` – a placeholder logo image copied into
   `assets/` when `include_examples = TRUE`. Reads “your logo goes here”
   so the user knows to replace it with their own branding.
+
+#### Bug fixes
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `use_style = TRUE` now correctly copies `rci-banner.png` from
+  `inst/assets/` into the project `assets/` directory. Previously the
+  banner was only copied inside the `include_examples` block and was
+  silently omitted when `use_style = TRUE` was combined with
+  `include_examples = FALSE`.
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `filename` argument now normalizes the file extension to `.qmd` via
+  [`fs::path_ext_set()`](https://fs.r-lib.org/reference/path_file.html).
+  Passing `"my-document"` and `"my-document.qmd"` both produce
+  `my-document.qmd`; a double extension is never added.
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  path construction now uses
+  [`fs::path()`](https://fs.r-lib.org/reference/path.html) throughout
+  rather than `glue::glue("{path}/{folder}")`, ensuring correct behavior
+  on all platforms.
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  branding files are now copied from `inst/assets/` rather than
+  `inst/extdata/`, consistent with the rest of the package.
 
 ## toolero 0.3.0
 

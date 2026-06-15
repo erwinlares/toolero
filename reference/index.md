@@ -12,6 +12,8 @@
   : Detect the current execution context
 - [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)
   : Generate a KB-importable XML file from a Quarto document
+- [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
+  : Generate a project configuration file
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
   : Initialize a new R project with a standard folder structure
 - [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)

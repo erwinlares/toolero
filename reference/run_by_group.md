@@ -76,7 +76,7 @@ run_by_group(
   greater than `1`, subsets are processed in parallel with
   [`furrr::future_map()`](https://furrr.futureverse.org/reference/future_map.html).
   Requires the `furrr` and `future` packages. The maximum allowed value
-  is `parallel::detectCores(logical = FALSE) - 1L` to reserve one core
+  is `max(1L, parallelly::availableCores() - 1L)` to reserve one core
   for the main R session. A good starting value is the number of groups
   or that core ceiling, whichever is smaller.
 
@@ -162,10 +162,10 @@ penguins <- read_clean_csv(sample_path)
 tmp <- tempdir()
 write_by_group(penguins, group_col = "species",
                output_dir = tmp, manifest = TRUE)
-#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpoO4xBn/adelie.csv
-#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpoO4xBn/chinstrap.csv
-#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpoO4xBn/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmpoO4xBn/manifest.csv
+#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpAGqFVO/adelie.csv
+#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpAGqFVO/chinstrap.csv
+#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpAGqFVO/gentoo.csv
+#> ✔ Manifest written to /tmp/RtmpAGqFVO/manifest.csv
 
 # Define an analysis function
 summarise_species <- function(data) {
@@ -202,18 +202,13 @@ models <- run_by_group(
   .f       = fit_model
 )
 
-# Parallel execution across 3 workers
-results <- run_by_group(
-  manifest = file.path(tmp, "manifest.csv"),
-  .f       = summarise_species,
-  workers  = 3L
-)
+# Parallel execution using available cores
+workers <- max(1L, parallelly::availableCores() - 1L)
 
-# Parallel execution across 3 workers
 results <- run_by_group(
   manifest = file.path(tmp, "manifest.csv"),
   .f       = summarise_species,
-  workers  = 3L
+  workers  = workers
 )
 
 # Reproducible parallel execution with a fixed seed
@@ -224,7 +219,7 @@ random_summary <- function(data) {
 results <- run_by_group(
   manifest = file.path(tmp, "manifest.csv"),
   .f       = random_summary,
-  workers  = 2L,
+  workers  = workers,
   seed     = 1234
 )
 # }

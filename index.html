@@ -183,7 +183,11 @@
 <tbody>
 <tr>
 <td><code><a href="reference/init_project.html">init_project()</a></code></td>
-<td>Creates a new R project with a standard research-oriented folder structure. Can initialize <code>renv</code>, initialize <code>git</code>, add extra folders, and optionally copy UW-Madison branding assets.</td>
+<td>Creates a new R project with a standard research-oriented folder structure. Can initialize <code>renv</code>, initialize <code>git</code>, customize folders via <code>custom_folders</code>, load a config file, and optionally copy UW-Madison branding assets.</td>
+</tr>
+<tr>
+<td><code><a href="reference/generate_project_config.html">generate_project_config()</a></code></td>
+<td>Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure. Edit to define a custom layout and pass to <code><a href="reference/init_project.html">init_project()</a></code> via <code>config</code>.</td>
 </tr>
 <tr>
 <td><code><a href="reference/check_project.html">check_project()</a></code></td>
@@ -237,16 +241,26 @@
 <code>init_project()</code><a class="anchor" aria-label="anchor" href="#init_project"></a>
 </h3>
 <p>Creates a new R project with a standard folder structure suited for research workflows. Optionally initializes <code>renv</code> for dependency management and <code>git</code> for version control — both on by default, because both matter.</p>
-<p>The default structure includes <code>data/</code>, <code>data-raw/</code>, <code>R/</code>, <code>scripts/</code>, <code>plots/</code>, <code>images/</code>, <code>results/</code>, and <code>docs/</code>. Extra folders can be added without disrupting the defaults.</p>
+<p>The default structure follows conventions established by The Carpentries and UW-Madison Libraries workshops: <code>data-raw/</code>, <code>data/</code>, <code>scripts/</code>, <code>output/figures/</code>, <code>output/tables/</code>, and <code>reports/</code>. The <code>custom_folders</code> argument lets you add folders or suppress defaults without changing the standard set for other projects. A <code>"-"</code> prefix removes a folder from the set that will be created; bare names add new ones.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Standard project</span></span>
 <span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"~/Documents/my-project"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># With additional folders</span></span>
+<span><span class="co"># Add a folder and suppress one from the standard set</span></span>
 <span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span></span>
-<span>  path          <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
-<span>  extra_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"notebooks"</span>, <span class="st">"presentations"</span><span class="op">)</span></span>
+<span>  path           <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  custom_folders <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"models"</span>, <span class="st">"-output/figures"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Drive the folder structure entirely from a config file</span></span>
+<span><span class="fu"><a href="reference/init_project.html">init_project</a></span><span class="op">(</span></span>
+<span>  path   <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  config <span class="op">=</span> <span class="st">"~/linguistics-project.yml"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
+<p>For projects where the standard structure doesn’t fit, <code><a href="reference/generate_project_config.html">generate_project_config()</a></code> writes a skeleton YAML config pre-filled with the standard folders. Edit the file to define your own layout and store it in your home directory so it’s easy to reuse across projects.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Write a config skeleton to your home directory</span></span>
+<span><span class="fu"><a href="reference/generate_project_config.html">generate_project_config</a></span><span class="op">(</span><span class="st">"linguistics-project.yml"</span>, path <span class="op">=</span> <span class="st">"~"</span><span class="op">)</span></span></code></pre></div>
 <p>The <code>renv</code> lockfile that <code><a href="reference/init_project.html">init_project()</a></code> creates is also what <code>containr::generate_dockerfile()</code> reads to containerize the project later. Starting with <code><a href="reference/init_project.html">init_project()</a></code> means that step is already prepared, even if you never need it.</p>
 <hr>
 </div>
@@ -256,7 +270,7 @@
 </h3>
 <p>Audits an existing project directory and reports whether it follows toolero conventions. Useful both for projects initialized with <code><a href="reference/init_project.html">init_project()</a></code> and for any existing R project you want to evaluate.</p>
 <p>The report checks for the expected folder structure, an <code>.Rproj</code> file, <code>renv.lock</code>, a git repository, a README, and a <code>.gitignore</code>. It also notes the presence of hidden files like <code>.RData</code> and <code>.Rhistory</code> that are common sources of reproducibility problems.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Audit the current project</span></span>
 <span><span class="fu"><a href="reference/check_project.html">check_project</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
@@ -288,7 +302,7 @@
 <li>
 <code>use_style</code> – controls custom styling. <code>FALSE</code> (default) produces plain Quarto output. <code>TRUE</code> scans <code>assets/</code> for <code>.css</code> and <code>.html</code> files and wires them into the YAML. A directory path scans that directory instead.</li>
 </ul>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Blank skeleton -- no examples, no styling, no purl hook</span></span>
 <span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
 <span>           include_examples <span class="op">=</span> <span class="cn">FALSE</span>, use_purl <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
@@ -315,7 +329,7 @@
 </h3>
 <p>Extracts R code chunks from any <code>.qmd</code> file into a standalone <code>.R</code> script. This is the direct counterpart to the purl hook in <code><a href="reference/create_qmd.html">create_qmd()</a></code> — it works on any Quarto document regardless of how it was created.</p>
 <p>The output path defaults to the same directory as the input with the <code>.qmd</code> extension replaced by <code>.R</code>. The <code>documentation</code> argument controls how much context is preserved in the extracted script: chunk labels only (<code>1</code>, the default), full roxygen blocks (<code>2</code>), or pure code with no comments (<code>0</code>).</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Default output: same directory, .R extension</span></span>
 <span><span class="fu"><a href="reference/qmd_to_r.html">qmd_to_r</a></span><span class="op">(</span>input <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span>
 <span></span>
@@ -331,7 +345,7 @@
 <code>read_clean_csv()</code><a class="anchor" aria-label="anchor" href="#read_clean_csv"></a>
 </h3>
 <p>Reads a CSV file into a tibble and cleans the column names in one step. Column names become lowercase, spaces become underscores, and special characters are removed. Beyond name cleaning, the function supports explicit missing-value handling, selective row dropping, and an optional ingest summary that surfaces common data problems immediately.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Basic usage</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data-raw/input.csv"</span><span class="op">)</span></span>
 <span></span>
@@ -355,7 +369,7 @@
 </h3>
 <p>Writes a cleaned data frame to a CSV file with cli feedback. The natural counterpart to <code><a href="reference/read_clean_csv.html">read_clean_csv()</a></code>, reinforcing the convention that <code>data-raw/</code> holds original inputs and <code>data/</code> holds analysis-ready outputs.</p>
 <p>If the data frame’s column names are not already clean, <code><a href="reference/write_clean_csv.html">write_clean_csv()</a></code> applies <code><a href="https://sfirke.github.io/janitor/reference/clean_names.html" class="external-link">janitor::clean_names()</a></code> before writing and warns you about the affected columns, so the output file always has consistent names regardless of what was passed in.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data-raw/input.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="reference/write_clean_csv.html">write_clean_csv</a></span><span class="op">(</span><span class="va">data</span>, <span class="st">"data/clean.csv"</span><span class="op">)</span></span>
@@ -372,7 +386,7 @@
 <p>These two functions form the split-apply pair at the heart of toolero’s workflow support. The idea is simple: split the data once, then apply an analysis function to each piece and collect the results. The split and the apply are deliberately separate steps so you can iterate on the analysis function without re-splitting the data each time.</p>
 <p><code><a href="reference/write_by_group.html">write_by_group()</a></code> handles the split. It partitions a data frame by a grouping column, writes one CSV per group with sanitized filenames, and optionally produces a <code>manifest.csv</code> that records each group’s name, file path, and row count. That manifest is the input to <code><a href="reference/run_by_group.html">run_by_group()</a></code>.</p>
 <p><code><a href="reference/run_by_group.html">run_by_group()</a></code> handles the apply. It reads each subset from the manifest, calls your function on each one, and assembles the results into a single tibble. If your function returns a data frame, the output is automatically unnested into a flat tibble with a group ID column prepended. If it returns anything else — a model, a plot, a file path — the results come back as a nested tibble with a list-column.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sample_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"templates"</span>, <span class="st">"sample.csv"</span>, package <span class="op">=</span> <span class="st">"toolero"</span><span class="op">)</span></span>
 <span><span class="va">penguins</span>    <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="va">sample_path</span><span class="op">)</span></span>
 <span></span>
@@ -406,13 +420,15 @@
 <span>  groups <span class="op">=</span> <span class="va">subsets</span>,</span>
 <span>  .f     <span class="op">=</span> <span class="va">summarise_species</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>For analyses that are slow or computationally independent across groups, <code><a href="reference/run_by_group.html">run_by_group()</a></code> supports parallel execution via <code>furrr</code>. The <code>workers</code> argument controls how many R sessions to use. The ceiling is <code>parallel::detectCores(logical = FALSE) - 1L</code>, which reserves one core for the main session.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Parallel execution across 3 workers</span></span>
+<p>For analyses that are slow or computationally independent across groups, <code><a href="reference/run_by_group.html">run_by_group()</a></code> supports parallel execution via <code>furrr</code>. The <code>workers</code> argument controls how many R sessions to use. The ceiling is <code>max(1L, parallelly::availableCores() - 1L)</code>, which is environment-aware and reserves one core for the main session.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Parallel execution using available cores</span></span>
+<span><span class="va">workers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fu">parallelly</span><span class="fu">::</span><span class="fu"><a href="https://parallelly.futureverse.org/reference/availableCores.html" class="external-link">availableCores</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
 <span>  manifest <span class="op">=</span> <span class="st">"data/jobs/manifest.csv"</span>,</span>
 <span>  .f       <span class="op">=</span> <span class="va">summarise_species</span>,</span>
-<span>  workers  <span class="op">=</span> <span class="fl">3L</span></span>
+<span>  workers  <span class="op">=</span> <span class="va">workers</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The manifest produced by <code><a href="reference/write_by_group.html">write_by_group()</a></code> is also the input to <code>submitr::htc_gen_submit()</code> in multiple-job mode, making this split-apply pattern the natural on-ramp to high-throughput computing when local parallelism is not enough.</p>
 <hr>
@@ -422,7 +438,7 @@
 <code>detect_execution_context()</code><a class="anchor" aria-label="anchor" href="#detect_execution_context"></a>
 </h3>
 <p>Identifies which of three environments the code is currently running in — an interactive R session, a <code>quarto render</code> call, or a plain <code>Rscript</code> invocation — and returns <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code>. Useful for writing code that resolves input file paths correctly across all three contexts without maintaining separate versions.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
@@ -441,7 +457,7 @@
 <code>generate_kb_xml()</code><a class="anchor" aria-label="anchor" href="#generate_kb_xml"></a>
 </h3>
 <p>Produces a UW-Madison Knowledge Base importable XML file from a rendered Quarto document. Write and maintain the guide in Quarto, then generate the KB-ready XML from that source. The Quarto document remains the maintained version and the XML becomes a derived artifact, reducing documentation drift.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
 <span>  html_path  <span class="op">=</span> <span class="st">"docs/analysis.html"</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="st">"exports"</span></span>
@@ -454,7 +470,7 @@
 <code>arborize()</code><a class="anchor" aria-label="anchor" href="#arborize"></a>
 </h3>
 <p>Renders a syntactic tree as a standalone PNG image using Quarto’s Typst engine. Accepts bracket notation for simple trees or structured notation for trees requiring movement arrows and per-node styling. A provenance <code>.yaml</code> file is written alongside the PNG by default, recording the tree string and render settings so the image can be reproduced or modified later.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Simple bracket notation</span></span>
 <span><span class="fu"><a href="reference/arborize.html">arborize</a></span><span class="op">(</span></span>
 <span>  <span class="st">"[NP [Det the] [N cat]]"</span>,</span>
@@ -469,7 +485,7 @@
 <h2 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a>
 </h2>
 <p><code>toolero</code> builds on a focused set of R packages for project setup, file handling, data import, documentation, and workflow automation:</p>
-<pre class="text"><code>cli, fs, glue, janitor, purrr, readr, renv, tibble, tidyr, usethis,
+<pre class="text"><code>cli, fs, janitor, parallelly, purrr, readr, renv, tibble, tidyr, usethis,
 yaml, rlang, rvest, xml2, quarto, withr, lifecycle</code></pre>
 <hr>
 </div>
@@ -491,7 +507,7 @@ yaml, rlang, rvest, xml2, quarto, withr, lifecycle</code></pre>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
