@@ -14,6 +14,7 @@ valid_groups <- list(alpha = grp_a, beta = grp_b)
 summarise_fn  <- function(data) tibble::tibble(n = nrow(data), mean_x = mean(data$x))
 nontabular_fn <- function(data) lm(y ~ x, data = data)
 identity_fn   <- function(data) data
+random_fn     <- function(data) tibble::tibble(val = sample(1:1e6, 1))
 
 # Helper: write a minimal manifest + subset CSVs into a temp directory.
 # Returns a list with slots $dir, $manifest_path, $file_paths.
@@ -68,8 +69,8 @@ test_that("workers = -1 is rejected", {
     )
 })
 
-test_that("workers above physical core ceiling is rejected", {
-    max_workers <- parallel::detectCores(logical = FALSE) - 1L
+test_that("workers above available core ceiling is rejected", {
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
     expect_error(
         run_by_group(groups = valid_groups, .f = summarise_fn,
                      workers = max_workers + 1L),
@@ -175,7 +176,6 @@ test_that("groups takes priority over manifest when both are supplied", {
         ),
         regexp = "manifest.*ignored"
     )
-    # Result should come from groups (2 rows -- one per group)
     expect_equal(nrow(result), 2L)
 })
 
@@ -206,7 +206,6 @@ test_that("groups path and manifest path produce identical results", {
     mf <- make_manifest(tmp)
     result_groups   <- run_by_group(groups = valid_groups, .f = summarise_fn)
     result_manifest <- run_by_group(manifest = mf$manifest_path, .f = summarise_fn)
-    # Sort by group_id before comparing so row order does not matter.
     expect_equal(
         dplyr::arrange(result_groups,   group_id),
         dplyr::arrange(result_manifest, group_id)
@@ -277,12 +276,15 @@ test_that("group names appear correctly in output", {
 
 # -- 4. Parallel execution -----------------------------------------------------
 
-test_that("workers = 2L produces same output as workers = 1L", {
+test_that("parallel output matches sequential output", {
     skip_on_cran()
     skip_on_ci()
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
+    skip_if(max_workers < 2L, "fewer than 2 workers available on this machine")
 
-    result_seq <- run_by_group(groups = valid_groups, .f = summarise_fn, workers = 1L)
-    result_par <- run_by_group(groups = valid_groups, .f = summarise_fn, workers = 2L)
+    result_seq <- run_by_group(groups = valid_groups, .f = summarise_fn)
+    result_par <- run_by_group(groups = valid_groups, .f = summarise_fn,
+                               workers = max_workers)
 
     expect_equal(
         dplyr::arrange(result_seq, group_id),
@@ -293,13 +295,13 @@ test_that("workers = 2L produces same output as workers = 1L", {
 test_that("seed produces reproducible results in parallel", {
     skip_on_cran()
     skip_on_ci()
-
-    random_fn <- function(data) tibble::tibble(val = sample(1:1000, 1))
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
+    skip_if(max_workers < 2L, "fewer than 2 workers available on this machine")
 
     result_1 <- run_by_group(groups = valid_groups, .f = random_fn,
-                             workers = 2L, seed = 42L)
+                             workers = max_workers, seed = 42L)
     result_2 <- run_by_group(groups = valid_groups, .f = random_fn,
-                             workers = 2L, seed = 42L)
+                             workers = max_workers, seed = 42L)
 
     expect_equal(result_1$val, result_2$val)
 })
@@ -307,18 +309,18 @@ test_that("seed produces reproducible results in parallel", {
 test_that("different seeds produce different results in parallel", {
     skip_on_cran()
     skip_on_ci()
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
+    skip_if(max_workers < 2L, "fewer than 2 workers available on this machine")
 
-    # Build groups large enough that the probability of a collision is negligible.
     large_groups <- purrr::map(
         setNames(letters[1:4], letters[1:4]),
         \(l) tibble::tibble(x = 1:10, label = l)
     )
-    random_fn <- function(data) tibble::tibble(val = sample(1:1e6, 1))
 
     result_a <- run_by_group(groups = large_groups, .f = random_fn,
-                             workers = 2L, seed = 1L)
+                             workers = max_workers, seed = 1L)
     result_b <- run_by_group(groups = large_groups, .f = random_fn,
-                             workers = 2L, seed = 2L)
+                             workers = max_workers, seed = 2L)
 
     expect_false(identical(result_a$val, result_b$val))
 })
@@ -342,10 +344,12 @@ test_that("verbose = FALSE emits no messages in sequential mode", {
 test_that("verbose = TRUE emits a parallel summary message when workers > 1", {
     skip_on_cran()
     skip_on_ci()
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
+    skip_if(max_workers < 2L, "fewer than 2 workers available on this machine")
 
     expect_message(
         run_by_group(groups = valid_groups, .f = summarise_fn,
-                     workers = 2L, verbose = TRUE),
+                     workers = max_workers, verbose = TRUE),
         regexp = "parallel"
     )
 })

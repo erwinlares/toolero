@@ -36,7 +36,7 @@
 #'   with `purrr::map()`. When greater than `1`, subsets are processed
 #'   in parallel with `furrr::future_map()`. Requires the `furrr` and
 #'   `future` packages. The maximum allowed value is
-#'   `parallel::detectCores(logical = FALSE) - 1L` to reserve one core
+#'   `max(1L, parallelly::availableCores() - 1L)` to reserve one core
 #'   for the main R session. A good starting value is the number of
 #'   groups or that core ceiling, whichever is smaller.
 #' @param seed An integer or `NULL`. Random seed for reproducible
@@ -100,6 +100,7 @@
 #' - A file path -- returned as a list-column
 #'
 #' @importFrom rlang :=
+#' @importFrom parallelly availableCores
 #' @export
 #'
 #' @examples
@@ -195,24 +196,29 @@ run_by_group <- function(manifest = NULL,
     # -- 2. Validate workers -------------------------------------------------------
     # Coerce to integer defensively so bare doubles like workers = 2 behave
     # correctly in comparisons.
-    workers <- as.integer(workers)
 
-    if (is.na(workers) || workers < 1L) {
-        cli::cli_abort(
-            "{.arg workers} must be a positive integer. Got {.val {workers}}."
-        )
-    }
+    if (!is.null(workers)) {
+        workers <- as.integer(workers)
 
-    if (workers > 1L) {
-        max_workers <- parallel::detectCores(logical = FALSE) - 1L
+        if (is.na(workers) || workers < 1L) {
+            cli::cli_abort(
+                c("`workers` must be a positive integer.",
+                  "i" = "Requested: {workers} workers."),
+                class = "toolero_error"
+            )
+        }
+
+        max_workers <- max(1L, parallelly::availableCores() - 1L)
 
         if (workers > max_workers) {
-            cli::cli_abort(c(
-                "{.arg workers} exceeds the recommended maximum for this machine.",
-                "i" = "Requested: {.val {workers}} worker{?s}.",
-                "i" = "Maximum allowed: {.val {max_workers}} ({parallel::detectCores(logical = FALSE)} physical core{?s} minus 1 reserved for the main session).",
-                "i" = "Reduce {.arg workers} to {.val {max_workers}} or fewer."
-            ))
+            cli::cli_abort(
+                c("`workers` exceeds the recommended maximum for this machine.",
+                  "i" = "Requested: {workers} workers.",
+                  "i" = "Maximum allowed: {max_workers} ({parallelly::availableCores()} \\
+               available cores minus 1 reserved for the main session).",
+                  "i" = "Reduce `workers` to {max_workers} or fewer."),
+                class = "toolero_error"
+            )
         }
     }
 

@@ -49,7 +49,7 @@ use. When \code{1L} (the default), subsets are processed sequentially
 with \code{purrr::map()}. When greater than \code{1}, subsets are processed
 in parallel with \code{furrr::future_map()}. Requires the \code{furrr} and
 \code{future} packages. The maximum allowed value is
-\code{parallel::detectCores(logical = FALSE) - 1L} to reserve one core
+\code{max(1L, parallelly::availableCores() - 1L)} to reserve one core
 for the main R session. A good starting value is the number of
 groups or that core ceiling, whichever is smaller.}
 
@@ -176,18 +176,13 @@ models <- run_by_group(
   .f       = fit_model
 )
 
-# Parallel execution across 3 workers
-results <- run_by_group(
-  manifest = file.path(tmp, "manifest.csv"),
-  .f       = summarise_species,
-  workers  = 3L
-)
+# Parallel execution using available cores
+workers <- max(1L, parallelly::availableCores() - 1L)
 
-# Parallel execution across 3 workers
 results <- run_by_group(
   manifest = file.path(tmp, "manifest.csv"),
   .f       = summarise_species,
-  workers  = 3L
+  workers  = workers
 )
 
 # Reproducible parallel execution with a fixed seed
@@ -198,7 +193,7 @@ random_summary <- function(data) {
 results <- run_by_group(
   manifest = file.path(tmp, "manifest.csv"),
   .f       = random_summary,
-  workers  = 2L,
+  workers  = workers,
   seed     = 1234
 )
 }

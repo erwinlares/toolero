@@ -167,7 +167,8 @@ In a real project, replace `project_dir` with the path where you want the projec
 
 | Function | What it does |
 |---|---|
-| `init_project()` | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, add extra folders, and optionally copy UW-Madison branding assets. |
+| `init_project()` | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, and optionally copy UW-Madison branding assets. |
+| `generate_project_config()` | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure. Edit to define a custom layout and pass to `init_project()` via `config`. |
 | `check_project()` | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. |
 | `create_qmd()` | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling, and set up a purl post-render hook. |
 | `qmd_to_r()` | Extracts R code chunks from a Quarto document into a standalone `.R` script. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
@@ -187,17 +188,30 @@ In a real project, replace `project_dir` with the path where you want the projec
 
 Creates a new R project with a standard folder structure suited for research workflows. Optionally initializes `renv` for dependency management and `git` for version control — both on by default, because both matter.
 
-The default structure includes `data/`, `data-raw/`, `R/`, `scripts/`, `plots/`, `images/`, `results/`, and `docs/`. Extra folders can be added without disrupting the defaults.
+The default structure follows conventions established by The Carpentries and UW-Madison Libraries workshops: `data-raw/`, `data/`, `scripts/`, `output/figures/`, `output/tables/`, and `reports/`. The `custom_folders` argument lets you add folders or suppress defaults without changing the standard set for other projects. A `"-"` prefix removes a folder from the set that will be created; bare names add new ones.
 
 ```r
 # Standard project
 init_project(path = "~/Documents/my-project")
 
-# With additional folders
+# Add a folder and suppress one from the standard set
 init_project(
-  path          = "~/Documents/my-project",
-  extra_folders = c("notebooks", "presentations")
+  path           = "~/Documents/my-project",
+  custom_folders = c("models", "-output/figures")
 )
+
+# Drive the folder structure entirely from a config file
+init_project(
+  path   = "~/Documents/my-project",
+  config = "~/linguistics-project.yml"
+)
+```
+
+For projects where the standard structure doesn't fit, `generate_project_config()` writes a skeleton YAML config pre-filled with the standard folders. Edit the file to define your own layout and store it in your home directory so it's easy to reuse across projects.
+
+```r
+# Write a config skeleton to your home directory
+generate_project_config("linguistics-project.yml", path = "~")
 ```
 
 The `renv` lockfile that `init_project()` creates is also what `containr::generate_dockerfile()` reads to containerize the project later. Starting with `init_project()` means that step is already prepared, even if you never need it.
@@ -396,15 +410,17 @@ results <- run_by_group(
 For analyses that are slow or computationally independent across groups,
 `run_by_group()` supports parallel execution via `furrr`. The `workers`
 argument controls how many R sessions to use. The ceiling is
-`parallel::detectCores(logical = FALSE) - 1L`, which reserves one core for
-the main session.
+`max(1L, parallelly::availableCores() - 1L)`, which is environment-aware
+and reserves one core for the main session.
 
 ```r
-# Parallel execution across 3 workers
+# Parallel execution using available cores
+workers <- max(1L, parallelly::availableCores() - 1L)
+
 results <- run_by_group(
   manifest = "data/jobs/manifest.csv",
   .f       = summarise_species,
-  workers  = 3L
+  workers  = workers
 )
 ```
 
@@ -470,7 +486,7 @@ The `papersize` argument controls how tightly the image is cropped around the tr
 `toolero` builds on a focused set of R packages for project setup, file handling, data import, documentation, and workflow automation:
 
 ```text
-cli, fs, glue, janitor, purrr, readr, renv, tibble, tidyr, usethis,
+cli, fs, janitor, parallelly, purrr, readr, renv, tibble, tidyr, usethis,
 yaml, rlang, rvest, xml2, quarto, withr, lifecycle
 ```
 

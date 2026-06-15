@@ -112,6 +112,10 @@ create_qmd <- function(
         )
     }
 
+    if (fs::path_ext(filename) != "qmd") {
+        filename <- fs::path_ext_set(filename, "qmd")
+    }
+
     # -- 2. Validate path exists ------------------------------------------------
     if (!fs::dir_exists(path)) {
         cli::cli_abort(
@@ -211,6 +215,24 @@ create_qmd <- function(
          {.code use_style = FALSE}."
             )
         } else {
+
+            # Copy the RCI banner into the assets directory when use_style = TRUE
+            if (isTRUE(use_style)) {
+                banner_src <- system.file(
+                    "assets", "rci-banner.png",
+                    package = "toolero",
+                    mustWork = TRUE
+                )
+                banner_dst <- fs::path(style_dir, "rci-banner.png")
+                if (!fs::file_exists(banner_dst) || overwrite) {
+                    fs::file_copy(banner_src, banner_dst, overwrite = overwrite)
+                    cli::cli_alert_success("Created {.path {banner_dst}}")
+                } else {
+                    cli::cli_alert_info(
+                        "Skipping {.path {banner_dst}} -- already exists."
+                    )
+                }
+            }
 
             # Scan for .css files
             css_files <- fs::dir_ls(style_dir, glob = "*.css")
