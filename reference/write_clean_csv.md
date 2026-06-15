@@ -55,11 +55,11 @@ data <- read_clean_csv(sample_path)
 # Write to a temp file
 out <- tempfile(fileext = ".csv")
 write_clean_csv(data, out)
-#> ✔ Wrote 344 rows and 8 columns to /tmp/RtmpAGqFVO/file4fed2d0461de.csv.
+#> ✔ Wrote 344 rows and 8 columns to /tmp/Rtmp2m2YgS/file502c1e51b13c.csv.
 
 # Overwrite an existing file
 write_clean_csv(data, out, overwrite = TRUE)
-#> ✔ Wrote 344 rows and 8 columns to /tmp/RtmpAGqFVO/file4fed2d0461de.csv.
+#> ✔ Wrote 344 rows and 8 columns to /tmp/Rtmp2m2YgS/file502c1e51b13c.csv.
 
 # Dirty names are cleaned automatically with a warning
 dirty <- data.frame("First Name" = "Jane", "Last Name" = "Doe",
@@ -67,6 +67,6 @@ dirty <- data.frame("First Name" = "Jane", "Last Name" = "Doe",
 write_clean_csv(dirty, tempfile(fileext = ".csv"))
 #> Warning: Column names were not clean -- applying `janitor::clean_names()` before
 #> writing. Affected columns: "First Name" and "Last Name"
-#> ✔ Wrote 1 row and 2 columns to /tmp/RtmpAGqFVO/file4fed37bcceec.csv.
+#> ✔ Wrote 1 row and 2 columns to /tmp/Rtmp2m2YgS/file502c556060cb.csv.
 # }
 ```
