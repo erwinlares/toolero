@@ -176,7 +176,7 @@ execution later, and scalable computing when needed.
 | [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md) | Extracts R code chunks from a Quarto document into a standalone `.R` script. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
 | [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md) | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
 | [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md) | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
-| [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) | Splits a data frame by group and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows. |
+| [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) | Splits a data frame by one or more grouping columns and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows. |
 | [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md) | Applies a function to each group subset and collects the results. Accepts a manifest from [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns. |
 | [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md) | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
 | [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md) | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
@@ -419,11 +419,14 @@ the apply are deliberately separate steps so you can iterate on the
 analysis function without re-splitting the data each time.
 
 [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
-handles the split. It partitions a data frame by a grouping column,
-writes one CSV per group with sanitized filenames, and optionally
-produces a `manifest.csv` that records each group’s name, file path, and
-row count. That manifest is the input to
+handles the split. It partitions a data frame by one or more grouping
+columns, writes one CSV per group with sanitized filenames, and
+optionally produces a `manifest.csv` that records each group’s value,
+file path, and row count. That manifest is the input to
 [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md).
+Rows with a missing value in any grouping column are dropped by default
+(`drop_na = TRUE`), with a message reporting how many were dropped; set
+`drop_na = FALSE` to instead treat missing values as their own group.
 
 [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
 handles the apply. It reads each subset from the manifest, calls your
@@ -467,6 +470,24 @@ subsets <- split(penguins, penguins$species)
 results <- run_by_group(
   groups = subsets,
   .f     = summarise_species
+)
+```
+
+`group_col` also accepts more than one column name. Grouping by
+`c("species", "sex")` writes one file per combination that actually
+appears in the data – `adelie--female.csv`, `adelie--male.csv`, and so
+on – rather than the full cross-product of possible values. The manifest
+gains one column per grouping variable, in addition to a composite
+`group_value` column (e.g. `"Adelie | female"`); single-column calls
+keep the original three-column manifest schema unchanged.
+
+``` r
+
+write_by_group(
+  penguins,
+  group_col  = c("species", "sex"),
+  output_dir = "data/jobs",
+  manifest   = TRUE
 )
 ```
 
