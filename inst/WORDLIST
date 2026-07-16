@@ -1,3 +1,4 @@
+Adelie
 Aspectual
 CHTC
 CMD
@@ -25,11 +26,13 @@ cli
 codebase
 containerizable
 containr
+dplyr
 ggplot
 hardcoded
 hardcoding
 knitr
 knitr's
+lexicographically
 lingotree
 lockfile
 operationalize
@@ -50,3 +53,4 @@ tidyverse
 toolero's
 uncommenting
 unnested
+unsanitized

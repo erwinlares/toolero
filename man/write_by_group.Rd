@@ -2,14 +2,24 @@
 % Please edit documentation in R/write-by-group.R
 \name{write_by_group}
 \alias{write_by_group}
-\title{Split a data frame by a grouping column and write each group to a CSV file}
+\title{Split a data frame by one or more grouping columns and write each group to a CSV file}
 \usage{
-write_by_group(data, group_col, output_dir = NULL, manifest = FALSE)
+write_by_group(
+  data,
+  group_col,
+  output_dir = NULL,
+  manifest = FALSE,
+  drop_na = TRUE
+)
 }
 \arguments{
 \item{data}{A data frame or tibble to split and save.}
 
-\item{group_col}{A string. The name of the column to group by.}
+\item{group_col}{A character vector. The name(s) of the column(s) to
+group by. A single column name behaves exactly as in previous versions.
+When more than one column is supplied, groups are formed from the
+combinations of values actually present in the data (not the full
+cross-product of possible values).}
 
 \item{output_dir}{A string or \code{NULL}. Path to the directory where output
 files will be written. Created if it does not exist. If \code{NULL}, the
@@ -18,27 +28,53 @@ user must supply a path explicitly.}
 \item{manifest}{A logical. Whether to write a \code{manifest.csv} file to
 \code{output_dir} listing the output files, group values, and row counts.
 Defaults to \code{FALSE}.}
+
+\item{drop_na}{A logical. If \code{TRUE} (default), rows with a missing value
+in any grouping column are dropped before splitting, and a message
+reports how many rows were dropped and from which column(s). If
+\code{FALSE}, missing values are treated as their own group instead of
+being dropped.}
 }
 \value{
 Invisibly returns \code{output_dir}.
 }
 \description{
-Splits a data frame by a single grouping column and writes each group to
-a separate CSV file. Optionally writes a manifest file listing the output
-files, their group values, and row counts.
+Splits a data frame by one or more grouping columns and writes each group
+to a separate CSV file. Optionally writes a manifest file listing the
+output files, their group values, and row counts.
 }
 \details{
 Output filenames are derived from the group values of \code{group_col}.
-Values are sanitized before use as filenames: converted to lowercase,
-spaces and special characters replaced with \code{-}, consecutive dashes
-collapsed, and leading/trailing dashes stripped.
+Each value is sanitized independently: converted to lowercase, spaces
+and special characters replaced with \code{-}, consecutive dashes collapsed,
+and leading/trailing dashes stripped. When \code{group_col} has more than one
+element, the sanitized values are joined with \verb{--} in the order supplied
+(e.g. \code{group_col = c("species", "sex")} on an Adelie male produces
+\code{adelie--male.csv}). Because a single sanitized value can never itself
+contain two consecutive dashes, \verb{--} is an unambiguous separator between
+columns.
 
-If \code{manifest = TRUE}, a \code{manifest.csv} is written to \code{output_dir}
-containing three columns: \code{group_value}, \code{n_rows}, and \code{file_path}.
+If \code{manifest = TRUE}, a \code{manifest.csv} is written to \code{output_dir}. For a
+single grouping column, the manifest schema is unchanged from previous
+versions: \code{group_value}, \code{n_rows}, \code{file_path}. For multiple grouping
+columns, the manifest additionally includes one column per grouping
+variable (holding the raw, unsanitized value), inserted before
+\code{group_value}, which becomes a human-readable composite of the raw
+values joined by \code{" | "} (e.g. \code{"Adelie | male"}).
 
 Note: \code{output_dir} has no default value. Always supply an explicit path
 to avoid writing files to unexpected locations. Use \code{tempdir()} for
 temporary output during testing or exploration.
+
+Note on group iteration order: groups are split on the sanitized,
+character-coerced composite key, so iteration order follows the sort
+order of that key rather than the original column's native type. For
+single-column grouping this can differ from previous versions when
+\code{group_col} is numeric with values of differing digit length (e.g.
+\verb{9, 10, 11} sorts numerically in earlier versions but lexicographically
+as \verb{10, 11, 9} here) or when case affects locale-specific sort order.
+File contents and manifest row counts are unaffected -- only the order
+in which groups are written and reported.
 }
 \examples{
 \donttest{
@@ -51,6 +87,15 @@ write_by_group(data, group_col = "species", output_dir = tempdir())
 
 # Same but also write a manifest
 write_by_group(data, group_col = "species",
+               output_dir = tempdir(), manifest = TRUE)
+
+# Group by more than one column
+data2 <- data.frame(
+  species = c("Adelie", "Adelie", "Gentoo"),
+  sex     = c("male", "female", "male"),
+  mass    = c(3750, 3550, 5000)
+)
+write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
 }
 }
