@@ -70,6 +70,10 @@
 <code><a href="../reference/create_qmd.html">create_qmd()</a></code>: added <code>use_style</code> argument (default <code>FALSE</code>). Accepts <code>FALSE</code> (no custom styling), <code>TRUE</code> (scans <code>assets/</code> for <code>.css</code> and <code>.html</code> files), or a directory path (scans that directory instead). When exactly one <code>.css</code> file is found, it is added as <code>css:</code> in the YAML. When exactly one <code>.html</code> file is found, it is added as <code>include-before-body:</code>. If multiple files of either type are found, the function errors and asks the user to specify which one to use via <code>yaml_data</code>. This decouples styling from <code><a href="../reference/init_project.html">init_project()</a></code> and supports non-UW branding workflows.</li>
 <li>Added <code>inst/templates/skeleton.qmd</code> – a minimal Quarto template used when <code>include_examples = FALSE</code>. Contains the YAML header, a setup chunk with <code><a href="https://github.com/erwinlares/toolero" class="external-link">library(toolero)</a></code>, and a single placeholder heading.</li>
 <li>Added <code>inst/templates/logo.png</code> – a placeholder logo image copied into <code>assets/</code> when <code>include_examples = TRUE</code>. Reads “your logo goes here” so the user knows to replace it with their own branding.</li>
+<li>
+<code><a href="../reference/write_by_group.html">write_by_group()</a></code>: <code>group_col</code> now accepts a character vector of column names, enabling grouping by more than one column at once. Sanitized filenames join multiple columns with <code>--</code> (e.g. <code>group_col = c("species", "sex")</code> on an Adelie male produces <code>adelie--male.csv</code>); only combinations actually present in the data produce files, not the full cross-product of possible values. When <code>manifest = TRUE</code>, the manifest gains one column per grouping variable (holding the raw, unsanitized value) in addition to a composite <code>group_value</code> column joining the raw values with <code>" | "</code>. Single-column calls are unaffected – filenames, manifest schema, and behavior are unchanged from previous versions.</li>
+<li>
+<code><a href="../reference/write_by_group.html">write_by_group()</a></code>: added <code>drop_na</code> argument (default <code>TRUE</code>). Rows with a missing value in any grouping column are dropped before splitting, with a cli message reporting how many rows were dropped and from which column(s) – this was previously silent, undocumented behavior inherited from <code><a href="https://rdrr.io/r/base/split.html" class="external-link">split()</a></code>. Set <code>drop_na = FALSE</code> to instead treat missing values as their own group rather than dropping them.</li>
 </ul></div>
 <div class="section level4">
 <h4 id="bug-fixes-0-4-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-4-0"></a></h4>
@@ -152,7 +156,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

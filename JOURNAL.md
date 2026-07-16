@@ -756,3 +756,268 @@ from Imports to Suggests, rlang := importFrom added to NAMESPACE via
 roxygen.
 
 toolero-package.R changes: utils::globalVariables(“results”) added.
+
+------------------------------------------------------------------------
+
+## Session 5 – 2026-07-09 (write_by_group() multi-column grouping)
+
+### What we set out to do
+
+Extend
+[`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
+to accept more than one grouping column, closing the gap it’s had since
+v0.2.0 – the function has only ever supported a single grouping column,
+splitting on `split(data, data[[group_col]])` directly. The manifest it
+produces is a real integration point (input to
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)’s
+manifest-path mode, and eventually to `submitr::htc_gen_submit()`), so
+the shape of any change here mattered beyond this one function.
+
+### Decision: single exported function, not write_by_group2()
+
+Considered and rejected keeping the original function untouched and
+adding a parallel `write_by_group2()` for the multi-column case.
+Rejected for three reasons:
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+already established the precedent of dispatching on input shape *inside*
+one function rather than forking into a second one; a numeric-suffix
+name has no precedent anywhere in the *From the Notebook to the Cluster*
+family; and validation logic (column existence, list-column rejection,
+duplicate detection) would have to be either duplicated across two
+functions or factored into a shared internal helper anyway, so the
+maintenance cost doesn’t actually go away, it just becomes less visible.
+`group_col` is now treated as a character vector of length \>= 1
+uniformly throughout the function; only the final manifest shape
+branches on length.
+
+### Filename separator
+
+`group_col` values are still sanitized independently by the existing
+`sanitize_filename()` helper, unchanged. For multiple columns, sanitized
+values are joined with `--` in the order supplied (`c("species", "sex")`
+on an Adelie male -\> `adelie--male.csv`). `--` was chosen because
+`sanitize_filename()`’s own logic guarantees a single sanitized value
+can never itself contain two consecutive dashes – the first
+[`gsub()`](https://rdrr.io/r/base/grep.html) collapses any run of
+non-alphanumeric characters to one dash – so `--` is an unambiguous
+marker of a column boundary, never a byproduct of sanitizing one value.
+`" / "` was considered and rejected for the *manifest’s* raw composite
+field specifically (a separate design question from the filename
+separator) because it reads as a directory path; `" | "` was used there
+instead.
+
+### Splitting strategy: composite key via paste(), not interaction()
+
+Rows are split on a manually constructed composite key
+(`do.call(paste, c(sanitized_cols, sep = "--"))`) rather than
+[`interaction()`](https://rdrr.io/r/base/interaction.html). This was a
+deliberate choice to avoid two separate problems at once. First,
+[`interaction()`](https://rdrr.io/r/base/interaction.html) without
+`drop = TRUE` materializes the full cross-product of factor levels,
+which would produce empty output files for grouping-column combinations
+that don’t exist in the data. Second, and more subtly,
+[`split()`](https://rdrr.io/r/base/split.html)’s default behavior when
+given a raw vector (not already a factor) coerces via
+[`as.factor()`](https://rdrr.io/r/base/factor.html), and
+[`as.factor()`](https://rdrr.io/r/base/factor.html) does not create an
+`NA` level by default – rows with `NA` in the grouping column silently
+vanish from every resulting group, with no warning. This turned out to
+be true of the *original* single-column implementation too, not just a
+risk introduced by this change (see `drop_na` below). Building the
+composite key as a plain character vector before ever calling
+[`split()`](https://rdrr.io/r/base/split.html) sidesteps both problems:
+only observed combinations appear as keys, and by the time
+[`split()`](https://rdrr.io/r/base/split.html) runs, no key is ever
+actually `NA`, because `drop_na` handling has already resolved every
+row’s grouping values to real strings.
+
+### The drop_na argument
+
+Discovered while designing the NA-handling behavior for multiple
+columns: the *existing* single-column implementation already silently
+drops rows with `NA` in the grouping column, via the
+[`as.factor()`](https://rdrr.io/r/base/factor.html) mechanism described
+above. This was undocumented, untested, and had never been surfaced to
+the user. Rather than just carrying that behavior forward silently into
+the multi-column case, added `drop_na` as an explicit argument (default
+`TRUE`, matching naming convention from
+[`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md)’s
+own `drop_na`). `TRUE` preserves the original silent-drop behavior but
+now emits a `cli_alert_info` reporting the row count and affected
+column(s) – no longer silent, just the same net effect. `FALSE` is new
+capability: rows with missing grouping values are coerced to the literal
+string `"NA"` before sanitization, so they form their own group (e.g.
+`adelie--na.csv`) rather than disappearing.
+
+### Manifest shape
+
+For a single grouping column, the manifest schema is byte-for-byte
+unchanged from previous versions: `group_value`, `n_rows`, `file_path`.
+Confirmed by test coverage and against real output from `data.csv`
+before any code changed. For multiple grouping columns, the manifest is
+extended additively: one column per grouping variable (named for the
+actual column, holding the raw unsanitized value) inserted before
+`group_value`, which becomes a human-readable composite of the raw
+values joined by `" | "` (e.g. `"Adelie | male"`).
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)’s
+manifest reader only looks for `group_value` and `file_path` by name, so
+this extension doesn’t require any change there.
+
+### New validation added
+
+`group_col` validation was rewritten rather than extended, since the
+original `if (!group_col %in% names(data))` pattern breaks outright once
+`group_col` can have length \> 1 (`if` on a vector of length \> 1 errors
+in current R). New checks, in order: `group_col` must be a non-`NA`
+character vector; no duplicated column names; every element must exist
+in `names(data)`, with *all* missing names reported together via
+[`setdiff()`](https://rdrr.io/r/base/sets.html) rather than failing on
+the first one found; no list-columns among the selected grouping columns
+(they don’t sanitize into a filename fragment meaningfully); and no
+grouping column may be named `group_value`, `n_rows`, or `file_path`,
+which would silently collide with the manifest’s own reserved columns.
+That last check was originally unconditional, but scoped to only fire
+when `manifest = TRUE` after review – the collision only actually
+matters when a manifest gets built, so rejecting a valid call that never
+requests one was an unforced regression.
+
+### cli pluralization bug: the same failure mode as run_by_group(), different trigger
+
+`R CMD check`/`devtools::test()` surfaced a `post_process_plurals`:
+“Multiple quantities for pluralization” error identical in kind to the
+one documented in Session 4 for
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md),
+but with a different root cause worth distinguishing. The broken
+message:
+
+``` R
+"Column{?s} {.val {missing_cols}} not found in {.arg data}.
+ Available columns: {.val {names(data)}}."
+```
+
+Here `{?s}` appears *before* any quantity is established, and two
+different vector interpolations (`missing_cols`, `names(data)`) appear
+later in the string – cli has to search forward for a quantity and finds
+two competing candidates with no way to prefer one. This broke even the
+single-missing- column case, since the ambiguity is structural (two
+candidate vectors present), not dependent on runtime length.
+
+By contrast, the `drop_na` message, which also has two separate `{?s}`
+markers, did *not* trigger the bug:
+
+``` R
+"Dropped {sum(na_mask)} row{?s} with missing values in grouping
+ column{?s} {.val {group_col}}."
+```
+
+Each marker here sits immediately adjacent to its own single quantity
+source with nothing else competing nearby – `row{?s}` binds to the
+preceding `sum(na_mask)`, `column{?s}` binds to the
+immediately-following `{.val {group_col}}`. No other vector appears near
+either marker, so there’s no ambiguity to resolve.
+
+Refined lesson (extending the Session 4 finding): a `{?s}`/`{?is/are}`
+marker needs an unambiguous nearby quantity – either a preceding
+explicit `{length(x)}` scalar, or being adjacent to the one vector that
+determines it with no second vector competing nearby. Fix applied: added
+an explicit `{length(missing_cols)}` token before the marker. The
+reserved-column-name message was also preemptively hardened the same
+way, even though it wasn’t confirmed broken (only one underlying vector
+referenced twice), since the fix is cheap and consistent with the
+established pattern.
+
+### Known limitation: group iteration order
+
+Splitting on the sanitized, character-coerced composite key means
+iteration order now follows that key’s sort order rather than the
+original column’s native type. For single-column grouping this can
+differ from previous versions specifically when `group_col` is numeric
+with values of differing digit length (`9, 10, 11` sorts numerically
+pre-refactor, lexicographically as `10, 11, 9` post-refactor) or when
+case affects locale-specific sorting. File contents and manifest row
+counts are unaffected – only the order in which groups are written and
+reported. Documented in the `@details` roxygen section rather than
+fixed; not surfaced in `NEWS.md`, on the judgment that it’s
+implementation detail rather than user-facing behavior change worth
+flagging in a changelog.
+
+### Manual verification against real data
+
+Before writing tests, the implementation was run manually against the
+Palmer Penguins dataset across one, two, and three grouping columns
+(`species`; `species, sex`; `species, sex, island`), with both `drop_na`
+values, with and without `manifest = TRUE`. Row-count arithmetic was
+checked by hand against the known single-column manifest (152/68/124 for
+Adelie/Chinstrap/Gentoo, 344 total) at every step, including confirming
+that written-plus-dropped always summed to 344. This surfaced the real
+`island` distribution as a useful edge case: Chinstrap only co-occurs
+with `island = Dream` in this dataset, which confirmed the composite-key
+splitting approach produces files only for observed combinations rather
+than the full cross-product, on real data rather than a constructed
+example.
+
+### Test suite
+
+Extended `test-write_by_group.R` in place rather than creating a
+separate file, following the existing flat `test_that()` structure (no
+`describe()` blocks, one `make_*()` data helper per fixture shape,
+individual
+[`withr::local_tempdir()`](https://withr.r-lib.org/reference/with_tempfile.html)
+per test rather than a shared one). Added a second helper,
+`make_multi_group_data()`, with one `NA` baked into the grouping column
+specifically to exercise both `drop_na` branches. New coverage:
+multi-column split correctness (one CSV per observed combination,
+correct `--` filenames, correct row subsets, exactly the observed
+combinations and not the cross-product), multi-column manifest shape and
+composite `group_value` content, `group_col` order determining both
+filename and manifest column order (tested by reversing column order and
+checking the reversed output), both `drop_na` branches with row-count
+reconciliation, the reserved-name collision (and its absence when
+`manifest = FALSE`), duplicate `group_col` entries, list-column
+rejection, and an explicit test that a multi-column missing-column error
+names every missing column, not just the first.
+
+Final state: `devtools::test()` – 404 passing, 0 failures, 1
+pre-existing skip (`pdftools` installed). `devtools::check()` – 0
+errors, 0 warnings, 1 NOTE (`spelling.R`, four false-positive words:
+`Adelie`, `dplyr`, `lexicographically`, `unsanitized`; resolved via
+[`spelling::update_wordlist()`](https://docs.ropensci.org/spelling//reference/wordlist.html),
+not yet re-verified in this session).
+
+### NEWS.md
+
+Two new bullets added to the existing “New features (continued from
+above)” section for v0.4.0, alongside the
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+`config` and
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+`include_examples`/`use_style` entries – judged the better fit over the
+top-level “New features” section, since that section is reserved for
+functions added from scratch and this is an enhancement to an
+already-existing one. The `drop_na` bullet explicitly names the previous
+behavior as “previously silent, undocumented behavior inherited from
+split()” rather than describing the new argument neutrally, a deliberate
+choice to be forthcoming about a real gap rather than let the changelog
+read as if the argument were part of the original design.
+
+### Backward compatibility assessment
+
+Reviewed explicitly before finalizing. No breaking changes to the
+exported API surface, but three points flagged as things a single-column
+caller could plausibly notice: the group iteration order caveat above;
+the new `is.character(group_col)` type check is stricter than the
+original `%in%`-based comparison, which coerced more permissively; and
+the reserved- name check is new validation that could reject a call that
+previously succeeded, if a user’s data happens to have a column
+literally named `group_value`, `n_rows`, or `file_path` – mitigated by
+scoping that check to `manifest = TRUE` only, but not eliminated
+entirely for that specific edge case.
+
+### Files changed this session
+
+    R/write-by-group.R              # group_col vector support, drop_na,
+                                     #   reserved-name validation, cli fixes
+    tests/testthat/test-write_by_group.R
+    NEWS.md                         # two new bullets under v0.4.0
+
+No DESCRIPTION changes – no new dependencies introduced.

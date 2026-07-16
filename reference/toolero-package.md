@@ -2,12 +2,14 @@
 
 Provides utility functions to help researchers implement best practices
 for their coding projects. Includes tools for reading and cleaning data
-files, initializing R projects with a standard folder structure,
-creating 'Quarto' documents from reproducible templates with optional
-sample data and custom styling, detecting the execution context across
-interactive, 'Quarto', and script-based workflows, splitting data frames
-into group-level output files, and rendering syntactic tree diagrams as
-standalone PNG images via 'Typst'.
+files, initializing R projects with a standard folder structure and
+optional YAML configuration, creating 'Quarto' documents from
+reproducible templates with optional sample data and custom styling,
+detecting the execution context across interactive, 'Quarto', and
+script-based workflows, splitting data frames into group-level output
+files, applying analysis functions to each group with optional parallel
+execution, and rendering syntactic tree diagrams as standalone PNG
+images via 'Typst'.
 
 ## See also
 

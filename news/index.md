@@ -131,6 +131,25 @@
 - Added `inst/templates/logo.png` – a placeholder logo image copied into
   `assets/` when `include_examples = TRUE`. Reads “your logo goes here”
   so the user knows to replace it with their own branding.
+- [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md):
+  `group_col` now accepts a character vector of column names, enabling
+  grouping by more than one column at once. Sanitized filenames join
+  multiple columns with `--` (e.g. `group_col = c("species", "sex")` on
+  an Adelie male produces `adelie--male.csv`); only combinations
+  actually present in the data produce files, not the full cross-product
+  of possible values. When `manifest = TRUE`, the manifest gains one
+  column per grouping variable (holding the raw, unsanitized value) in
+  addition to a composite `group_value` column joining the raw values
+  with `" | "`. Single-column calls are unaffected – filenames, manifest
+  schema, and behavior are unchanged from previous versions.
+- [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md):
+  added `drop_na` argument (default `TRUE`). Rows with a missing value
+  in any grouping column are dropped before splitting, with a cli
+  message reporting how many rows were dropped and from which column(s)
+  – this was previously silent, undocumented behavior inherited from
+  [`split()`](https://rdrr.io/r/base/split.html). Set `drop_na = FALSE`
+  to instead treat missing values as their own group rather than
+  dropping them.
 
 #### Bug fixes
 

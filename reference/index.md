@@ -23,7 +23,7 @@
 - [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
   : Apply a function to each group in a manifest or named list
 - [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
-  : Split a data frame by a grouping column and write each group to a
-  CSV file
+  : Split a data frame by one or more grouping columns and write each
+  group to a CSV file
 - [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md)
   : Write a cleaned data frame to a CSV file
