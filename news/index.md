@@ -1,5 +1,7 @@
 # Changelog
 
+## toolero (development version)
+
 ## toolero 0.4.0
 
 CRAN release: 2026-07-16

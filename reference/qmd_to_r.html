@@ -11,7 +11,7 @@ file regardless of whether it was created with create_qmd()."><meta property="og
 
     <a class="navbar-brand me-2" href="../index.html">toolero</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,7 @@ file regardless of whether it was created with create_qmd()."><meta property="og
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Extract R code from a Quarto document</h1>
-      <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/v0.4.0/R/qmd-to-r.R" class="external-link"><code>R/qmd-to-r.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/R/qmd-to-r.R" class="external-link"><code>R/qmd-to-r.R</code></a></small>
       <div class="d-none name"><code>qmd_to_r.Rd</code></div>
     </div>
 
@@ -101,16 +101,16 @@ output. toolero provides its own cli feedback instead.</p></dd>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Default output path: same directory, .R extension</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f135e5f6698.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f135e5f6698.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpltWYYP/file4f246ad9ee44.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpltWYYP/file4f246ad9ee44.R</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Explicit output path</span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".R"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span>, output <span class="op">=</span> <span class="va">out</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f135e5f6698.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f13571a700.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpltWYYP/file4f246ad9ee44.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpltWYYP/file4f2440367d34.R</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Strip all documentation</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span>, output <span class="op">=</span> <span class="va">out</span>, documentation <span class="op">=</span> <span class="fl">0L</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f135e5f6698.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f13571a700.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpltWYYP/file4f246ad9ee44.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpltWYYP/file4f2440367d34.R</span>.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
