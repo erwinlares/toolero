@@ -34,11 +34,11 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/erwinlares/toolero/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/erwinlares/toolero/blob/v0.4.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.4.0" id="toolero-040">toolero 0.4.0<a class="anchor" aria-label="anchor" href="#toolero-040"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.4.0" id="toolero-040">toolero 0.4.0<a class="anchor" aria-label="anchor" href="#toolero-040"></a></h2><p class="text-muted">CRAN release: 2026-07-16</p>
 <div class="section level4">
 <h4 id="new-features-0-4-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-4-0"></a></h4>
 <ul><li>Added <code><a href="../reference/run_by_group.html">run_by_group()</a></code>, the apply half of the split-apply workflow. Accepts either a manifest CSV produced by <code>write_by_group(manifest = TRUE)</code> or a named list of data frames. Applies a user-supplied function to each group subset and collects the results into a flat tibble (when the function returns a data frame) or a nested tibble with a list-column (when it returns anything else). Supports parallel execution via <code>furrr</code> and <code>future</code> through the <code>workers</code> argument, with a ceiling at <code>max(1L, parallelly::availableCores() - 1L)</code> to reserve one core for the main session. A <code>seed</code> argument enables reproducible parallel execution for analyses involving randomness.</li>

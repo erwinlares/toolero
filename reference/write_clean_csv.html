@@ -42,7 +42,7 @@ holds original inputs and data/ holds cleaned, analysis-ready outputs."><meta pr
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Write a cleaned data frame to a CSV file</h1>
-      <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/R/write-clean-csv.R" class="external-link"><code>R/write-clean-csv.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/v0.4.0/R/write-clean-csv.R" class="external-link"><code>R/write-clean-csv.R</code></a></small>
       <div class="d-none name"><code>write_clean_csv.Rd</code></div>
     </div>
 
@@ -101,11 +101,11 @@ the affected columns.</p>
 <span class="r-in"><span><span class="co"># Write to a temp file</span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".csv"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">write_clean_csv</span><span class="op">(</span><span class="va">data</span>, <span class="va">out</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 344 rows and 8 columns to <span style="color: #0000BB;">/tmp/Rtmp5ASyz9/file4f0d53a0fed4.csv</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 344 rows and 8 columns to <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f132627916a.csv</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Overwrite an existing file</span></span></span>
 <span class="r-in"><span><span class="fu">write_clean_csv</span><span class="op">(</span><span class="va">data</span>, <span class="va">out</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 344 rows and 8 columns to <span style="color: #0000BB;">/tmp/Rtmp5ASyz9/file4f0d53a0fed4.csv</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 344 rows and 8 columns to <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f132627916a.csv</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Dirty names are cleaned automatically with a warning</span></span></span>
 <span class="r-in"><span><span class="va">dirty</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="st">"First Name"</span> <span class="op">=</span> <span class="st">"Jane"</span>, <span class="st">"Last Name"</span> <span class="op">=</span> <span class="st">"Doe"</span>,</span></span>
@@ -113,7 +113,7 @@ the affected columns.</p>
 <span class="r-in"><span><span class="fu">write_clean_csv</span><span class="op">(</span><span class="va">dirty</span>, <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".csv"</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Column names were not clean -- applying `janitor::clean_names()` before</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> writing. Affected columns: <span style="color: #0000BB;">"First Name"</span> and <span style="color: #0000BB;">"Last Name"</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 1 row and 2 columns to <span style="color: #0000BB;">/tmp/Rtmp5ASyz9/file4f0d65c651e6.csv</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote 1 row and 2 columns to <span style="color: #0000BB;">/tmp/RtmpbxhFjW/file4f131e76418a.csv</span>.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

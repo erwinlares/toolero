@@ -123,29 +123,29 @@ temporary output during testing or exploration.
 # Minimal blank document -- no examples, no styling
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
-#> ✔ Created /tmp/Rtmp5ASyz9/analysis.qmd
-#> ✔ Created /tmp/Rtmp5ASyz9/_quarto.yml
-#> ✔ Created /tmp/Rtmp5ASyz9/R/purl.R
+#> ✔ Created /tmp/RtmpbxhFjW/analysis.qmd
+#> ✔ Created /tmp/RtmpbxhFjW/_quarto.yml
+#> ✔ Created /tmp/RtmpbxhFjW/R/purl.R
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
-#> ✔ Created /tmp/Rtmp5ASyz9/data-raw/sample.csv
-#> ✔ Created /tmp/Rtmp5ASyz9/assets/logo.png
-#> ✔ Created /tmp/Rtmp5ASyz9/analysis.qmd
-#> ✔ Created /tmp/Rtmp5ASyz9/_quarto.yml
-#> ✔ Created /tmp/Rtmp5ASyz9/R/purl.R
+#> ✔ Created /tmp/RtmpbxhFjW/data-raw/sample.csv
+#> ✔ Created /tmp/RtmpbxhFjW/assets/logo.png
+#> ✔ Created /tmp/RtmpbxhFjW/analysis.qmd
+#> ✔ Created /tmp/RtmpbxhFjW/_quarto.yml
+#> ✔ Created /tmp/RtmpbxhFjW/R/purl.R
 
 # Blank document wired to UW branding assets (assumes assets/ exists)
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)
-#> ✔ Created /tmp/Rtmp5ASyz9/assets/rci-banner.png
-#> Warning: No .css or .html files found in /tmp/Rtmp5ASyz9/assets. Skipping style
+#> ✔ Created /tmp/RtmpbxhFjW/assets/rci-banner.png
+#> Warning: No .css or .html files found in /tmp/RtmpbxhFjW/assets. Skipping style
 #> injection.
-#> ✔ Created /tmp/Rtmp5ASyz9/report.qmd
-#> ✔ Created /tmp/Rtmp5ASyz9/_quarto.yml
-#> ✔ Created /tmp/Rtmp5ASyz9/R/purl.R
+#> ✔ Created /tmp/RtmpbxhFjW/report.qmd
+#> ✔ Created /tmp/RtmpbxhFjW/_quarto.yml
+#> ✔ Created /tmp/RtmpbxhFjW/R/purl.R
 
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
@@ -154,17 +154,17 @@ create_qmd(path = tempdir(), filename = "report.qmd",
 #> Warning: Style directory my-branding/ does not exist. Skipping style injection. Create
 #> the directory and add your .css and/or .html assets, or set `use_style =
 #> FALSE`.
-#> ✔ Created /tmp/Rtmp5ASyz9/report.qmd
+#> ✔ Created /tmp/RtmpbxhFjW/report.qmd
 
 # Pre-populated YAML overrides
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/Rtmp5ASyz9/data-raw/sample.csv
-#> ✔ Created /tmp/Rtmp5ASyz9/assets/logo.png
-#> ✔ Created /tmp/Rtmp5ASyz9/analysis.qmd
-#> ✔ Created /tmp/Rtmp5ASyz9/_quarto.yml
-#> ✔ Created /tmp/Rtmp5ASyz9/R/purl.R
+#> ✔ Created /tmp/RtmpbxhFjW/data-raw/sample.csv
+#> ✔ Created /tmp/RtmpbxhFjW/assets/logo.png
+#> ✔ Created /tmp/RtmpbxhFjW/analysis.qmd
+#> ✔ Created /tmp/RtmpbxhFjW/_quarto.yml
+#> ✔ Created /tmp/RtmpbxhFjW/R/purl.R
 # }
 ```
