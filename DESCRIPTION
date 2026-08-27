@@ -34,6 +34,7 @@ Imports:
     fs,
     glue,
     janitor,
+    jsonlite,
     lifecycle,
     parallelly,
     purrr,
@@ -45,6 +46,7 @@ Imports:
     tibble,
     tidyr,
     usethis,
+    utils,
     withr,
     xml2,
     yaml

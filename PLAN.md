@@ -11,7 +11,7 @@ toolero is the foundational package in the *From the Notebook to the Cluster*
 three-package suite:
 
 ```
-toolero     -- research workflow toolkit (CRAN v0.4.0)
+toolero     -- research workflow toolkit (CRAN v0.4.0, v0.4.0.9000 in development)
 containr    -- Docker containerization toolkit (CRAN pending)
 submitr     -- CHTC job submission toolkit (CRAN pending)
 ```
@@ -21,8 +21,8 @@ submitr     -- CHTC job submission toolkit (CRAN pending)
 ## Package identity
 
 - Name: toolero
-- On CRAN at v0.3.0, v0.4.0 developed and pushed to GitHub
-- CRAN submission planned for July 2026 (CRAN resubmission policy)
+- On CRAN at v0.4.0; v0.4.0.9000 in development on GitHub
+- CRAN submission planned for July 2026 (CRAN resubmission policy gap)
 - MIT license
 - Influenced by The Carpentries and UW-Madison Libraries workshop practices
 - UW-Madison RCI branding baked into templates
@@ -76,6 +76,38 @@ submitr     -- CHTC job submission toolkit (CRAN pending)
 - NEWS.md updated -- full v0.4.0 entry drafted
 - cran-comments.md drafted -- skeleton with progressive update markers
 
+## Completed: v0.4.0.9000 (in development)
+
+- save_output() -- dispatching output verb; writes object via user-supplied
+  .f and appends a row to output_dir/accumulator.csv recording file_path,
+  r_class, timestamp, function_used, status, error_message, note; rethrows
+  original condition on failure; creates missing destination directories
+  with a cli message
+- generate_manifest() -- reads and deduplicates accumulator.csv, writes
+  project-manifest.json with execution_context, generated_at, and artifacts
+  array; errors on missing accumulator, warns and writes empty manifest on
+  zero-row accumulator
+- check_project() README detection fix (issue #11) -- case-insensitive,
+  extension-agnostic detection via regex on the file stem; any file named
+  readme (any capitalization, any extension or none) passes
+- check_project() config argument (issue #12) -- config YAML replaces the
+  standard folder set; missing config-declared folders are fail not warn;
+  hygiene checks always run regardless of config
+- check_project() standard folder set updated to match init_project() v0.4.0:
+  data-raw/, data/, scripts/, output/figures/, output/tables/, reports/
+- check_project(error) deprecated -- cli report now always prints, tibble
+  always returned invisibly; deprecation warning fires when error = FALSE;
+  removal planned for v0.6.0
+- DESCRIPTION updated -- jsonlite added to Imports, utils added to Imports,
+  withr removed from Suggests (already in Imports)
+- README updated -- save_output() and generate_manifest() added to quick
+  reference, core workflow sections, and first workflow example; check_project()
+  section updated for config argument, new README detection behavior, and
+  deprecated error argument; dependencies list updated
+- NEWS.md updated -- full v0.5.0 entry drafted
+- PLAN.md updated -- v0.5.0 completed items moved here; roadmap advanced
+- JOURNAL.md updated -- Session 6 added
+
 ---
 
 ## Source file organization
@@ -91,7 +123,15 @@ R/
 +-- run-by-group.R              # run_by_group()
 +-- generate-kb-xml.R           # generate_kb_xml()
 +-- check-project.R             # check_project(), .check_result(),
-                                #   .print_check_project()
+                                #   .print_check_project(),
+                                #   .cli_escape(),
+                                #   .standard_folder_message()
++-- save-output.R               # save_output(), .capture_function_name(),
+                                #   .flatten_field(), .accumulator_columns(),
+                                #   .ensure_directory(),
+                                #   .append_accumulator_row()
++-- generate-manifest.R         # generate_manifest(), .read_accumulator(),
+                                #   .dedupe_accumulator()
 +-- arborize.R                  # arborize(), .build_arborize_qmd(),
                                 #   .write_arborize_provenance()
 +-- qmd-to-r.R                  # qmd_to_r()
@@ -107,7 +147,7 @@ R/
 
 ---
 
-## v0.5.0 roadmap
+## v0.5.0 roadmap (remaining)
 
 ### High priority
 
@@ -168,19 +208,38 @@ R/
 - Snapshot testing for create_qmd() and generate_kb_xml() -- verify output
   files match expected structure.
 
+- glossify() -- Typst interlinear gloss blocks per Leipzig Glossing Rules;
+  arguments target, explicit, morph, reading, label; backend package choice
+  (eggs vs. leipzig-glossing) still open. Returns Typst string for inline
+  use, not disk write. Implementation deferred.
+
+- save_output() / generate_manifest() convention for unattended rscript
+  execution: document the manual tryCatch({ ... }, finally =
+  try(generate_manifest(), silent = TRUE)) pattern for CHTC jobs where nobody
+  is watching in real time. The try() is essential -- a crash before the
+  first save_output() call leaves no accumulator, so a bare
+  generate_manifest() inside finally would replace the original error with a
+  manifest-not-found error in the job log. Documentation guidance only, not
+  a function toolero provides.
+
+- check_project(error): remove the deprecated argument entirely in v0.6.0.
+
 ---
 
-## Function inventory (current, v0.4.0)
+## Function inventory (current, v0.4.0.9000)
 
 | Function | Description |
 |---|---|
 | init_project() | Creates R project with standard folder structure |
+| generate_project_config() | Writes a skeleton YAML project config file |
 | create_qmd() | Scaffolds Quarto document from reproducible template |
 | read_clean_csv() | Reads CSV, cleans names, handles missing values |
 | write_clean_csv() | Writes cleaned data frame to CSV with cli feedback |
 | detect_execution_context() | Identifies interactive/quarto/rscript environment |
 | write_by_group() | Splits data frame by group, writes CSVs, optional manifest |
 | run_by_group() | Applies a function to each group subset, collects results |
+| save_output() | Writes object via user-supplied function, records in accumulator |
+| generate_manifest() | Reads accumulator, writes project-manifest.json |
 | generate_kb_xml() | Produces UW-Madison KB importable XML |
 | check_project() | Audits project structure against toolero conventions |
 | arborize() | Renders syntactic tree as PNG via Quarto + Typst |
@@ -191,17 +250,21 @@ R/
 ## Relationship to containr and submitr
 
 ```
-toolero v0.4.0
-  +-- run_by_group() added -- completes the split-apply workflow
+toolero v0.4.0.9000
+  +-- save_output() and generate_manifest() added -- output recording
+  +-- check_project() improved -- README detection, config argument,
+      deprecation of error argument
   +-- pushed to GitHub
-  +-- CRAN submission planned July 2026
+  +-- CRAN submission planned July 2026 (as v0.5.0)
   When ready to push to CRAN:
     devtools::check() clean
-    devtools::check_rhub() for cross-platform verification
-    Update cran-comments.md (skeleton drafted, append as work continues)
+    rhub::rhub_check(platforms = c("linux", "macos", "macos-arm64", "windows"))
+    devtools::check_win_devel() and devtools::check_win_release()
+    Update cran-comments.md
+    usethis::use_version("minor")
     devtools::submit_cran()
 
-containr v0.1.2
+containr v0.2.0
   +-- CRAN submission pending
   +-- Will eventually depend on toolero
 
@@ -209,6 +272,8 @@ submitr v0.1.0
   +-- CRAN submission pending
   +-- manifest from write_by_group() is input to htc_gen_submit() in
       multiple-job mode -- direct integration point with toolero
+  +-- project-manifest.json from generate_manifest() is the downstream
+      record of what a CHTC job produced -- relevant to encapsulr::describe()
 ```
 
 ---
@@ -239,3 +304,8 @@ submitr v0.1.0
 6. Should run_by_group() gain a progress bar via cli::cli_progress_bar()
    for sequential execution? Currently verbose = TRUE emits one message per
    group but does not render a progress bar.
+
+7. Should save_output() / generate_manifest() vignette be written as a
+   companion to the split-apply vignette, covering the full arc from
+   write_by_group() through run_by_group() through save_output() and
+   generate_manifest()?

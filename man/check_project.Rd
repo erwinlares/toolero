@@ -4,25 +4,56 @@
 \alias{check_project}
 \title{Check a project for toolero conventions}
 \usage{
-check_project(path = ".", error = TRUE)
+check_project(path = ".", config = NULL, error = TRUE)
 }
 \arguments{
-\item{path}{A character string with the path to the project directory.
-Defaults to \code{"."} (the current working directory).}
+\item{path}{Character. Path to the project directory. Defaults to \code{"."}
+(the current working directory).}
 
-\item{error}{Logical. If \code{TRUE} (the default), prints a formatted cli
-report and returns the results invisibly. If \code{FALSE}, returns a tibble
-with columns \code{check}, \code{status}, and \code{message} without printing.}
+\item{config}{Character or \code{NULL}. Path to a YAML configuration file
+produced by \code{\link[=generate_project_config]{generate_project_config()}}. When supplied, the \verb{folders:}
+list in the file replaces the standard toolero folder set for the folder
+checks. Non-folder hygiene checks (\code{.Rproj}, \code{renv.lock}, git,
+\code{.gitignore}, README, \code{.RData}, \code{.Rhistory}, \code{.Rprofile}, \code{.Renviron})
+always run regardless of the config. Defaults to \code{NULL} (standard
+toolero folders).}
+
+\item{error}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Logical. Previously
+controlled whether the function printed a cli report (\code{TRUE}) or
+returned a tibble visibly without printing (\code{FALSE}). Deprecated in
+v0.5.0 -- the cli report now always prints and the tibble is always
+returned invisibly. Assign the result to access it programmatically:
+\code{out <- check_project()}.}
 }
 \value{
-A tibble with columns \code{check}, \code{status}, and \code{message}. Returned
-invisibly when \code{error = TRUE}, visibly when \code{error = FALSE}.
+A tibble with columns \code{check}, \code{status}, and \code{message}, returned
+invisibly. Assign the result to use it programmatically.
 }
 \description{
 \code{check_project()} audits a project directory and reports whether it follows
 the structure and conventions that \code{init_project()} creates. It is useful
 both for projects initialized with \code{init_project()} and for existing
 projects that were created independently.
+}
+\details{
+Each check records one of four status values: \code{"pass"} (the expected
+artifact was found), \code{"fail"} (a required artifact is missing),
+\code{"warn"} (a recommended artifact is missing or a problematic file was
+found), or \code{"info"} (a file was found that warrants attention but is
+not necessarily a problem).
+
+When \code{config} is \code{NULL}, folder checks use the standard toolero set:
+\verb{data-raw/}, \verb{data/}, \verb{scripts/}, \verb{output/figures/}, \verb{output/tables/},
+and \verb{reports/}. Missing standard folders are reported as \code{"warn"}.
+
+When \code{config} is supplied, folder checks use the \verb{folders:} list from
+the YAML file instead. Missing config-declared folders are reported as
+\code{"fail"} rather than \code{"warn"}, since the user explicitly declared the
+expected structure.
+
+README detection is case-insensitive and extension-agnostic: any file
+whose stem matches \code{readme} (in any capitalization) counts, regardless
+of extension or the absence of one.
 }
 \examples{
 # Audit the current working directory
@@ -31,7 +62,25 @@ check_project()
 }
 
 # Audit a specific project directory
-\dontrun{
-check_project(path = "path/to/project")
+\donttest{
+project_dir <- withr::local_tempdir()
+check_project(path = project_dir)
 }
+
+# Audit against a custom folder structure
+\donttest{
+project_dir <- withr::local_tempdir()
+config_path <- file.path(tempdir(), "my-config.yml")
+generate_project_config("my-config.yml", path = tempdir())
+check_project(path = project_dir, config = config_path)
+}
+
+# Access results programmatically
+\donttest{
+project_dir <- withr::local_tempdir()
+out <- check_project(path = project_dir)
+}
+}
+\seealso{
+\code{\link[=init_project]{init_project()}}, \code{\link[=generate_project_config]{generate_project_config()}}
 }
