@@ -53,7 +53,7 @@ projects that were created independently.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="st">"."</span>, error <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="st">"."</span>, config <span class="op">=</span> <span class="cn">NULL</span>, error <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -61,20 +61,55 @@ projects that were created independently.</p>
 
 
 <dl><dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
-<dd><p>A character string with the path to the project directory.
-Defaults to <code>"."</code> (the current working directory).</p></dd>
+<dd><p>Character. Path to the project directory. Defaults to <code>"."</code>
+(the current working directory).</p></dd>
+
+
+<dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
+<dd><p>Character or <code>NULL</code>. Path to a YAML configuration file
+produced by <code><a href="generate_project_config.html">generate_project_config()</a></code>. When supplied, the <code>folders:</code>
+list in the file replaces the standard toolero folder set for the folder
+checks. Non-folder hygiene checks (<code>.Rproj</code>, <code>renv.lock</code>, git,
+<code>.gitignore</code>, README, <code>.RData</code>, <code>.Rhistory</code>, <code>.Rprofile</code>, <code>.Renviron</code>)
+always run regardless of the config. Defaults to <code>NULL</code> (standard
+toolero folders).</p></dd>
 
 
 <dt id="arg-error">error<a class="anchor" aria-label="anchor" href="#arg-error"></a></dt>
-<dd><p>Logical. If <code>TRUE</code> (the default), prints a formatted cli
-report and returns the results invisibly. If <code>FALSE</code>, returns a tibble
-with columns <code>check</code>, <code>status</code>, and <code>message</code> without printing.</p></dd>
+<dd><p><a href="https://lifecycle.r-lib.org/articles/stages.html#deprecated" class="external-link"><img src="figures/lifecycle-deprecated.svg" alt="[Deprecated]"></a> Logical. Previously
+controlled whether the function printed a cli report (<code>TRUE</code>) or
+returned a tibble visibly without printing (<code>FALSE</code>). Deprecated in
+v0.5.0 – the cli report now always prints and the tibble is always
+returned invisibly. Assign the result to access it programmatically:
+<code>out &lt;- check_project()</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tibble with columns <code>check</code>, <code>status</code>, and <code>message</code>. Returned
-invisibly when <code>error = TRUE</code>, visibly when <code>error = FALSE</code>.</p>
+    <p>A tibble with columns <code>check</code>, <code>status</code>, and <code>message</code>, returned
+invisibly. Assign the result to use it programmatically.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Each check records one of four status values: <code>"pass"</code> (the expected
+artifact was found), <code>"fail"</code> (a required artifact is missing),
+<code>"warn"</code> (a recommended artifact is missing or a problematic file was
+found), or <code>"info"</code> (a file was found that warrants attention but is
+not necessarily a problem).</p>
+<p>When <code>config</code> is <code>NULL</code>, folder checks use the standard toolero set:
+<code>data-raw/</code>, <code>data/</code>, <code>scripts/</code>, <code>output/figures/</code>, <code>output/tables/</code>,
+and <code>reports/</code>. Missing standard folders are reported as <code>"warn"</code>.</p>
+<p>When <code>config</code> is supplied, folder checks use the <code>folders:</code> list from
+the YAML file instead. Missing config-declared folders are reported as
+<code>"fail"</code> rather than <code>"warn"</code>, since the user explicitly declared the
+expected structure.</p>
+<p>README detection is case-insensitive and extension-agnostic: any file
+whose stem matches <code>readme</code> (in any capitalization) counts, regardless
+of extension or the absence of one.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="init_project.html">init_project()</a></code>, <code><a href="generate_project_config.html">generate_project_config()</a></code></p></div>
     </div>
 
     <div class="section level2">
@@ -90,15 +125,40 @@ invisibly when <code>error = TRUE</code>, visibly when <code>error = FALSE</code
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No .gitignore found -- consider adding one to avoid committing unwanted files</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No data-raw/ folder found -- consider adding one for raw input data</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No data/ folder found -- consider adding one for cleaned data</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No docs/ folder found -- consider adding one for documentation</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No R/ or scripts/ folder found -- consider adding one for analysis code</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No scripts/ folder found -- consider adding one for analysis scripts</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No output/figures/ folder found -- consider adding one for figures</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No output/tables/ folder found -- consider adding one for tables</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No reports/ folder found -- consider adding one for reports</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No README found -- consider adding one to document the project</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Audit a specific project directory</span></span></span>
-<span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="st">"path/to/project"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="va">project_dir</span> <span class="op">&lt;-</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="va">project_dir</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir):</span> Directory <span style="color: #0000BB;">/tmp/RtmpBGe5Yq/file4fba614d90bc</span> does not exist.</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Audit against a custom folder structure</span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="va">project_dir</span> <span class="op">&lt;-</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">config_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"my-config.yml"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="generate_project_config.html">generate_project_config</a></span><span class="op">(</span><span class="st">"my-config.yml"</span>, path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpBGe5Yq/my-config.yml</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Edit <span style="color: #0000BB;">/tmp/RtmpBGe5Yq/my-config.yml</span> to define your custom folder structure,</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   then pass it to `init_project()` via `config =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   "<span style="color: #0000BB;">/tmp/RtmpBGe5Yq/my-config.yml</span>"`.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> For easy reuse across projects, consider moving this file to <span style="color: #0000BB;">/home/runner</span>.</span>
+<span class="r-in"><span><span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="va">project_dir</span>, config <span class="op">=</span> <span class="va">config_path</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir, config = config_path):</span> Directory <span style="color: #0000BB;">/tmp/RtmpBGe5Yq/file4fba79f6ac8f</span> does not exist.</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Access results programmatically</span></span></span>
+<span class="r-in"><span><span class="co"># \donttest{</span></span></span>
+<span class="r-in"><span><span class="va">project_dir</span> <span class="op">&lt;-</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="va">project_dir</span><span class="op">)</span></span></span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir):</span> Directory <span style="color: #0000BB;">/tmp/RtmpBGe5Yq/file4fba1e569511</span> does not exist.</span>
+<span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

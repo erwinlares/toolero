@@ -12,6 +12,8 @@
   : Detect the current execution context
 - [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)
   : Generate a KB-importable XML file from a Quarto document
+- [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+  : Write the project manifest
 - [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
   : Generate a project configuration file
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
@@ -22,6 +24,8 @@
   : Read and clean a CSV file
 - [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
   : Apply a function to each group in a manifest or named list
+- [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+  : Save an object and record it in the project accumulator
 - [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
   : Split a data frame by one or more grouping columns and write each
   group to a CSV file

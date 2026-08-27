@@ -1,6 +1,77 @@
 # Changelog
 
-## toolero (development version)
+## toolero 0.4.0.9000
+
+#### New features
+
+- Added
+  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+  for writing an object to disk via a user-supplied function and
+  recording the write in a project-level accumulator at
+  `output_dir/accumulator.csv`. The accumulator is append-only and
+  carries one row per call, recording `file_path`, `r_class`,
+  `timestamp`, `function_used`, `status`, `error_message`, and `note`.
+  The call to the write function is wrapped in a narrowly-scoped
+  [`tryCatch()`](https://rdrr.io/r/base/conditions.html) – only that
+  call, not the rest of
+  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)’s
+  body – so a failed write is recorded with `status = "failure"` and the
+  caught error message before the original condition is rethrown
+  unmodified, preserving condition class and traceback. Missing
+  destination directories are created automatically and reported.
+- Added
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+  for reading the project accumulator, collapsing it to one row per
+  output file (keeping the latest write per path, since the accumulator
+  may contain superseded rows from reruns within a session), and writing
+  `project-manifest.json`. The manifest records `execution_context` and
+  `generated_at` once at the top level, followed by an `artifacts` array
+  with one entry per deduplicated output, ordered chronologically. Field
+  names are toolero-native rather than RO-Crate vocabulary – that
+  translation belongs in `encapsulr::describe()` as a thin mapping
+  layer. Checksums are deliberately excluded: `rocrateR::bag_rocrate()`
+  computes `manifest-sha512.txt` at bagging time, and duplicating that
+  here would create a second record to keep in sync. A missing
+  accumulator is an error; an accumulator with no rows produces an empty
+  manifest with a warning.
+
+#### Improvements
+
+- [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md):
+  README detection is now case-insensitive and extension-agnostic. Any
+  file whose stem matches `readme` (in any capitalization) is
+  recognized, regardless of extension or the absence of one. Previously
+  only `README.md`, `README.Rmd`, and `README.qmd` were checked, all
+  case-sensitively, missing common variants like `readme.md` or a plain
+  `README` on Linux (issue
+  [\#11](https://github.com/erwinlares/toolero/issues/11)).
+- [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md):
+  the standard folder set now matches
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  – `data-raw/`, `data/`, `scripts/`, `output/figures/`,
+  `output/tables/`, and `reports/`. The previous hardcoded set
+  (`data-raw/`, `data/`, `docs/`) was stale relative to the v0.4.0
+  breaking change to
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md).
+- [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md):
+  new `config` argument accepts a path to a YAML file produced by
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md).
+  When supplied, the `folders:` list in the file replaces the standard
+  toolero folder set for the folder checks. Non-folder hygiene checks
+  (`.Rproj`, `renv.lock`, git, `.gitignore`, README, and hidden files)
+  always run regardless of the config. Folders declared in the config
+  but missing from the project are reported as `"fail"` rather than
+  `"warn"` – the user declared them explicitly, so their absence is a
+  conformance failure rather than an advisory (issue
+  [\#12](https://github.com/erwinlares/toolero/issues/12)).
+
+#### Deprecated features
+
+- `check_project(error)`: the `error` argument is deprecated and will be
+  removed in v0.6.0. The cli report now always prints and the tibble is
+  always returned invisibly. To access results programmatically, assign
+  the output directly: `out <- check_project()`. Passing `error = FALSE`
+  continues to work but triggers a deprecation warning.
 
 ## toolero 0.4.0
 

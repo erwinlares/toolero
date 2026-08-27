@@ -43,15 +43,15 @@
 <h2 id="what-is-toolero">What is toolero?<a class="anchor" aria-label="anchor" href="#what-is-toolero"></a></h2>
 <p>toolero is an R package designed to help researchers implement best practices for their coding projects. It provides a small set of opinionated, practical functions that reduce friction at the start of a project and during day-to-day data work.</p>
 <p>toolero is the foundational package in the <em>From the Notebook to the Cluster</em> three-package suite:</p>
-<pre><code>toolero     -- research workflow toolkit (CRAN v0.4.0)
+<pre><code>toolero     -- research workflow toolkit (CRAN v0.4.0, v0.4.0.9000 in development)
 containr    -- Docker containerization toolkit (CRAN pending)
 submitr     -- CHTC job submission toolkit (CRAN pending)</code></pre>
 <hr></div>
 <div class="section level2">
 <h2 id="package-identity">Package identity<a class="anchor" aria-label="anchor" href="#package-identity"></a></h2>
 <ul><li>Name: toolero</li>
-<li>On CRAN at v0.3.0, v0.4.0 developed and pushed to GitHub</li>
-<li>CRAN submission planned for July 2026 (CRAN resubmission policy)</li>
+<li>On CRAN at v0.4.0; v0.4.0.9000 in development on GitHub</li>
+<li>CRAN submission planned for July 2026 (CRAN resubmission policy gap)</li>
 <li>MIT license</li>
 <li>Influenced by The Carpentries and UW-Madison Libraries workshop practices</li>
 <li>UW-Madison RCI branding baked into templates</li>
@@ -96,6 +96,20 @@ submitr     -- CHTC job submission toolkit (CRAN pending)</code></pre>
 <li>README updated – run_by_group() added to quick reference and core workflow sections; first three sections rewritten to reflect From the Notebook to the Cluster family name</li>
 <li>NEWS.md updated – full v0.4.0 entry drafted</li>
 <li>cran-comments.md drafted – skeleton with progressive update markers</li>
+</ul></div>
+<div class="section level2">
+<h2 id="completed-v0409000-in-development">Completed: v0.4.0.9000 (in development)<a class="anchor" aria-label="anchor" href="#completed-v0409000-in-development"></a></h2>
+<ul><li>save_output() – dispatching output verb; writes object via user-supplied .f and appends a row to output_dir/accumulator.csv recording file_path, r_class, timestamp, function_used, status, error_message, note; rethrows original condition on failure; creates missing destination directories with a cli message</li>
+<li>generate_manifest() – reads and deduplicates accumulator.csv, writes project-manifest.json with execution_context, generated_at, and artifacts array; errors on missing accumulator, warns and writes empty manifest on zero-row accumulator</li>
+<li>check_project() README detection fix (issue #11) – case-insensitive, extension-agnostic detection via regex on the file stem; any file named readme (any capitalization, any extension or none) passes</li>
+<li>check_project() config argument (issue #12) – config YAML replaces the standard folder set; missing config-declared folders are fail not warn; hygiene checks always run regardless of config</li>
+<li>check_project() standard folder set updated to match init_project() v0.4.0: data-raw/, data/, scripts/, output/figures/, output/tables/, reports/</li>
+<li>check_project(error) deprecated – cli report now always prints, tibble always returned invisibly; deprecation warning fires when error = FALSE; removal planned for v0.6.0</li>
+<li>DESCRIPTION updated – jsonlite added to Imports, utils added to Imports, withr removed from Suggests (already in Imports)</li>
+<li>README updated – save_output() and generate_manifest() added to quick reference, core workflow sections, and first workflow example; check_project() section updated for config argument, new README detection behavior, and deprecated error argument; dependencies list updated</li>
+<li>NEWS.md updated – full v0.5.0 entry drafted</li>
+<li>PLAN.md updated – v0.5.0 completed items moved here; roadmap advanced</li>
+<li>JOURNAL.md updated – Session 6 added</li>
 </ul><hr></div>
 <div class="section level2">
 <h2 id="source-file-organization">Source file organization<a class="anchor" aria-label="anchor" href="#source-file-organization"></a></h2>
@@ -109,7 +123,15 @@ submitr     -- CHTC job submission toolkit (CRAN pending)</code></pre>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">run</span><span class="op">-</span><span class="va">by</span><span class="op">-</span><span class="va">group.R</span>              <span class="co"># run_by_group()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">generate</span><span class="op">-</span><span class="va">kb</span><span class="op">-</span><span class="va">xml.R</span>           <span class="co"># generate_kb_xml()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">check</span><span class="op">-</span><span class="va">project.R</span>             <span class="co"># check_project(), .check_result(),</span></span>
-<span>                                <span class="co">#   .print_check_project()</span></span>
+<span>                                <span class="co">#   .print_check_project(),</span></span>
+<span>                                <span class="co">#   .cli_escape(),</span></span>
+<span>                                <span class="co">#   .standard_folder_message()</span></span>
+<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">save</span><span class="op">-</span><span class="va">output.R</span>               <span class="co"># save_output(), .capture_function_name(),</span></span>
+<span>                                <span class="co">#   .flatten_field(), .accumulator_columns(),</span></span>
+<span>                                <span class="co">#   .ensure_directory(),</span></span>
+<span>                                <span class="co">#   .append_accumulator_row()</span></span>
+<span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">generate</span><span class="op">-</span><span class="va">manifest.R</span>         <span class="co"># generate_manifest(), .read_accumulator(),</span></span>
+<span>                                <span class="co">#   .dedupe_accumulator()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">arborize.R</span>                  <span class="co"># arborize(), .build_arborize_qmd(),</span></span>
 <span>                                <span class="co">#   .write_arborize_provenance()</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">qmd</span><span class="op">-</span><span class="va">to</span><span class="op">-</span><span class="va">r.R</span>                  <span class="co"># qmd_to_r()</span></span>
@@ -123,7 +145,7 @@ submitr     -- CHTC job submission toolkit (CRAN pending)</code></pre>
 </ul><hr></div>
 </div>
 <div class="section level2">
-<h2 id="v050-roadmap">v0.5.0 roadmap<a class="anchor" aria-label="anchor" href="#v050-roadmap"></a></h2>
+<h2 id="v050-roadmap-remaining">v0.5.0 roadmap (remaining)<a class="anchor" aria-label="anchor" href="#v050-roadmap-remaining"></a></h2>
 <div class="section level3">
 <h3 id="high-priority">High priority<a class="anchor" aria-label="anchor" href="#high-priority"></a></h3>
 <ul><li><p>read_clean_tsv() and read_clean_parquet() – the two most immediately useful members of the read_clean_*() family. Both are flat rectangular formats that work cleanly with janitor::clean_names(). Same argument signature as read_clean_csv(): na, drop_na, summary, …, returning tibbles. read_clean_json() and read_clean_sqlite() are deferred pending design decisions about nested structures and table selection.</p></li>
@@ -144,14 +166,19 @@ submitr     -- CHTC job submission toolkit (CRAN pending)</code></pre>
 <ul><li><p>generate_kb_xml() improvements – better handling of edge cases in HTML body extraction, support for documents with complex asset structures.</p></li>
 <li><p>lifecycle::badge() calls in exported function documentation – mark individual functions with appropriate lifecycle stages in their roxygen blocks.</p></li>
 <li><p>Snapshot testing for create_qmd() and generate_kb_xml() – verify output files match expected structure.</p></li>
+<li><p>glossify() – Typst interlinear gloss blocks per Leipzig Glossing Rules; arguments target, explicit, morph, reading, label; backend package choice (eggs vs. leipzig-glossing) still open. Returns Typst string for inline use, not disk write. Implementation deferred.</p></li>
+<li><p>save_output() / generate_manifest() convention for unattended rscript execution: document the manual tryCatch({ … }, finally = try(generate_manifest(), silent = TRUE)) pattern for CHTC jobs where nobody is watching in real time. The try() is essential – a crash before the first save_output() call leaves no accumulator, so a bare generate_manifest() inside finally would replace the original error with a manifest-not-found error in the job log. Documentation guidance only, not a function toolero provides.</p></li>
+<li><p>check_project(error): remove the deprecated argument entirely in v0.6.0.</p></li>
 </ul><hr></div>
 </div>
 <div class="section level2">
-<h2 id="function-inventory-current-v040">Function inventory (current, v0.4.0)<a class="anchor" aria-label="anchor" href="#function-inventory-current-v040"></a></h2>
+<h2 id="function-inventory-current-v0409000">Function inventory (current, v0.4.0.9000)<a class="anchor" aria-label="anchor" href="#function-inventory-current-v0409000"></a></h2>
 <table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>Function</th>
 <th>Description</th>
 </tr></thead><tbody><tr><td>init_project()</td>
 <td>Creates R project with standard folder structure</td>
+</tr><tr><td>generate_project_config()</td>
+<td>Writes a skeleton YAML project config file</td>
 </tr><tr><td>create_qmd()</td>
 <td>Scaffolds Quarto document from reproducible template</td>
 </tr><tr><td>read_clean_csv()</td>
@@ -164,6 +191,10 @@ submitr     -- CHTC job submission toolkit (CRAN pending)</code></pre>
 <td>Splits data frame by group, writes CSVs, optional manifest</td>
 </tr><tr><td>run_by_group()</td>
 <td>Applies a function to each group subset, collects results</td>
+</tr><tr><td>save_output()</td>
+<td>Writes object via user-supplied function, records in accumulator</td>
+</tr><tr><td>generate_manifest()</td>
+<td>Reads accumulator, writes project-manifest.json</td>
 </tr><tr><td>generate_kb_xml()</td>
 <td>Produces UW-Madison KB importable XML</td>
 </tr><tr><td>check_project()</td>
@@ -175,24 +206,30 @@ submitr     -- CHTC job submission toolkit (CRAN pending)</code></pre>
 </tr></tbody></table><hr></div>
 <div class="section level2">
 <h2 id="relationship-to-containr-and-submitr">Relationship to containr and submitr<a class="anchor" aria-label="anchor" href="#relationship-to-containr-and-submitr"></a></h2>
-<pre><code>toolero v0.4.0
-  +-- run_by_group() added -- completes the split-apply workflow
+<pre><code>toolero v0.4.0.9000
+  +-- save_output() and generate_manifest() added -- output recording
+  +-- check_project() improved -- README detection, config argument,
+      deprecation of error argument
   +-- pushed to GitHub
-  +-- CRAN submission planned July 2026
+  +-- CRAN submission planned July 2026 (as v0.5.0)
   When ready to push to CRAN:
     devtools::check() clean
-    devtools::check_rhub() for cross-platform verification
-    Update cran-comments.md (skeleton drafted, append as work continues)
+    rhub::rhub_check(platforms = c("linux", "macos", "macos-arm64", "windows"))
+    devtools::check_win_devel() and devtools::check_win_release()
+    Update cran-comments.md
+    usethis::use_version("minor")
     devtools::submit_cran()
 
-containr v0.1.2
+containr v0.2.0
   +-- CRAN submission pending
   +-- Will eventually depend on toolero
 
 submitr v0.1.0
   +-- CRAN submission pending
   +-- manifest from write_by_group() is input to htc_gen_submit() in
-      multiple-job mode -- direct integration point with toolero</code></pre>
+      multiple-job mode -- direct integration point with toolero
+  +-- project-manifest.json from generate_manifest() is the downstream
+      record of what a CHTC job produced -- relevant to encapsulr::describe()</code></pre>
 <hr></div>
 <div class="section level2">
 <h2 id="open-design-questions">Open design questions<a class="anchor" aria-label="anchor" href="#open-design-questions"></a></h2>
@@ -202,6 +239,7 @@ submitr v0.1.0
 <li><p>Should arborize() cache the rendered PDF alongside the PNG so that subsequent calls with the same tree string and settings skip the render step? Useful for documents with many trees.</p></li>
 <li><p>Should the informational message about which Typst package is being used be gated behind a verbose argument? Currently fires on every call. Useful for debugging but potentially chatty in production use.</p></li>
 <li><p>Should run_by_group() gain a progress bar via cli::cli_progress_bar() for sequential execution? Currently verbose = TRUE emits one message per group but does not render a progress bar.</p></li>
+<li><p>Should save_output() / generate_manifest() vignette be written as a companion to the split-apply vignette, covering the full arc from write_by_group() through run_by_group() through save_output() and generate_manifest()?</p></li>
 </ol></div>
 </div>
 

@@ -47,6 +47,7 @@ Use `toolero` when you are:
   function to each;
 - preparing split data for parallel or high-throughput workflows;
 - standardizing setup across multiple projects;
+- recording what an analysis produced and whether each write succeeded;
 - publishing technical documentation that should stay synchronized with
   its source.
 
@@ -66,7 +67,7 @@ covers the full arc from local project setup to high-throughput
 computing:
 
 ``` text
-toolero     organize, scaffold, split, apply
+toolero     organize, scaffold, split, apply, record
   └─ containr   freeze the software environment in a container
        └─ submitr    send the analysis to CHTC and retrieve results
 ```
@@ -109,8 +110,8 @@ pak::pak("erwinlares/toolero")
 ## A first workflow
 
 The functions below cover a common path from project creation to
-analysis-ready data. This example uses a temporary directory so you can
-try the workflow without writing to your Documents folder.
+recorded outputs. This example uses a temporary directory so you can try
+the workflow without writing to your Documents folder.
 
 ``` r
 
@@ -130,7 +131,7 @@ create_qmd(path = project_dir, filename = "analysis.qmd")
 # 4. Extract the R code from the document into a standalone script
 qmd_to_r(
   input  = file.path(project_dir, "analysis.qmd"),
-  output = file.path(project_dir, "R", "analysis.R")
+  output = file.path(project_dir, "scripts", "analysis.R")
 )
 
 # 5. Read and clean a CSV file
@@ -156,6 +157,12 @@ results <- run_by_group(
   manifest = file.path(project_dir, "data", "jobs", "manifest.csv"),
   .f       = my_analysis
 )
+
+# 9. Save outputs and record each write in the project accumulator
+save_output(results, file.path(project_dir, "output", "results.rds"), .f = saveRDS)
+
+# 10. Write a project manifest summarizing what was produced
+generate_manifest(output_dir = file.path(project_dir, "output"))
 ```
 
 In a real project, replace `project_dir` with the path where you want
@@ -171,13 +178,15 @@ execution later, and scalable computing when needed.
 |----|----|
 | [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, and optionally copy UW-Madison branding assets. |
 | [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md) | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure. Edit to define a custom layout and pass to [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) via `config`. |
-| [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. |
+| [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. Accepts a config YAML for project-specific folder auditing. |
 | [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling, and set up a purl post-render hook. |
 | [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md) | Extracts R code chunks from a Quarto document into a standalone `.R` script. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
 | [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md) | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
 | [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md) | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
 | [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) | Splits a data frame by one or more grouping columns and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows. |
 | [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md) | Applies a function to each group subset and collects the results. Accepts a manifest from [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns. |
+| [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md) | Writes an object to disk via a user-supplied function and appends a row to the project accumulator recording the path, class, function used, and whether the write succeeded. |
+| [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md) | Reads the project accumulator, deduplicates by path, and writes `project-manifest.json` describing every artifact the analysis produced. |
 | [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md) | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
 | [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md) | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
 | [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md) | Renders syntactic trees as PNG images using Quarto’s Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later. |
@@ -252,13 +261,29 @@ The report checks for the expected folder structure, an `.Rproj` file,
 notes the presence of hidden files like `.RData` and `.Rhistory` that
 are common sources of reproducibility problems.
 
+README detection is case-insensitive and extension-agnostic: any file
+whose stem matches `readme`, in any capitalization, counts regardless of
+extension or the absence of one. `README.md`, `readme`, `Readme.pdf`,
+and `README.tex` all pass.
+
+By default the folder check uses the standard toolero set. Pass a config
+file produced by
+[`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
+to audit against a project-specific structure instead. Folders declared
+in the config but missing from the project are reported as failures
+rather than warnings — you declared them explicitly, so their absence is
+a conformance failure rather than a suggestion.
+
 ``` r
 
 # Audit the current project
 check_project()
 
-# Return results as a tibble for programmatic use
-issues <- check_project(error = FALSE)
+# Audit against a custom folder structure
+check_project(config = "~/linguistics-project.yml")
+
+# Access results programmatically
+out <- check_project()
 ```
 
 ------------------------------------------------------------------------
@@ -518,6 +543,84 @@ computing when local parallelism is not enough.
 
 ------------------------------------------------------------------------
 
+### `save_output()` and `generate_manifest()`
+
+These two functions form the record half of the toolero workflow. Once
+an analysis has produced its results,
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+writes each object to disk and appends a row to a project-level
+accumulator tracking what was saved, how, and whether the write
+succeeded.
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+reads that accumulator at the end of the analysis and writes a
+`project-manifest.json` describing every artifact the project produced.
+
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+wraps any write function behind a narrowly-scoped
+[`tryCatch()`](https://rdrr.io/r/base/conditions.html). A failed write
+is recorded with `status = "failure"` and the caught error message
+before the original condition is rethrown unmodified, so the manifest
+captures what went wrong on an unattended run even if nothing else does.
+
+``` r
+
+# Save a model and record it
+save_output(
+  model,
+  "output/model.rds",
+  .f   = saveRDS,
+  note = "Final model, trained on full dataset."
+)
+
+# Save a plot via ggsave
+save_output(
+  my_plot,
+  "output/figures/coefficients.png",
+  .f     = ggplot2::ggsave,
+  width  = 8,
+  height = 5
+)
+
+# Write the project manifest at the end of the analysis
+generate_manifest(output_dir = "output")
+```
+
+The accumulator at `output/accumulator.csv` is append-only and written
+incrementally throughout the analysis. The manifest at
+`output/project-manifest.json` is the deduplicated, end-of-run summary:
+`execution_context` and `generated_at` recorded once at the top level,
+followed by an `artifacts` array with one entry per output file. When an
+analysis re-runs within a session and overwrites an earlier output, the
+manifest keeps only the most recent write per path.
+
+A missing accumulator at manifest time is an error — no
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+calls were ever recorded. An accumulator with no rows produces an empty
+manifest with a warning, since that is a truthful result rather than a
+setup mistake.
+
+For unattended execution on CHTC where nobody is watching the job log in
+real time, the recommended pattern is:
+
+``` r
+
+tryCatch(
+  {
+    # ... analysis code ...
+    save_output(results, "output/results.rds", .f = saveRDS)
+  },
+  finally = try(generate_manifest(), silent = TRUE)
+)
+```
+
+The [`try()`](https://rdrr.io/r/base/try.html) inside `finally` ensures
+that a crash before the first
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+call — which leaves no accumulator on disk — does not replace the
+original error with a manifest-not-found error in the job log.
+
+------------------------------------------------------------------------
+
 ### `detect_execution_context()`
 
 Identifies which of three environments the code is currently running in
@@ -594,8 +697,8 @@ Requires Quarto 1.4+ with Typst support and the `pdftools` package.
 handling, data import, documentation, and workflow automation:
 
 ``` text
-cli, fs, janitor, parallelly, purrr, readr, renv, tibble, tidyr, usethis,
-yaml, rlang, rvest, xml2, quarto, withr, lifecycle
+cli, fs, glue, janitor, jsonlite, lifecycle, parallelly, purrr, quarto,
+readr, renv, rlang, rvest, tibble, tidyr, usethis, utils, withr, xml2, yaml
 ```
 
 ------------------------------------------------------------------------

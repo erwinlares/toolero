@@ -1021,3 +1021,403 @@ entirely for that specific edge case.
     NEWS.md                         # two new bullets under v0.4.0
 
 No DESCRIPTION changes – no new dependencies introduced.
+
+------------------------------------------------------------------------
+
+## Session 6 — 2026-08-27 (save_output(), generate_manifest(), check_project() overhaul)
+
+### What we set out to do
+
+Three things in one session. First, implement
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+and
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+— the output-recording pair that closes the loop between a finished
+analysis and a durable, auditable record of what it produced. Second,
+fix two open issues against
+[`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md):
+a broken README detection (issue \#11) and a request for config-driven
+folder auditing (issue \#12). Third, deprecate the `error` argument in
+[`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md),
+which had never been well named and was quietly becoming misleading.
+
+### save_output() and generate_manifest() — design rationale
+
+The core design is straightforward:
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+is a thin wrapper around any user-supplied write function, and the
+wrapping buys two things — a narrowly-scoped
+[`tryCatch()`](https://rdrr.io/r/base/conditions.html) that records
+failures before rethrowing, and an append-only CSV accumulator that
+builds up a per-session record of every write attempt.
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+reads that accumulator at the end of the analysis, deduplicates it by
+`file_path` (keeping the latest timestamp per path, since re-runs within
+a session leave superseded rows behind), and writes
+`project-manifest.json`.
+
+Several deliberate exclusions are worth recording. Field names in the
+manifest are toolero-native rather than RO-Crate vocabulary (`@id`,
+`dateCreated`, and so on) — that translation belongs in
+`encapsulr::describe()` as a thin mapping layer rather than baked into
+toolero’s public interface. Checksums are excluded for the same reason:
+`rocrateR::bag_rocrate()` computes `manifest-sha512.txt` automatically
+at bagging time, and duplicating that here creates a second record to
+keep in sync. And `r_class` is captured before the write call rather
+than recovered afterward, since class cannot be reliably determined from
+a file on disk.
+
+### save_output() — key decisions
+
+The `.f` argument is captured via `deparse(substitute(.f))` before the
+write call, so the accumulator records the name exactly as written at
+the call site. This means reassignment indirection
+(`my_fn <- ggsave; .f = my_fn`) records `"my_fn"` rather than `"ggsave"`
+— an honest record, but potentially surprising. The documentation warns
+against this pattern. Anonymous functions fall back to a
+`"anonymous function: <deparsed body>"` label rather than a bare
+multi-line dump, with the body collapsed and truncated at 200
+characters.
+
+The [`tryCatch()`](https://rdrr.io/r/base/conditions.html) wraps only
+the `.f(object, file_path, ...)` call, not the rest of
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)’s
+body. On failure, a row is appended with `status = "failure"` and the
+caught message, then the original condition is rethrown via
+`stop(caught_condition)`. This is the one place in the package where the
+`cli` convention is deliberately not followed:
+[`cli::cli_abort()`](https://cli.r-lib.org/reference/cli_abort.html)
+would construct a new condition and discard the original class, which is
+exactly what the design is trying to avoid.
+
+The rethrow does introduce one new frame on the call stack (the
+`tryCatch` handler), which is unavoidable. The condition object — class,
+message, and call — is preserved exactly as caught.
+
+`r_class` collapses `class(object)` with `"|"` rather than commas.
+Commas work fine through a real CSV parser (the field is quoted), but
+`"|"` is unambiguous on sight and survives naive line-splitting in a job
+log. A comma separator would be invisible inside quotes on a quick grep;
+a pipe separator is not.
+
+Timestamps are formatted in UTC with millisecond precision
+(`%Y-%m-%dT%H:%M:%OS3Z`) so they sort lexicographically. This matters
+because
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+deduplicates by keeping the latest timestamp per path, and a timestamp
+that silently records local time would sort wrong when mixed with UTC
+rows.
+
+Missing destination directories are created automatically and reported
+via
+[`cli::cli_inform()`](https://cli.r-lib.org/reference/cli_abort.html).
+The same behavior applies to `output_dir` for the accumulator. The
+asymmetry with the old
+[`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
+prompt (which asked before creating) was resolved in favor of silent
+creation with a message, on the grounds that
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+is primarily used in unattended contexts where no one is available to
+respond to a prompt.
+
+### generate_manifest() — key decisions
+
+A missing accumulator is an error, not an empty result. The file is
+created by the first
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+call, so its absence means no save was ever recorded — most often a
+misconfigured `output_dir`, a `manifest = FALSE` call, or a script that
+crashed before reaching
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md).
+Returning an empty manifest in that case would present a setup mistake
+as a finished record. An accumulator that exists but holds no rows is
+different — the machinery was wired up, the analysis just produced
+nothing — and produces an empty manifest with a warning.
+
+`overwrite = FALSE` (the default) errors when a manifest already exists.
+This is consistent with the package’s conservative-defaults pattern
+across
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md),
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md),
+and
+[`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md).
+
+The `artifacts` array in the manifest carries all seven accumulator
+fields — `file_path`, `r_class`, `timestamp`, `function_used`, `status`,
+`error_message`, `note` — per deduplicated row. The order is
+chronological by `timestamp`, since reading a failed run top-to-bottom
+is the most natural diagnostic pattern.
+
+### The rscript/CHTC convention
+
+PLAN.md originally described wrapping the rscript execution branch in
+`tryCatch(..., finally = generate_manifest())`. After reviewing
+[`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
+— which is purely a classifier, not a control-flow wrapper — it became
+clear there is no existing “rscript execution branch” in the codebase.
+The intent was describing future behavior, not pointing at existing
+code.
+
+The decision was to document this as a manual convention rather than a
+provided wrapper function. The recommended pattern for unattended CHTC
+execution:
+
+``` r
+tryCatch(
+  { ... analysis code ... },
+  finally = try(generate_manifest(), silent = TRUE)
+)
+```
+
+The [`try()`](https://rdrr.io/r/base/try.html) inside `finally` is
+essential. A crash before the first
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+call leaves no accumulator; a bare
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+inside `finally` would then throw a manifest-not-found error that
+replaces the original error in the job log. `try(..., silent = TRUE)`
+lets
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+fail quietly in that case, so the original error propagates. This
+convention is documented in the README and filed as a future
+lower-priority task in PLAN.md.
+
+### File placement for the new helpers
+
+Following the convention established in `check-project.R` and
+`run-by-group.R` (helpers live alongside the primary function that calls
+them), the new code lands in two files:
+
+`R/save-output.R` holds
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+and its helpers:
+[`.capture_function_name()`](https://erwinlares.github.io/toolero/reference/dot-capture_function_name.md),
+[`.flatten_field()`](https://erwinlares.github.io/toolero/reference/dot-flatten_field.md),
+[`.accumulator_columns()`](https://erwinlares.github.io/toolero/reference/dot-accumulator_columns.md),
+[`.ensure_directory()`](https://erwinlares.github.io/toolero/reference/dot-ensure_directory.md),
+and
+[`.append_accumulator_row()`](https://erwinlares.github.io/toolero/reference/dot-append_accumulator_row.md).
+
+`R/generate-manifest.R` holds
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+and its helpers:
+[`.read_accumulator()`](https://erwinlares.github.io/toolero/reference/dot-read_accumulator.md)
+and
+[`.dedupe_accumulator()`](https://erwinlares.github.io/toolero/reference/dot-dedupe_accumulator.md).
+
+[`.accumulator_columns()`](https://erwinlares.github.io/toolero/reference/dot-accumulator_columns.md)
+is the single source of truth for the CSV schema, shared by both files.
+Schema drift between the write end
+([`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md))
+and the read end
+([`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md))
+was identified as the highest-risk silent bug, since both ends append or
+read the same file format. The fix is centralizing the column list in
+one function rather than maintaining parallel vectors in two files —
+[`.append_accumulator_row()`](https://erwinlares.github.io/toolero/reference/dot-append_accumulator_row.md)
+validates the existing header against
+[`.accumulator_columns()`](https://erwinlares.github.io/toolero/reference/dot-accumulator_columns.md)
+before appending, and
+[`.read_accumulator()`](https://erwinlares.github.io/toolero/reference/dot-read_accumulator.md)
+does the same check after reading.
+
+### accumulator.csv and project-manifest.json — naming distinction
+
+Both are referred to as the “project manifest” in documentation and
+vignettes, to distinguish them from the job manifest produced by
+`write_by_group(manifest = TRUE)` and consumed by
+`submitr::htc_gen_submit()`. Same word, two structurally different
+documents: the job manifest lists inputs to a computation about to
+happen; the project manifest records outputs from one that already
+happened. The default filename `project-manifest.json` rather than
+`manifest.json` preserves this distinction even outside the
+documentation.
+
+### check_project() — README detection fix (issue \#11)
+
+The original implementation checked for exactly `README.md`,
+`README.Rmd`, and `README.qmd` via
+[`fs::file_exists()`](https://fs.r-lib.org/reference/file_access.html).
+On a case-sensitive filesystem (Linux, including CHTC nodes),
+`readme.md` or `Readme.md` would fail silently. The root cause: exact
+name matching rather than pattern matching.
+
+The fix uses `fs::dir_ls(type = "file")` combined with
+[`grepl()`](https://rdrr.io/r/base/grep.html) on the `path_file()` of
+each result, with `ignore.case = TRUE` and the regex
+`^readme(\\.[^.]*)?$`. This matches any file whose stem is `readme` in
+any capitalization, with any single extension or no extension at all.
+Double extensions like `readme.tar.gz` are deliberately excluded by the
+`[^.]*` pattern — the single-extension limitation is documented in the
+test suite as a known design decision rather than a bug.
+
+The message now reports which specific file was found, which is a small
+but useful improvement for projects with unusual README filenames.
+
+### check_project() — config argument (issue \#12)
+
+The `config` argument accepts a path to a YAML file produced by
+[`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md).
+When supplied, the `folders:` list in the YAML replaces the hardcoded
+standard folder set for the folder checks. Non-folder hygiene checks —
+`.Rproj`, `renv.lock`, git, `.gitignore`, README, and hidden files —
+always run regardless of the config. This is a deliberate line: folder
+structure is the thing that varies by project type, but the hygiene
+checks are universal reproducibility requirements that should not be
+suppressible via config.
+
+Missing config-declared folders are reported as `"fail"` rather than
+`"warn"`. The reasoning: a hardcoded folder check saying “you might want
+a `data-raw/` folder” is advice; a config-driven check saying “you
+declared you want a `models/` folder and it’s missing” is a conformance
+failure. The severity distinction reflects the difference between a
+suggestion and a declared expectation.
+
+Config validation checks for: file existence, single-string path,
+presence of a `folders:` key, a flat (non-nested) YAML structure, no
+empty or blank entries, and duplicates (which are deduplicated with a
+message rather than an error).
+
+### cli markup injection — .cli_escape()
+
+Both the README filename and config folder names flow through `cli`
+template strings via `.print_check_project()`. A folder literally named
+`output/{draft}` would cause `cli` to evaluate `draft` as an R
+expression and abort. This is the same class of bug the JOURNAL records
+for `glue()` inside `.check_result()` in Session 3, and for
+`.check_result()` more broadly.
+
+The fix is a new internal helper
+[`.cli_escape()`](https://erwinlares.github.io/toolero/reference/dot-cli_escape.md)
+that doubles braces in any string derived from user or filesystem data
+before it reaches a cli template. Static messages containing intentional
+markup like `{.fn usethis::create_project}` are not escaped — they must
+reach cli with their markup intact. The discipline is: escape at
+construction time for data-derived strings, leave static strings alone.
+
+A regression test
+(`check_project() survives a config folder containing braces`) pins this
+behavior so it cannot quietly regress.
+
+### check_project(error) — deprecation
+
+The `error` argument’s name was a poor fit for its actual behavior from
+the start. `error = TRUE` did not cause the function to error; it caused
+the cli report to print. `error = FALSE` returned the tibble visibly
+without printing. The only thing `error = FALSE` bought over assigning
+the result of `error = TRUE` was a visible return rather than an
+invisible one — a thin distinction for a public argument name that
+implied something completely different.
+
+The deprecation collapses the two branches: the cli report now always
+prints and the tibble always returns invisibly, matching
+`error = TRUE`’s former behavior. Passing `error = FALSE` triggers
+[`lifecycle::deprecate_warn()`](https://lifecycle.r-lib.org/reference/deprecate_soft.html)
+and continues to work for one more version. Removal is planned for
+v0.6.0.
+
+One consequence worth recording: `check_project(error = FALSE)` in
+v0.4.0.9000 now both prints the deprecation warning *and* prints the cli
+report, since the two-branch logic has collapsed to one. Any existing
+caller using `error = FALSE` specifically to suppress the printed output
+will notice this. The change is documented in NEWS.md and the README
+example updated from `issues <- check_project(error = FALSE)` to
+`out <- check_project()`.
+
+### Test suite
+
+577 passing, 0 failures, 0 warnings, 1 pre-existing skip (pdftools
+installed) at session end.
+
+`test-check-project.R` was rewritten rather than extended in place, for
+two reasons. First, every existing test called
+`check_project(error = FALSE)`, which now emits a deprecation warning —
+roughly thirty tests would have started failing on the warning alone
+under testthat edition 3. Second, the shared `root`/`project` created
+once at the file level (rather than per-test) violated the per-test
+isolation convention established in later sessions. The rewrite moves to
+individual
+[`withr::local_tempdir()`](https://withr.r-lib.org/reference/with_tempfile.html)
+per test, drops
+[`withr::defer()`](https://withr.r-lib.org/reference/defer.html) cleanup
+from mutating tests (no longer needed when each test has its own
+directory), and adds `make_config()` as a second helper alongside
+`make_project()`.
+
+New test coverage added: all fifteen README variants in a single
+parametrized loop (with `info = variant` so failures name which variant
+broke), config folder pass/fail/replace, config validation error cases,
+the cli injection regression, the deprecation warning via
+`class = "lifecycle_warning_deprecated"`, and the
+[`.cli_escape()`](https://erwinlares.github.io/toolero/reference/dot-cli_escape.md)
+and
+[`.standard_folder_message()`](https://erwinlares.github.io/toolero/reference/dot-standard_folder_message.md)
+helpers tested directly.
+
+`test-save-output.R` and `test-generate-manifest.R` are new files. Key
+decisions:
+[`.capture_function_name()`](https://erwinlares.github.io/toolero/reference/dot-capture_function_name.md)
+takes a deparsed `f_expr` rather than `.f` directly, making it testable
+without [`substitute()`](https://rdrr.io/r/base/substitute.html)
+gymnastics.
+[`.dedupe_accumulator()`](https://erwinlares.github.io/toolero/reference/dot-dedupe_accumulator.md)
+is a pure function on a data frame, tested exhaustively against
+controlled timestamps rather than real clock values. The rethrow test
+uses a custom
+[`rlang::abort()`](https://rlang.r-lib.org/reference/abort.html) class
+and asserts the class survives the round trip — asserting “an error
+occurred” would pass even a broken rethrow. The end-to-end tests compose
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+and
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+across success and failure paths.
+
+The `jsonlite` empty-array assumption — that `write_json()` emits
+`"artifacts": []` for a zero-row data frame rather than
+[`{}`](https://rdrr.io/r/base/Paren.html) — is tested explicitly, since
+this was an assumption rather than verified behavior.
+
+### DESCRIPTION changes
+
+- `jsonlite` added to Imports (for
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md))
+- `utils` added to Imports (for
+  [`read.csv()`](https://rdrr.io/r/utils/read.table.html) and
+  [`write.table()`](https://rdrr.io/r/utils/write.table.html) in the
+  accumulator helpers)
+- `withr` removed from Suggests — it was already in Imports (confirmed
+  in Session 3); the duplicate was causing an R CMD check NOTE
+
+### check examples fix
+
+`R CMD check --run-donttest` failed on the
+[`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
+examples because the second example used a literal placeholder path
+`"path/to/project"` that does not exist, triggering `cli_abort()`. Fixed
+by replacing the placeholder with
+[`withr::local_tempdir()`](https://withr.r-lib.org/reference/with_tempfile.html).
+All examples now use real paths.
+
+### Files added this session
+
+    R/save-output.R
+    R/generate-manifest.R
+    tests/testthat/test-save-output.R
+    tests/testthat/test-generate-manifest.R
+
+### Files changed this session
+
+    R/check-project.R               # README fix, config argument, error
+                                     #   deprecation, folder set update,
+                                     #   .cli_escape(), .standard_folder_message()
+    tests/testthat/test-check-project.R  # full rewrite
+    README.md                       # save_output()/generate_manifest() sections,
+                                     #   check_project() update, first workflow,
+                                     #   quick reference, dependencies
+    NEWS.md                         # v0.4.0.9000 entry drafted
+    PLAN.md                         # v0.5.0 completed items, roadmap advanced,
+                                     #   source file inventory updated,
+                                     #   function table updated
+    JOURNAL.md                      # this entry
+    DESCRIPTION                     # jsonlite and utils added to Imports,
+                                     #   withr removed from Suggests
