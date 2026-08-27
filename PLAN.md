@@ -24,7 +24,7 @@ Cluster* three-package suite:
 - MIT license
 - Influenced by The Carpentries and UW-Madison Libraries workshop
   practices
-- UW-Madison RCI branding baked into templates
+- UW-Madison RCI branding available via `branding = "uw-madison"`
 
 ------------------------------------------------------------------------
 
@@ -113,14 +113,48 @@ Cluster* three-package suite:
 - NEWS.md updated – full v0.5.0 entry drafted
 - PLAN.md updated – v0.5.0 completed items moved here; roadmap advanced
 - JOURNAL.md updated – Session 6 added
+- init_project() branding refactor – uw_branding deprecated via
+  lifecycle::deprecate_warn(); new branding argument accepts TRUE
+  (generic placeholders), “uw-madison” (RCI branding), “none”/FALSE (no
+  assets). Explicit deprecation mapping: old TRUE -\> “uw-madison”, not
+  TRUE (generic). Validation uses identical() per element over a list,
+  not %in%, to avoid logical/character coercion issues. inst/assets/ now
+  holds ten files under uw-\* and generic-\* prefix convention; copy
+  step strips prefix and writes standardized destination names
+  (logo.png, favicon.png, header.html, footer.html, styles.css). Old
+  inst/extdata/ branding files removed; inst/templates/logo.png removed.
+- create_qmd() branding updates – use_style detection now name-based
+  (looks for styles.css, header.html, footer.html by exact name) rather
+  than scanning for any .css/.html file and erroring on ambiguity.
+  footer.html wired as include-after-body:. header.html confirmed as
+  include-before-body: (not include-in-header:, which injects into ).
+  logo.png exempt from overwrite – existing logo always preserved.
+  favicon.png ships in asset set but not wired into per-document YAML
+  (website-project option only). style_dir absolutized via
+  fs::path_abs() before detection to fix path comparison edge case.
+  .inject_style_yaml() updated: html_file -\> header_file
+  - footer_file, favicon_file dropped.
+- test-init-project.R rewritten – section 4 (branding) fully replaced:
+  tests for TRUE/FALSE/“none”/“uw-madison” modes, standardized five-file
+  inventory, identical filenames across modes, invalid branding error,
+  deprecation warning, explicit uw_branding=TRUE-\>uw-madison mapping
+  (br-11 reads first bytes of logo.png to confirm UW vs generic
+  content).
+- test-create-qmd.R updated – make_style_dir() helper gains footer.html;
+  two multi-file-error tests removed (old contract gone); new tests for
+  footer injection, partial asset sets, non-standardized file ignore,
+  logo overwrite exemption; .inject_style_yaml() helper tests updated
+  from html_file to header_file/footer_file.
 
 ------------------------------------------------------------------------
 
 ## Source file organization
 
     R/
-    +-- init-project.R              # init_project()
-    +-- create-qmd.R                # create_qmd(), .substitute_yaml()
+    +-- init-project.R              # init_project(), .resolve_custom_folders(),
+                                    #   generate_project_config()
+    +-- create-qmd.R                # create_qmd(), .substitute_yaml(),
+                                    #   .inject_style_yaml(), .relative_style_path()
     +-- read-clean-csv.R            # read_clean_csv()
     +-- write-clean-csv.R           # write_clean_csv()
     +-- detect-execution-context.R  # detect_execution_context()
@@ -142,6 +176,28 @@ Cluster* three-package suite:
     +-- qmd-to-r.R                  # qmd_to_r()
     +-- toolero-package.R           # package sentinel,
                                     #   utils::globalVariables("results")
+
+    inst/assets/
+    +-- generic-logo.png            # placeholder logo for branding = TRUE
+    +-- generic-favicon.png
+    +-- generic-header.html
+    +-- generic-footer.html
+    +-- generic-styles.css
+    +-- uw-logo.png                 # UW-Madison RCI branding for branding = "uw-madison"
+    +-- uw-favicon.png
+    +-- uw-header.html
+    +-- uw-footer.html
+    +-- uw-styles.css
+
+    inst/extdata/
+    +-- data-provenance.md          # Palmer Penguins provenance note
+
+    inst/templates/
+    +-- _quarto.yml
+    +-- example.qmd
+    +-- purl.R
+    +-- sample.csv
+    +-- skeleton.qmd
 
 ### Naming conventions
 
@@ -174,6 +230,15 @@ Cluster* three-package suite:
   conventions: janitor::clean_names() as core, na, drop_na, summary,
   verbose, … arguments, returning tibbles.
 
+- init_build_and_push() – scaffolds containr’s GitHub Actions
+  build-and-push workflow into the user’s project. Signature:
+  init_build_and_push(path = “.”, overwrite = FALSE, runner = “github”).
+  Copies inst/templates/build-and-push.yaml (sourced from containr) into
+  .github/workflows/, creating the directory if absent. Errors if file
+  already exists and overwrite = FALSE. Prints cli-formatted next steps
+  covering REGISTRY_USERNAME/REGISTRY_PASSWORD secrets, the committed
+  Dockerfile assumption, and how to confirm success via the Actions tab.
+
 ### Medium priority
 
 - arborize() v2 – R list input for structured notation. Currently the
@@ -201,6 +266,16 @@ Cluster* three-package suite:
 - split-apply vignette – document write_by_group() and run_by_group() as
   a paired workflow. Narrative arc: split once, iterate the analysis
   function, connect to submitr for scale.
+
+- \_brand.yml support – future branding = “brand-yml” mode. Quarto’s
+  \_brand.yml spec can absorb logo and favicon cleanly and propagates
+  color palette and typography across formats (HTML, revealjs, Typst,
+  Shiny). header.html/footer.html are outside its scope (raw HTML
+  includes) and styles.css becomes a supplementary SCSS layer rather
+  than a direct equivalent. Implementation requires encoding actual
+  brand data (colors, fonts) rather than just copying files – set aside
+  pending design work on what a sensible generic and UW-madison
+  \_brand.yml default would contain.
 
 ### Lower priority
 
@@ -231,6 +306,8 @@ Cluster* three-package suite:
 - check_project(error): remove the deprecated argument entirely in
   v0.6.0.
 
+- uw_branding: remove the deprecated argument entirely in v0.6.0.
+
 ------------------------------------------------------------------------
 
 ## Function inventory (current, v0.4.0.9000)
@@ -257,11 +334,15 @@ Cluster* three-package suite:
 ## Relationship to containr and submitr
 
     toolero v0.4.0.9000
-      +-- save_output() and generate_manifest() added -- output recording
-      +-- check_project() improved -- README detection, config argument,
-          deprecation of error argument
-      +-- pushed to GitHub
-      +-- CRAN submission planned July 2026 (as v0.5.0)
+      +-- branding refactor -- init_project(branding = ) replaces uw_branding;
+          five standardized asset names in assets/ regardless of branding mode;
+          create_qmd() updated to match (footer, name-based detection, logo
+          overwrite exemption)
+      +-- containr ripple documented -- containr::generate_dockerfile() users
+          should pass misc_file = "assets/" to copy branding files into the
+          container when create_qmd(use_style = TRUE) is used; documented in
+          containr's @param misc_file and @section Prerequisites
+      +-- CRAN submission planned (as v0.5.0)
       When ready to push to CRAN:
         devtools::check() clean
         rhub::rhub_check(platforms = c("linux", "macos", "macos-arm64", "windows"))
@@ -273,6 +354,9 @@ Cluster* three-package suite:
     containr v0.2.0
       +-- CRAN submission pending
       +-- Will eventually depend on toolero
+      +-- misc_file = "assets/" documented as the path for branding file
+          inclusion; no code change needed, existing vectorized misc_file
+          already handles directories
 
     submitr v0.1.0
       +-- CRAN submission pending
@@ -315,3 +399,10 @@ Cluster* three-package suite:
     companion to the split-apply vignette, covering the full arc from
     write_by_group() through run_by_group() through save_output() and
     generate_manifest()?
+
+8.  Should \_brand.yml be adopted as branding = “brand-yml” in a future
+    version? The spec absorbs logo and favicon cleanly and propagates
+    brand identity across Quarto formats and Shiny.
+    header.html/footer.html remain outside its scope. Implementation
+    requires encoding color and typography data, not just copying files
+    – deferred pending design work.

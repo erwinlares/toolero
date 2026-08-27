@@ -1421,3 +1421,157 @@ All examples now use real paths.
     JOURNAL.md                      # this entry
     DESCRIPTION                     # jsonlite and utils added to Imports,
                                      #   withr removed from Suggests
+
+### Session 8 — 2026-08-27 (v0.4.0.9000 — branding refactor)
+
+What we set out to do
+
+Refactor init_project()’s branding argument from a boolean uw_branding
+to a generalized branding argument supporting three modes, and update
+create_qmd() to match the new five-file standardized asset convention
+that the refactor introduced. Also assessed and documented the
+downstream ripple into containr::generate_dockerfile().
+
+Design decisions
+
+branding argument values. Three modes settled on: TRUE (generic
+placeholder assets), “uw-madison” (UW-Madison RCI files), and
+“none”/FALSE (no assets folder). The critical constraint is that all
+modes produce identically named files in the user’s assets/ directory –
+logo.png, favicon.png, header.html, footer.html, styles.css – so
+downstream consumers (create_qmd(), containr::generate_dockerfile())
+never need to know which mode produced them.
+
+Prefix-and-rename convention in inst/assets/. Ten files live in the
+package under uw-\* and generic-\* prefixes. The copy step in
+init_project() strips the prefix and writes the standardized destination
+name. Both asset sets coexist in the same flat directory without
+collision, and the package folder name (inst/assets/) is mnemonically
+aligned with the user’s project folder (assets/).
+
+Explicit deprecation mapping. Old uw_branding = TRUE maps to branding =
+“uw-madison”, not branding = TRUE. These have the same literal value but
+now mean different things – UW files vs. generic placeholders. The
+lifecycle::deprecate_warn() handler uses an explicit if
+(isTRUE(uw_branding)) “uw-madison” else “none” branch to prevent
+existing UW-Madison users from being silently downgraded to placeholder
+assets on upgrade. This mapping is tested directly via br-11, which
+reads the first bytes of logo.png in both modes and asserts they differ.
+
+Branding validation. Uses identical() per element over a list(), not
+branding %in% valid_branding. %in% coerces TRUE/FALSE and character
+strings to a common type for comparison, which can silently match things
+it should not when the valid set mixes logicals and strings.
+
+\_brand.yml assessed and tabled. Quarto’s \_brand.yml spec was
+considered as a potential future branding value. It absorbs logo.png and
+favicon.png cleanly and propagates colors and typography across formats,
+but cannot replace header.html/footer.html (raw HTML includes, outside
+\_brand.yml’s scope) and requires encoding actual brand data rather than
+just copying files. Set aside as a future branding = “brand-yml” option.
+
+Logo overwrite exemption in create_qmd(). The logo copy guard changed
+from if (!fs::file_exists(logo_dst) \|\| overwrite) to unconditional if
+(!fs::file_exists(logo_dst)). An existing assets/logo.png placed by
+init_project(branding = ) is always left untouched – a generic
+placeholder silently replacing institutional branding on overwrite =
+TRUE would be surprising and wrong. All other files continue to respect
+overwrite.
+
+footer.html extracted from CSS. The old UW branding had no separate
+footer file – the footer text lived in styles.css as body::after {
+content: “…” }. Extracting it into uw-footer.html gives users an
+editable footer, produces a proper include-after-body: YAML key, and
+completes the five-file standardized set. The body::after rule was
+removed from uw-styles.css; a new .rci-footer selector targets the
+extracted HTML element instead.
+
+include-before-body corrected. An intermediate draft had introduced
+include-in-header for header.html. This was wrong – include-in-header
+injects content into , not the visible body. header.html contains a
+visible banner
+
+and belongs in include-before-body:. Caught and corrected before the
+final file was produced.
+
+use_style detection changed to name-based. The old approach scanned for
+any .css or .html file in the style directory and errored when more than
+one was found. With footer.html and header.html coexisting in assets/,
+that approach would always error. Replaced with exact-name lookup for
+styles.css, header.html, footer.html. Custom directories follow the same
+convention – documented in @param use_style as the user’s
+responsibility.
+
+Favicon YAML wiring deferred. favicon.png ships in all branding asset
+sets but is not wired into the per-document YAML. Quarto’s favicon: key
+is a website-project option configured in \_quarto.yml, not a
+per-document HTML format option. Noted in @param use_style and @param
+branding docs.
+
+style_dir absolutized. fs::path_abs() applied to style_dir immediately
+after it is resolved in create_qmd(). Without this, a relative use_style
+path combined with an absolute path argument caused fs::path_rel() to
+produce wrong results.
+
+containr ripple – Option A adopted. containr::generate_dockerfile() has
+no awareness of the assets/ folder convention. The fix is documentation-
+only: misc_file = “assets/” copies the entire folder into the container,
+using generate_dockerfile()’s already-vectorized directory-copy support.
+@param misc_file and @section Prerequisites: in generate-dockerfile.R
+updated to name this pattern explicitly and connect it to toolero’s
+branding workflow. No code change to containr required.
+
+Files produced for inst/assets/
+
+Ten new files under prefix convention:
+
+generic-logo.png generic-favicon.png generic-header.html
+generic-footer.html generic-styles.css uw-logo.png uw-favicon.png
+uw-header.html uw-footer.html uw-styles.css
+
+UW files migrate the original header.html and styles.css content with
+two changes: image reference updated from rci-banner.png to logo.png;
+body::after footer rule extracted from CSS into uw-footer.html with a
+new .rci-footer class.
+
+Files removed inst/extdata/header.html inst/extdata/styles.css
+inst/extdata/rci-banner.png inst/templates/logo.png (superseded by
+inst/assets/generic-logo.png) Files changed this session
+R/init-project.R \# branding argument, deprecation scaffolding, \#
+validation, copy block; .resolve_custom_folders() \# and
+generate_project_config() unchanged R/create-qmd.R \# logo source -\>
+generic-logo.png; logo overwrite \# exemption; use_style name-based
+detection; \# footer wired as include-after-body:; header \# confirmed
+as include-before-body:; style_dir \# absolutized; .inject_style_yaml()
+updated tests/testthat/test-init-project.R \# section 4 fully replaced
+for new \# branding argument; deprecation tests added
+tests/testthat/test-create-qmd.R \# make_style_dir() gains footer.html;
+\# two multi-file-error tests removed; new tests \# for footer, partial
+assets, non-standard files, \# logo overwrite exemption; helper tests
+updated containr/R/generate-dockerfile.R \# @param misc_file and
+@section \# Prerequisites updated; @examples comment \# updated; no code
+change README.md \# init_project() section updated for branding; \#
+create_qmd() use_style bullet updated; \# containr cross-reference
+added; quick reference \# table updated NEWS.md \# branding refactor
+entry added PLAN.md \# completed items updated; source file inventory \#
+updated; \_brand.yml added to roadmap; \# uw_branding deprecation added
+to lower priority JOURNAL.md \# this entry Test results
+
+devtools::test(): 603 passing, 0 failing, 1 warning (expected cli
+warning from “ignores files that do not match standardized names” test –
+suppressed with suppressWarnings() in a follow-up fix, making the final
+result 603 passing, 0 failing, 0 warnings).
+
+devtools::check(): 0 errors, 0 warnings, 0 notes.
+
+Open, carried forward containr GitHub issue to file:
+generate_dockerfile() should document misc_file = “assets/” as the
+standard pattern for branding-file inclusion when create_qmd(use_style =
+TRUE) is used. Documentation change only – already implemented this
+session in the roxygen. minimal-project.qmd GitHub issue to file: update
+to reference standardized asset filenames (logo.png, header.html,
+footer.html, styles.css) rather than the old rci-banner.png convention.
+\_brand.yml support: future branding = “brand-yml” mode – deferred
+pending design work on color/typography defaults for both generic and
+UW-madison variants. uw_branding and check_project(error): both
+deprecated arguments scheduled for removal in v0.6.0

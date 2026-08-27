@@ -2,6 +2,94 @@
 
 ## toolero 0.4.0.9000
 
+#### Breaking changes
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  the `uw_branding` argument is deprecated in favor of the new
+  `branding` argument. `uw_branding = TRUE` maps to
+  `branding = "uw-madison"` (not `branding = TRUE`, which now means
+  generic placeholder assets); `uw_branding = FALSE` maps to
+  `branding = "none"`. A
+  [`lifecycle::deprecate_warn()`](https://lifecycle.r-lib.org/reference/deprecate_soft.html)
+  fires when `uw_branding` is supplied. Removal planned for v0.6.0
+  alongside `check_project(error)`.
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  the `use_style` argument now detects branding files by standardized
+  name (`styles.css`, `header.html`, `footer.html`) rather than scanning
+  for any `.css` or `.html` file and erroring on ambiguity. Custom
+  directories are the user’s responsibility to populate under these
+  exact names. The old “error when multiple `.css` or `.html` files
+  found” behavior is removed.
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `footer.html` is now separately wired as `include-after-body:` in the
+  generated YAML, a new Quarto YAML key not present in previous
+  versions. Projects using `use_style = TRUE` will now have a footer
+  included if `assets/footer.html` exists.
+
+#### New features
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  new `branding` argument replacing `uw_branding`. Accepts `TRUE`
+  (generic placeholder assets), `"uw-madison"` (UW-Madison RCI
+  branding), or `"none"`/`FALSE` (no assets folder). All modes produce
+  the same five standardized filenames in `assets/`: `logo.png`,
+  `favicon.png`, `header.html`, `footer.html`, `styles.css` – so
+  downstream consumers
+  ([`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md),
+  `containr::generate_dockerfile()`) can reference those names
+  regardless of which branding mode was used.
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `use_style = TRUE` now wires all three styling files present in
+  `assets/` – `styles.css` as `css:`, `header.html` as
+  `include-before-body:`, and `footer.html` as `include-after-body:` –
+  rather than only `css:` and one HTML include. Any subset may be
+  present; only files that exist are injected.
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  `assets/logo.png` is now exempt from `overwrite`. An existing logo
+  (e.g. placed by `init_project(branding = )`) is always left in place
+  even when `overwrite = TRUE`, since a generic placeholder silently
+  replacing institutional branding would be surprising. All other files
+  (`sample.csv`, `_quarto.yml`, `purl.R`, the `.qmd` itself) continue to
+  respect `overwrite`.
+
+#### Internal changes
+
+- `inst/assets/` now contains ten files under a `uw-*` / `generic-*`
+  prefix convention: `uw-logo.png`, `uw-favicon.png`, `uw-header.html`,
+  `uw-footer.html`, `uw-styles.css`, and five `generic-*` counterparts.
+  The copy step in
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  strips the prefix and writes standardized names into the project’s
+  `assets/` directory. The old three-file UW set (`rci-banner.png`,
+  `header.html`, `styles.css`) in `inst/extdata/` has been removed;
+  `inst/extdata/` now contains only `data-provenance.md`.
+
+- `inst/templates/logo.png` removed. The generic placeholder logo is now
+  `inst/assets/generic-logo.png`, which
+  `create_qmd(include_examples = TRUE)` copies into `assets/logo.png`
+  when no logo already exists.
+
+- `.inject_style_yaml()` gains `header_file` and `footer_file` arguments
+  (replacing the old single `html_file` argument), maps them to
+  `include-before-body:` and `include-after-body:` respectively, and
+  drops the `favicon_file` argument (favicon wiring belongs in
+  `_quarto.yml` as a website-project option, not in the per-document
+  YAML).
+
+- `style_dir` is absolutized via
+  [`fs::path_abs()`](https://fs.r-lib.org/reference/path_math.html) in
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+  before style detection, ensuring
+  [`fs::path_rel()`](https://fs.r-lib.org/reference/path_math.html)
+  comparisons are valid when a relative `use_style` path is combined
+  with an absolute `path` argument.
+
+## toolero 0.4.0.9000 (prior development entries)
+
 #### New features
 
 - Added
@@ -160,8 +248,8 @@ CRAN release: 2026-07-16
   `use_style` argument. Projects that relied on
   [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
   copying UW-branded assets should use
-  `init_project(uw_branding = TRUE)` to scaffold those files, then pass
-  `use_style = TRUE` to
+  `init_project(branding = "uw-madison")` to scaffold those files, then
+  pass `use_style = TRUE` to
   [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
   to wire them into the YAML.
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
@@ -189,23 +277,16 @@ CRAN release: 2026-07-16
   chunk – no sample data, no logo, no example analysis block.
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   added `use_style` argument (default `FALSE`). Accepts `FALSE` (no
-  custom styling), `TRUE` (scans `assets/` for `.css` and `.html`
-  files), or a directory path (scans that directory instead). When
-  exactly one `.css` file is found, it is added as `css:` in the YAML.
-  When exactly one `.html` file is found, it is added as
-  `include-before-body:`. If multiple files of either type are found,
-  the function errors and asks the user to specify which one to use via
-  `yaml_data`. This decouples styling from
-  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
-  and supports non-UW branding workflows.
+  custom styling), `TRUE` (scans `assets/` for standardized branding
+  files by name), or a directory path (scans that directory instead).
+  `styles.css` is added as `css:`, `header.html` as
+  `include-before-body:`, and `footer.html` as `include-after-body:`.
+  Only files that exist are wired into the YAML.
 - Added `inst/templates/skeleton.qmd` – a minimal Quarto template used
   when `include_examples = FALSE`. Contains the YAML header, a setup
   chunk with
   [`library(toolero)`](https://github.com/erwinlares/toolero), and a
   single placeholder heading.
-- Added `inst/templates/logo.png` – a placeholder logo image copied into
-  `assets/` when `include_examples = TRUE`. Reads “your logo goes here”
-  so the user knows to replace it with their own branding.
 - [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md):
   `group_col` now accepts a character vector of column names, enabling
   grouping by more than one column at once. Sanitized filenames join

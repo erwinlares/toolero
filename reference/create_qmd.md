@@ -2,7 +2,7 @@
 
 Creates a new Quarto document in the specified directory. Optionally
 copies a sample dataset and a worked analysis example, wires up custom
-CSS and header styling from a directory of assets, and scaffolds a
+branding assets from a directory of standardized files, and scaffolds a
 post-render purl hook for extracting R code.
 
 ## Usage
@@ -40,6 +40,9 @@ create_qmd(
 - overwrite:
 
   A logical. Whether to overwrite existing files. Defaults to `FALSE`.
+  Note the one exception: `assets/logo.png` is never overwritten, since
+  an existing logo is assumed to be deliberate branding rather than a
+  stale copy of the placeholder.
 
 - use_purl:
 
@@ -52,32 +55,44 @@ create_qmd(
 - include_examples:
 
   Logical. If `TRUE` (the default), copies a sample dataset
-  (`sample.csv`) into `data-raw/`, a placeholder logo (`logo.png`) into
-  `assets/`, and uses a template `.qmd` pre-populated with a worked
-  analysis example. The YAML header includes a `params` block
+  (`sample.csv`) into `data-raw/`, a placeholder logo
+  (`generic-logo.png`, copied as `logo.png`) into `assets/`, and uses a
+  template `.qmd` pre-populated with a worked analysis example. If
+  `assets/logo.png` already exists (e.g. from a prior
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  call with `branding` set), it is always left untouched – an existing
+  logo takes precedence over the generic placeholder even when
+  `overwrite = TRUE`. The YAML header includes a `params` block
   referencing the sample data. If `FALSE`, creates a blank `.qmd` with
   only the YAML header and no example content, and skips copying the
   sample dataset and logo.
 
 - use_style:
 
-  Logical or character. Controls whether custom CSS and header assets
-  are wired into the YAML.
+  Logical or character. Controls whether custom branding assets are
+  wired into the YAML.
 
   - `FALSE` (the default): no custom styling. The YAML `format: html:`
     block contains only standard Quarto options.
 
-  - `TRUE`: shorthand for `"assets/"`. Scans `path/assets/` for `.css`
-    and `.html` files and adds them to the YAML.
+  - `TRUE`: shorthand for `"assets/"`. Looks in `path/assets/` for
+    `styles.css`, `header.html`, and `footer.html` by name, and wires up
+    whichever of these are present.
 
-  - A directory path (e.g. `"my-branding/"`): scans the given directory
-    for `.css` and `.html` files and adds them to the YAML.
+  - A directory path (e.g. `"my-branding/"`): looks in the given
+    directory for the same three standardized filenames. The caller is
+    responsible for ensuring the directory contains the files it needs
+    under these exact names; `create_qmd()` does not rename or infer
+    from other file names.
 
-  If the directory contains exactly one `.css` file, it is added as
-  `css:` in the YAML. If exactly one `.html` file is found, it is added
-  as `include-before-body:`. If multiple `.css` or `.html` files are
-  found, the function errors and asks the user to specify which file to
-  use via `yaml_data`. If neither is found, a warning is issued.
+  `styles.css` is added as `css:`, `header.html` as
+  `include-before-body:`, and `footer.html` as `include-after-body:`.
+  Any subset may be present; only files that exist are wired into the
+  YAML. If none of the three are found, a warning is issued and style
+  injection is skipped. Note that `favicon.png`, though shipped with the
+  branding asset set, is not wired into the document YAML – favicons are
+  a Quarto website-project option rather than an HTML format option, so
+  set it in `_quarto.yml` if you need one.
 
 ## Value
 
@@ -90,14 +105,16 @@ Invisibly returns `path`.
 1.  Validates that `filename` is supplied and `path` exists.
 
 2.  If `include_examples = TRUE`: creates `data-raw/` under `path` and
-    copies `sample.csv` there. Creates `assets/` if needed and copies a
-    placeholder `logo.png`. Uses the example template for the `.qmd`.
+    copies `sample.csv` there. Creates `assets/` if needed and copies
+    the generic placeholder logo as `logo.png`, unless a logo already
+    exists there. Uses the example template for the `.qmd`.
 
 3.  If `include_examples = FALSE`: uses the skeleton template for the
     `.qmd`. No sample data or logo is copied.
 
-4.  If `use_style` is `TRUE` or a directory path: scans the directory
-    for `.css` and `.html` files and injects them into the YAML header.
+4.  If `use_style` is `TRUE` or a directory path: looks for
+    `styles.css`, `header.html`, and `footer.html` by name and injects
+    whichever are present into the YAML header.
 
 5.  If `yaml_data` is provided, reads the YAML file and substitutes
     values into the document header. This runs after style injection, so
@@ -123,48 +140,48 @@ temporary output during testing or exploration.
 # Minimal blank document -- no examples, no styling
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
-#> ✔ Created /tmp/RtmpBGe5Yq/analysis.qmd
-#> ✔ Created /tmp/RtmpBGe5Yq/_quarto.yml
-#> ✔ Created /tmp/RtmpBGe5Yq/R/purl.R
+#> ✔ Created /tmp/Rtmp1OjLb4/analysis.qmd
+#> ✔ Created /tmp/Rtmp1OjLb4/_quarto.yml
+#> ✔ Created /tmp/Rtmp1OjLb4/R/purl.R
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
-#> ✔ Created /tmp/RtmpBGe5Yq/data-raw/sample.csv
-#> ✔ Created /tmp/RtmpBGe5Yq/assets/logo.png
-#> ✔ Created /tmp/RtmpBGe5Yq/analysis.qmd
-#> ✔ Created /tmp/RtmpBGe5Yq/_quarto.yml
-#> ✔ Created /tmp/RtmpBGe5Yq/R/purl.R
+#> ✔ Created /tmp/Rtmp1OjLb4/data-raw/sample.csv
+#> ✔ Created /tmp/Rtmp1OjLb4/assets/logo.png
+#> ✔ Created /tmp/Rtmp1OjLb4/analysis.qmd
+#> ✔ Created /tmp/Rtmp1OjLb4/_quarto.yml
+#> ✔ Created /tmp/Rtmp1OjLb4/R/purl.R
 
-# Blank document wired to UW branding assets (assumes assets/ exists)
+# Blank document wired to branding assets (assumes assets/ exists,
+# e.g. from init_project(branding = "uw-madison"))
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)
-#> ✔ Created /tmp/RtmpBGe5Yq/assets/rci-banner.png
-#> Warning: No .css or .html files found in /tmp/RtmpBGe5Yq/assets. Skipping style
-#> injection.
-#> ✔ Created /tmp/RtmpBGe5Yq/report.qmd
-#> ✔ Created /tmp/RtmpBGe5Yq/_quarto.yml
-#> ✔ Created /tmp/RtmpBGe5Yq/R/purl.R
+#> Warning: No styles.css, header.html, or footer.html found in /tmp/Rtmp1OjLb4/assets.
+#> Skipping style injection.
+#> ✔ Created /tmp/Rtmp1OjLb4/report.qmd
+#> ✔ Created /tmp/Rtmp1OjLb4/_quarto.yml
+#> ✔ Created /tmp/Rtmp1OjLb4/R/purl.R
 
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = "my-branding/",
            overwrite = TRUE, use_purl = FALSE)
-#> Warning: Style directory my-branding/ does not exist. Skipping style injection. Create
-#> the directory and add your .css and/or .html assets, or set `use_style =
-#> FALSE`.
-#> ✔ Created /tmp/RtmpBGe5Yq/report.qmd
+#> Warning: Style directory /home/runner/work/toolero/toolero/docs/reference/my-branding
+#> does not exist. Skipping style injection. Create the directory and add your
+#> branding assets, or set `use_style = FALSE`.
+#> ✔ Created /tmp/Rtmp1OjLb4/report.qmd
 
 # Pre-populated YAML overrides
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpBGe5Yq/data-raw/sample.csv
-#> ✔ Created /tmp/RtmpBGe5Yq/assets/logo.png
-#> ✔ Created /tmp/RtmpBGe5Yq/analysis.qmd
-#> ✔ Created /tmp/RtmpBGe5Yq/_quarto.yml
-#> ✔ Created /tmp/RtmpBGe5Yq/R/purl.R
+#> ✔ Created /tmp/Rtmp1OjLb4/data-raw/sample.csv
+#> ℹ Skipping /tmp/Rtmp1OjLb4/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/Rtmp1OjLb4/analysis.qmd
+#> ✔ Created /tmp/Rtmp1OjLb4/_quarto.yml
+#> ✔ Created /tmp/Rtmp1OjLb4/R/purl.R
 # }
 ```

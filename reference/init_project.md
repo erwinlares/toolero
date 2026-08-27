@@ -15,7 +15,8 @@ init_project(
   custom_folders = NULL,
   config = NULL,
   open = FALSE,
-  uw_branding = FALSE
+  branding = "none",
+  uw_branding = deprecated()
 )
 ```
 
@@ -60,11 +61,23 @@ init_project(
   Logical. If `TRUE`, opens the new project in RStudio after creation.
   Defaults to `FALSE`.
 
+- branding:
+
+  Character or logical. Controls whether an `assets/` folder is created
+  and populated. `TRUE` populates it with generic placeholder branding
+  files (`logo.png`, `favicon.png`, `header.html`, `footer.html`,
+  `styles.css`). `"uw-madison"` populates it with UW-Madison RCI
+  branding files under the same standardized names. `"none"` or `FALSE`
+  creates no `assets/` folder. Defaults to `"none"`. Note that
+  `favicon.png` is included in the asset set but is not automatically
+  wired into Quarto output – favicons are a website-project option set
+  in `_quarto.yml` rather than a per-document HTML option.
+
 - uw_branding:
 
-  Logical. If `TRUE`, creates an `assets/` folder and populates it with
-  UW-Madison RCI branding files (`styles.css`, `header.html`,
-  `rci-banner.png`). Defaults to `FALSE`.
+  **\[deprecated\]** Use `branding` instead. `uw_branding = TRUE` now
+  maps to `branding = "uw-madison"`; `uw_branding = FALSE` maps to
+  `branding = "none"`.
 
 ## Value
 
@@ -77,8 +90,13 @@ if (FALSE) { # \dontrun{
 init_project(path = file.path(tempdir(), "project1"),
              use_renv = FALSE, use_git = FALSE)
 
+# Generic placeholder branding
 init_project(path = file.path(tempdir(), "project2"),
-             uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
+             branding = TRUE, use_renv = FALSE, use_git = FALSE)
+
+# UW-Madison RCI branding
+init_project(path = file.path(tempdir(), "project2b"),
+             branding = "uw-madison", use_renv = FALSE, use_git = FALSE)
 
 # Add a folder and suppress one from the standard set
 init_project(path = file.path(tempdir(), "project3"),

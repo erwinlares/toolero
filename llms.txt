@@ -176,10 +176,10 @@ execution later, and scalable computing when needed.
 
 | Function | What it does |
 |----|----|
-| [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, and optionally copy UW-Madison branding assets. |
+| [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, and optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding). |
 | [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md) | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure. Edit to define a custom layout and pass to [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) via `config`. |
 | [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. Accepts a config YAML for project-specific folder auditing. |
-| [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling, and set up a purl post-render hook. |
+| [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling from a standardized `assets/` folder, and set up a purl post-render hook. |
 | [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md) | Extracts R code chunks from a Quarto document into a standalone `.R` script. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
 | [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md) | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
 | [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md) | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
@@ -240,12 +240,33 @@ so it’s easy to reuse across projects.
 generate_project_config("linguistics-project.yml", path = "~")
 ```
 
+The `branding` argument controls whether an `assets/` folder is created
+and populated. `branding = TRUE` copies in generic placeholder files
+(`logo.png`, `favicon.png`, `header.html`, `footer.html`, `styles.css`).
+`branding = "uw-madison"` copies UW-Madison RCI branding under the same
+standardized names. Both modes produce identically named files, so
+`create_qmd(use_style = TRUE)` works the same way regardless of which
+branding mode was used. `branding = "none"` (the default) creates no
+`assets/` folder.
+
+``` r
+
+# Generic placeholder branding
+init_project(path = "~/Documents/my-project", branding = TRUE)
+
+# UW-Madison RCI branding
+init_project(path = "~/Documents/my-project", branding = "uw-madison")
+```
+
 The `renv` lockfile that
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
 creates is also what `containr::generate_dockerfile()` reads to
 containerize the project later. Starting with
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
-means that step is already prepared, even if you never need it.
+means that step is already prepared, even if you never need it. If the
+project uses branding assets and is later containerized, pass
+`misc_file = "assets/"` to `containr::generate_dockerfile()` so the
+styling files are copied into the image alongside the `.qmd`.
 
 ------------------------------------------------------------------------
 
@@ -317,16 +338,23 @@ Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
 - `path` – directory where the document is created. Defaults to `"."`.
 - `yaml_data` – path to a YAML file for pre-populating the header.
 - `overwrite` – whether to overwrite existing files. Defaults to
-  `FALSE`.
+  `FALSE`. Note: `assets/logo.png` is always exempt from overwrite – an
+  existing logo is assumed to be deliberate branding and is never
+  replaced by the generic placeholder.
 - `use_purl` – if `TRUE` (default), scaffolds `_quarto.yml` and
   `R/purl.R`.
 - `include_examples` – if `TRUE` (default), copies a sample dataset into
-  `data-raw/`, a placeholder logo into `assets/`, and uses a worked
-  example template. If `FALSE`, creates a blank skeleton.
+  `data-raw/`, a placeholder logo into `assets/` (skipped if a logo
+  already exists), and uses a worked example template. If `FALSE`,
+  creates a blank skeleton.
 - `use_style` – controls custom styling. `FALSE` (default) produces
-  plain Quarto output. `TRUE` scans `assets/` for `.css` and `.html`
-  files and wires them into the YAML. A directory path scans that
-  directory instead.
+  plain Quarto output. `TRUE` scans `assets/` for `styles.css`,
+  `header.html`, and `footer.html` by name and wires up whichever are
+  present: `styles.css` as `css:`, `header.html` as
+  `include-before-body:`, `footer.html` as `include-after-body:`. A
+  directory path scans that directory instead – the caller is
+  responsible for populating it with files under those exact
+  standardized names.
 
 ``` r
 

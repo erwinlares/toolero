@@ -99,15 +99,15 @@ data <- data.frame(
   mass    = c(3750, 3800, 5000)
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpBGe5Yq/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpBGe5Yq/gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/Rtmp1OjLb4/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/Rtmp1OjLb4/gentoo.csv
 
 # Same but also write a manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpBGe5Yq/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpBGe5Yq/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmpBGe5Yq/manifest.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/Rtmp1OjLb4/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/Rtmp1OjLb4/gentoo.csv
+#> ✔ Manifest written to /tmp/Rtmp1OjLb4/manifest.csv
 
 # Group by more than one column
 data2 <- data.frame(
@@ -117,9 +117,9 @@ data2 <- data.frame(
 )
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpBGe5Yq/adelie--female.csv
-#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpBGe5Yq/adelie--male.csv
-#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpBGe5Yq/gentoo--male.csv
-#> ✔ Manifest written to /tmp/RtmpBGe5Yq/manifest.csv
+#> ✔ Written "Adelie | female" (1 rows) to /tmp/Rtmp1OjLb4/adelie--female.csv
+#> ✔ Written "Adelie | male" (1 rows) to /tmp/Rtmp1OjLb4/adelie--male.csv
+#> ✔ Written "Gentoo | male" (1 rows) to /tmp/Rtmp1OjLb4/gentoo--male.csv
+#> ✔ Manifest written to /tmp/Rtmp1OjLb4/manifest.csv
 # }
 ```
