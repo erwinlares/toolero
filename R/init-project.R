@@ -25,10 +25,20 @@
 #'   Defaults to `NULL`.
 #' @param open Logical. If `TRUE`, opens the new project in RStudio after
 #'   creation. Defaults to `FALSE`.
-#' @param uw_branding Logical. If `TRUE`, creates an `assets/` folder and
-#'   populates it with UW-Madison RCI branding files (`styles.css`,
-#'   `header.html`, `rci-banner.png`). Defaults to `FALSE`.
+#' @param branding Character or logical. Controls whether an `assets/`
+#'   folder is created and populated. `TRUE` populates it with generic
+#'   placeholder branding files (`logo.png`, `favicon.png`, `header.html`,
+#'   `footer.html`, `styles.css`). `"uw-madison"` populates it with
+#'   UW-Madison RCI branding files under the same standardized names.
+#'   `"none"` or `FALSE` creates no `assets/` folder. Defaults to `"none"`.
+#'   Note that `favicon.png` is included in the asset set but is not
+#'   automatically wired into Quarto output -- favicons are a website-project
+#'   option set in `_quarto.yml` rather than a per-document HTML option.
+#' @param uw_branding `r lifecycle::badge("deprecated")` Use `branding`
+#'   instead. `uw_branding = TRUE` now maps to `branding = "uw-madison"`;
+#'   `uw_branding = FALSE` maps to `branding = "none"`.
 #' @importFrom yaml read_yaml
+#' @importFrom lifecycle deprecated is_present deprecate_warn
 #' @return Called for its side effects. Invisibly returns `path`.
 #' @export
 #'
@@ -37,8 +47,13 @@
 #' init_project(path = file.path(tempdir(), "project1"),
 #'              use_renv = FALSE, use_git = FALSE)
 #'
+#' # Generic placeholder branding
 #' init_project(path = file.path(tempdir(), "project2"),
-#'              uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
+#'              branding = TRUE, use_renv = FALSE, use_git = FALSE)
+#'
+#' # UW-Madison RCI branding
+#' init_project(path = file.path(tempdir(), "project2b"),
+#'              branding = "uw-madison", use_renv = FALSE, use_git = FALSE)
 #'
 #' # Add a folder and suppress one from the standard set
 #' init_project(path = file.path(tempdir(), "project3"),
@@ -57,17 +72,38 @@ init_project <- function(path,
                          custom_folders = NULL,
                          config         = NULL,
                          open           = FALSE,
-                         uw_branding    = FALSE) {
+                         branding       = "none",
+                         uw_branding    = deprecated()) {
 
     # -- 1. Normalize path early, before usethis shifts the active project ------
     path <- fs::path_abs(path)
 
+    # -- 2. Absorb deprecated uw_branding into branding -------------------------
+    # Explicit mapping, not a passthrough: old TRUE meant "UW files," which
+    # is new branding = "uw-madison", NOT new branding = TRUE (generic).
+    if (lifecycle::is_present(uw_branding)) {
+        lifecycle::deprecate_warn(
+            when = "0.4.0",
+            what = "init_project(uw_branding = )",
+            with = "init_project(branding = )"
+        )
+        branding <- if (isTRUE(uw_branding)) "uw-madison" else "none"
+    }
+
+    # -- 3. Validate branding ---------------------------------------------------
+    valid_branding <- list(TRUE, FALSE, "none", "uw-madison")
+    if (!any(vapply(valid_branding, identical, logical(1L), y = branding))) {
+        cli::cli_abort(
+            "{.arg branding} must be {.val TRUE}, {.val FALSE}, {.val none}, or {.val uw-madison}, not {.val {branding}}."
+        )
+    }
+
     withr::with_dir(getwd(), {
 
-        # -- 2. Create the RStudio project --------------------------------------
+        # -- 4. Create the RStudio project --------------------------------------
         usethis::create_project(path, open = FALSE)
 
-        # -- 3. Resolve the base folder set: config or standard -----------------
+        # -- 5. Resolve the base folder set: config or standard -----------------
         if (!is.null(config)) {
 
             if (!fs::file_exists(config)) {
@@ -104,38 +140,47 @@ init_project <- function(path,
 
         }
 
-        # -- 4. Apply custom_folders additions and removals ---------------------
+        # -- 6. Apply custom_folders additions and removals ---------------------
         final_folders <- .resolve_custom_folders(base_folders, custom_folders)
 
-        # -- 5. Create folders --------------------------------------------------
+        # -- 7. Create folders --------------------------------------------------
         purrr::walk(final_folders, \(folder) {
             fs::dir_create(fs::path(path, folder), recurse = TRUE)
         })
 
-        # -- 6. Copy UW-Madison RCI branding files into assets/ ----------------
-        if (uw_branding) {
+        # -- 8. Copy branding files into assets/ --------------------------------
+        if (isTRUE(branding) || identical(branding, "uw-madison")) {
+
             assets_dir <- fs::path(path, "assets")
             fs::dir_create(assets_dir)
-            branding_files <- c("styles.css", "header.html", "rci-banner.png")
-            purrr::walk(branding_files, \(f) {
-                fs::file_copy(
-                    system.file("assets", f, package = "toolero"),
-                    fs::path(assets_dir, f)
+
+            prefix <- if (identical(branding, "uw-madison")) "uw" else "generic"
+
+            standard_names <- c("logo.png", "favicon.png", "header.html",
+                                "footer.html", "styles.css")
+
+            purrr::walk(standard_names, \(name) {
+                src <- system.file(
+                    "assets", paste0(prefix, "-", name),
+                    package  = "toolero",
+                    mustWork = TRUE
                 )
+                fs::file_copy(src, fs::path(assets_dir, name))
             })
         }
+        # branding = "none" or FALSE: no assets/ folder created
 
-        # -- 7. Initialize renv ------------------------------------------------
+        # -- 9. Initialize renv ------------------------------------------------
         if (use_renv) {
             renv::init(project = path, restart = FALSE)
             writeLines("*.qmd", file.path(path, ".renvignore"))
             renv::snapshot(project = path, prompt = FALSE)
         }
 
-        # -- 8. Initialize git -------------------------------------------------
+        # -- 10. Initialize git -------------------------------------------------
         if (use_git) usethis::use_git(message = "initial commit")
 
-        # -- 9. Open the project in RStudio ------------------------------------
+        # -- 11. Open the project in RStudio ------------------------------------
         if (open) usethis::proj_activate(path)
 
     })

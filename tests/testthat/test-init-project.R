@@ -1,6 +1,6 @@
 # Tests for init_project() and generate_project_config()
 # Organized by: standard structure, config file, custom_folders,
-#               uw_branding, generate_project_config()
+#               branding, generate_project_config()
 
 # -- Shared helpers ------------------------------------------------------------
 
@@ -97,7 +97,6 @@ test_that("config suppresses the standard folders entirely", {
 
     init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
 
-    # Standard folders that are not in the config should not exist
     absent <- setdiff(standard_folders, "notebooks")
     purrr::walk(absent, \(folder) {
         expect_false(
@@ -147,7 +146,6 @@ test_that("custom_folders adds a new folder to the standard set", {
                  use_renv = FALSE, use_git = FALSE)
 
     expect_true(fs::dir_exists(fs::path(proj, "models")))
-    # Standard folders still present
     expect_true(fs::dir_exists(fs::path(proj, "scripts")))
 })
 
@@ -224,7 +222,6 @@ test_that("custom_folders NULL creates no extra folders beyond standard", {
         fs::path_rel(proj) |>
         as.character()
 
-    # models should not be present
     expect_false("models" %in% created)
 })
 
@@ -245,26 +242,139 @@ test_that("custom_folders is applied on top of a config-derived set", {
 })
 
 
-# -- 4. UW branding ------------------------------------------------------------
+# -- 4. branding ---------------------------------------------------------------
 
-test_that("uw_branding = TRUE creates the assets/ directory", {
-    proj <- fs::path(tmp, "uw-01")
-    init_project(proj, uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
+# Standardized asset filenames -- same set regardless of branding mode
+standard_assets <- c("logo.png", "favicon.png", "header.html",
+                     "footer.html", "styles.css")
+
+test_that("branding = 'none' does not create assets/", {
+    proj <- fs::path(tmp, "br-01")
+    init_project(proj, branding = "none", use_renv = FALSE, use_git = FALSE)
+    expect_false(fs::dir_exists(fs::path(proj, "assets")))
+})
+
+test_that("branding = FALSE does not create assets/", {
+    proj <- fs::path(tmp, "br-02")
+    init_project(proj, branding = FALSE, use_renv = FALSE, use_git = FALSE)
+    expect_false(fs::dir_exists(fs::path(proj, "assets")))
+})
+
+test_that("branding = TRUE creates the assets/ directory", {
+    proj <- fs::path(tmp, "br-03")
+    init_project(proj, branding = TRUE, use_renv = FALSE, use_git = FALSE)
     expect_true(fs::dir_exists(fs::path(proj, "assets")))
 })
 
-test_that("uw_branding = TRUE copies all three branding files", {
-    proj <- fs::path(tmp, "uw-02")
-    init_project(proj, uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
+test_that("branding = TRUE copies all five standardized generic files", {
+    proj <- fs::path(tmp, "br-04")
+    init_project(proj, branding = TRUE, use_renv = FALSE, use_git = FALSE)
 
-    expect_true(fs::file_exists(fs::path(proj, "assets", "styles.css")))
-    expect_true(fs::file_exists(fs::path(proj, "assets", "header.html")))
-    expect_true(fs::file_exists(fs::path(proj, "assets", "rci-banner.png")))
+    purrr::walk(standard_assets, \(f) {
+        expect_true(
+            fs::file_exists(fs::path(proj, "assets", f)),
+            info = paste("missing:", f)
+        )
+    })
 })
 
-test_that("uw_branding = FALSE does not create assets/", {
-    proj <- fs::path(tmp, "uw-03")
-    init_project(proj, uw_branding = FALSE, use_renv = FALSE, use_git = FALSE)
+test_that("branding = 'uw-madison' creates the assets/ directory", {
+    proj <- fs::path(tmp, "br-05")
+    init_project(proj, branding = "uw-madison", use_renv = FALSE, use_git = FALSE)
+    expect_true(fs::dir_exists(fs::path(proj, "assets")))
+})
+
+test_that("branding = 'uw-madison' copies all five standardized files", {
+    proj <- fs::path(tmp, "br-06")
+    init_project(proj, branding = "uw-madison", use_renv = FALSE, use_git = FALSE)
+
+    purrr::walk(standard_assets, \(f) {
+        expect_true(
+            fs::file_exists(fs::path(proj, "assets", f)),
+            info = paste("missing:", f)
+        )
+    })
+})
+
+test_that("branding = 'uw-madison' and branding = TRUE produce identically named files", {
+    proj_uw      <- fs::path(tmp, "br-07a")
+    proj_generic <- fs::path(tmp, "br-07b")
+    init_project(proj_uw,      branding = "uw-madison", use_renv = FALSE, use_git = FALSE)
+    init_project(proj_generic, branding = TRUE,          use_renv = FALSE, use_git = FALSE)
+
+    uw_files      <- fs::path_file(fs::dir_ls(fs::path(proj_uw,      "assets")))
+    generic_files <- fs::path_file(fs::dir_ls(fs::path(proj_generic, "assets")))
+
+    expect_equal(sort(uw_files), sort(generic_files))
+})
+
+test_that("branding rejects invalid values with an informative error", {
+    proj <- fs::path(tmp, "br-08")
+    expect_error(
+        init_project(proj, branding = "rci", use_renv = FALSE, use_git = FALSE),
+        class = "rlang_error"
+    )
+})
+
+# -- deprecated uw_branding ----------------------------------------------------
+
+test_that("uw_branding = TRUE emits a deprecation warning", {
+    proj <- fs::path(tmp, "br-09")
+    expect_warning(
+        init_project(proj, uw_branding = TRUE, use_renv = FALSE, use_git = FALSE),
+        regexp = "uw_branding"
+    )
+})
+
+test_that("uw_branding = TRUE maps to 'uw-madison' -- copies all five standardized files", {
+    proj <- fs::path(tmp, "br-10")
+    suppressWarnings(
+        init_project(proj, uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
+    )
+
+    purrr::walk(standard_assets, \(f) {
+        expect_true(
+            fs::file_exists(fs::path(proj, "assets", f)),
+            info = paste("missing:", f)
+        )
+    })
+})
+
+test_that("uw_branding = TRUE does not map to generic -- logo.png is UW content", {
+    proj_deprecated <- fs::path(tmp, "br-11a")
+    proj_generic    <- fs::path(tmp, "br-11b")
+
+    suppressWarnings(
+        init_project(proj_deprecated, uw_branding = TRUE,
+                     use_renv = FALSE, use_git = FALSE)
+    )
+    init_project(proj_generic, branding = TRUE,
+                 use_renv = FALSE, use_git = FALSE)
+
+    # UW and generic logos should differ in content -- same filename,
+    # different bytes -- confirming the deprecation mapping went to
+    # "uw-madison" rather than silently falling back to generic.
+    uw_logo      <- readBin(fs::path(proj_deprecated, "assets", "logo.png"),
+                            "raw", n = 1000L)
+    generic_logo <- readBin(fs::path(proj_generic,    "assets", "logo.png"),
+                            "raw", n = 1000L)
+
+    expect_false(identical(uw_logo, generic_logo))
+})
+
+test_that("uw_branding = FALSE emits a deprecation warning", {
+    proj <- fs::path(tmp, "br-12")
+    expect_warning(
+        init_project(proj, uw_branding = FALSE, use_renv = FALSE, use_git = FALSE),
+        regexp = "uw_branding"
+    )
+})
+
+test_that("uw_branding = FALSE maps to 'none' -- no assets/ created", {
+    proj <- fs::path(tmp, "br-13")
+    suppressWarnings(
+        init_project(proj, uw_branding = FALSE, use_renv = FALSE, use_git = FALSE)
+    )
     expect_false(fs::dir_exists(fs::path(proj, "assets")))
 })
 
@@ -325,7 +435,6 @@ test_that("generate_project_config() output is usable by init_project()", {
     proj <- fs::path(tmp, "roundtrip-proj")
     init_project(proj, config = dest, use_renv = FALSE, use_git = FALSE)
 
-    # The standard folders baked into the template should all exist
     purrr::walk(standard_folders, \(folder) {
         expect_true(
             fs::dir_exists(fs::path(proj, folder)),

@@ -26,7 +26,9 @@ metadata to pre-populate the document header. If \code{NULL} (the default),
 the template is copied as-is with placeholder prompts intact.}
 
 \item{overwrite}{A logical. Whether to overwrite existing files. Defaults
-to \code{FALSE}.}
+to \code{FALSE}. Note the one exception: \code{assets/logo.png} is never
+overwritten, since an existing logo is assumed to be deliberate
+branding rather than a stale copy of the placeholder.}
 
 \item{use_purl}{Logical. If \code{TRUE} (the default), creates a \verb{_quarto.yml}
 file with a post-render hook and a \code{purl.R} script inside \verb{R/} that
@@ -35,29 +37,40 @@ document is resolved dynamically by scanning the project root for \code{.qmd}
 files, so the same \code{purl.R} works regardless of the document name.}
 
 \item{include_examples}{Logical. If \code{TRUE} (the default), copies a sample
-dataset (\code{sample.csv}) into \verb{data-raw/}, a placeholder logo (\code{logo.png})
-into \verb{assets/}, and uses a template \code{.qmd} pre-populated with a worked
-analysis example. The YAML header includes a \code{params} block referencing
-the sample data. If \code{FALSE}, creates a blank \code{.qmd} with only the YAML
-header and no example content, and skips copying the sample dataset and
-logo.}
+dataset (\code{sample.csv}) into \verb{data-raw/}, a placeholder logo
+(\code{generic-logo.png}, copied as \code{logo.png}) into \verb{assets/}, and uses a
+template \code{.qmd} pre-populated with a worked analysis example. If
+\code{assets/logo.png} already exists (e.g. from a prior \code{\link[=init_project]{init_project()}}
+call with \code{branding} set), it is always left untouched -- an existing
+logo takes precedence over the generic placeholder even when
+\code{overwrite = TRUE}. The YAML header includes a \code{params} block
+referencing the sample data. If \code{FALSE}, creates a blank \code{.qmd} with
+only the YAML header and no example content, and skips copying the
+sample dataset and logo.}
 
-\item{use_style}{Logical or character. Controls whether custom CSS and
-header assets are wired into the YAML.
+\item{use_style}{Logical or character. Controls whether custom branding
+assets are wired into the YAML.
 \itemize{
 \item \code{FALSE} (the default): no custom styling. The YAML \verb{format: html:}
 block contains only standard Quarto options.
-\item \code{TRUE}: shorthand for \code{"assets/"}. Scans \verb{path/assets/} for \code{.css}
-and \code{.html} files and adds them to the YAML.
-\item A directory path (e.g. \code{"my-branding/"}): scans the given directory
-for \code{.css} and \code{.html} files and adds them to the YAML.
+\item \code{TRUE}: shorthand for \code{"assets/"}. Looks in \verb{path/assets/} for
+\code{styles.css}, \code{header.html}, and \code{footer.html} by name, and wires
+up whichever of these are present.
+\item A directory path (e.g. \code{"my-branding/"}): looks in the given
+directory for the same three standardized filenames. The caller is
+responsible for ensuring the directory contains the files it needs
+under these exact names; \code{create_qmd()} does not rename or infer
+from other file names.
 }
 
-If the directory contains exactly one \code{.css} file, it is added as
-\verb{css:} in the YAML. If exactly one \code{.html} file is found, it is added
-as \verb{include-before-body:}. If multiple \code{.css} or \code{.html} files are
-found, the function errors and asks the user to specify which file
-to use via \code{yaml_data}. If neither is found, a warning is issued.}
+\code{styles.css} is added as \verb{css:}, \code{header.html} as
+\verb{include-before-body:}, and \code{footer.html} as \verb{include-after-body:}.
+Any subset may be present; only files that exist are wired into the
+YAML. If none of the three are found, a warning is issued and style
+injection is skipped. Note that \code{favicon.png}, though shipped with
+the branding asset set, is not wired into the document YAML --
+favicons are a Quarto website-project option rather than an HTML
+format option, so set it in \verb{_quarto.yml} if you need one.}
 }
 \value{
 Invisibly returns \code{path}.
@@ -65,7 +78,7 @@ Invisibly returns \code{path}.
 \description{
 Creates a new Quarto document in the specified directory. Optionally
 copies a sample dataset and a worked analysis example, wires up custom
-CSS and header styling from a directory of assets, and scaffolds a
+branding assets from a directory of standardized files, and scaffolds a
 post-render purl hook for extracting R code.
 }
 \details{
@@ -73,12 +86,14 @@ post-render purl hook for extracting R code.
 \enumerate{
 \item Validates that \code{filename} is supplied and \code{path} exists.
 \item If \code{include_examples = TRUE}: creates \verb{data-raw/} under \code{path} and
-copies \code{sample.csv} there. Creates \verb{assets/} if needed and copies a
-placeholder \code{logo.png}. Uses the example template for the \code{.qmd}.
+copies \code{sample.csv} there. Creates \verb{assets/} if needed and copies
+the generic placeholder logo as \code{logo.png}, unless a logo already
+exists there. Uses the example template for the \code{.qmd}.
 \item If \code{include_examples = FALSE}: uses the skeleton template for the
 \code{.qmd}. No sample data or logo is copied.
-\item If \code{use_style} is \code{TRUE} or a directory path: scans the directory for
-\code{.css} and \code{.html} files and injects them into the YAML header.
+\item If \code{use_style} is \code{TRUE} or a directory path: looks for
+\code{styles.css}, \code{header.html}, and \code{footer.html} by name and injects
+whichever are present into the YAML header.
 \item If \code{yaml_data} is provided, reads the YAML file and substitutes values
 into the document header. This runs after style injection, so
 \code{yaml_data} can override any auto-generated YAML keys.
@@ -104,7 +119,8 @@ create_qmd(path = tempdir(), filename = "analysis.qmd",
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
 
-# Blank document wired to UW branding assets (assumes assets/ exists)
+# Blank document wired to branding assets (assumes assets/ exists,
+# e.g. from init_project(branding = "uw-madison"))
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)

@@ -11,7 +11,8 @@ init_project(
   custom_folders = NULL,
   config = NULL,
   open = FALSE,
-  uw_branding = FALSE
+  branding = "none",
+  uw_branding = deprecated()
 )
 }
 \arguments{
@@ -42,9 +43,19 @@ Defaults to \code{NULL}.}
 \item{open}{Logical. If \code{TRUE}, opens the new project in RStudio after
 creation. Defaults to \code{FALSE}.}
 
-\item{uw_branding}{Logical. If \code{TRUE}, creates an \verb{assets/} folder and
-populates it with UW-Madison RCI branding files (\code{styles.css},
-\code{header.html}, \code{rci-banner.png}). Defaults to \code{FALSE}.}
+\item{branding}{Character or logical. Controls whether an \verb{assets/}
+folder is created and populated. \code{TRUE} populates it with generic
+placeholder branding files (\code{logo.png}, \code{favicon.png}, \code{header.html},
+\code{footer.html}, \code{styles.css}). \code{"uw-madison"} populates it with
+UW-Madison RCI branding files under the same standardized names.
+\code{"none"} or \code{FALSE} creates no \verb{assets/} folder. Defaults to \code{"none"}.
+Note that \code{favicon.png} is included in the asset set but is not
+automatically wired into Quarto output -- favicons are a website-project
+option set in \verb{_quarto.yml} rather than a per-document HTML option.}
+
+\item{uw_branding}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{branding}
+instead. \code{uw_branding = TRUE} now maps to \code{branding = "uw-madison"};
+\code{uw_branding = FALSE} maps to \code{branding = "none"}.}
 }
 \value{
 Called for its side effects. Invisibly returns \code{path}.
@@ -59,8 +70,13 @@ initializes \code{renv} for package management and git for version control.
 init_project(path = file.path(tempdir(), "project1"),
              use_renv = FALSE, use_git = FALSE)
 
+# Generic placeholder branding
 init_project(path = file.path(tempdir(), "project2"),
-             uw_branding = TRUE, use_renv = FALSE, use_git = FALSE)
+             branding = TRUE, use_renv = FALSE, use_git = FALSE)
+
+# UW-Madison RCI branding
+init_project(path = file.path(tempdir(), "project2b"),
+             branding = "uw-madison", use_renv = FALSE, use_git = FALSE)
 
 # Add a folder and suppress one from the standard set
 init_project(path = file.path(tempdir(), "project3"),

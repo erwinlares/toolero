@@ -1,0 +1,28 @@
+/* toolero generic branding: default stylesheet */
+/* Feel free to edit freely -- this file is yours once copied. */
+
+.project-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #dddddd;
+}
+
+.project-logo {
+  max-height: 48px;
+  width: auto;
+}
+
+.project-footer {
+  margin-top: 3rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #dddddd;
+  font-size: 0.85rem;
+  color: #666666;
+  text-align: center;
+}
+
+.project-footer a {
+  color: inherit;
+}

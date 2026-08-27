@@ -111,10 +111,8 @@ tbody tr:nth-child(even) {
   background-color: #E1E5E7;
 }
 
-/* Footer line */
-body::after {
-  content: "Research Cyberinfrastructure · Division of Information Technology · UW–Madison";
-  display: block;
+/* Footer */
+.rci-footer {
   text-align: center;
   font-size: 0.8rem;
   color: #888;

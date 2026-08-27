@@ -12,7 +12,7 @@ author:
   readr::write_file(yaml_content, path)
 }
 
-# Helper: create a style directory with one .css and one .html file
+# Helper: create a style directory with standardized branding files
 make_style_dir <- function(parent, dirname = "assets") {
   style_dir <- fs::path(parent, dirname)
   fs::dir_create(style_dir)
@@ -21,8 +21,12 @@ make_style_dir <- function(parent, dirname = "assets") {
     fs::path(style_dir, "styles.css")
   )
   readr::write_file(
-    "<header><h1>Branding</h1></header>",
+    "<div class='header'><h1>Branding</h1></div>",
     fs::path(style_dir, "header.html")
+  )
+  readr::write_file(
+    "<div class='footer'>Footer text</div>",
+    fs::path(style_dir, "footer.html")
   )
   style_dir
 }
@@ -138,6 +142,42 @@ test_that("skeleton contains a setup chunk with library(toolero)", {
   expect_true(grepl("library(toolero)", qmd_content, fixed = TRUE))
 })
 
+# -- logo.png overwrite exemption ----------------------------------------------
+
+test_that("does not overwrite logo.png even when overwrite = TRUE", {
+  tmp <- withr::local_tempdir()
+
+  # Place a sentinel file in assets/ to stand in for a branding logo
+  assets_dir <- fs::path(tmp, "assets")
+  fs::dir_create(assets_dir)
+  readr::write_file("sentinel", fs::path(assets_dir, "logo.png"))
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = TRUE, overwrite = TRUE
+  )
+
+  # Generic placeholder must not have replaced the sentinel
+  content <- readr::read_file(fs::path(assets_dir, "logo.png"))
+  expect_equal(content, "sentinel")
+})
+
+test_that("logo.png is left in place when it already exists and overwrite = FALSE", {
+  tmp <- withr::local_tempdir()
+
+  assets_dir <- fs::path(tmp, "assets")
+  fs::dir_create(assets_dir)
+  readr::write_file("sentinel", fs::path(assets_dir, "logo.png"))
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = TRUE, overwrite = FALSE
+  )
+
+  content <- readr::read_file(fs::path(assets_dir, "logo.png"))
+  expect_equal(content, "sentinel")
+})
+
 # -- use_style = FALSE (default) -----------------------------------------------
 
 test_that("does not inject css or include-before-body when use_style = FALSE", {
@@ -152,7 +192,7 @@ test_that("does not inject css or include-before-body when use_style = FALSE", {
 
 # -- use_style = TRUE -----------------------------------------------------------
 
-test_that("injects css and include-before-body when use_style = TRUE and assets exist", {
+test_that("injects css, include-before-body, and include-after-body when use_style = TRUE and all assets exist", {
   tmp <- withr::local_tempdir()
   make_style_dir(tmp)
 
@@ -166,6 +206,8 @@ test_that("injects css and include-before-body when use_style = TRUE and assets 
   expect_true(grepl("styles.css", qmd_content, fixed = TRUE))
   expect_true(grepl("include-before-body", qmd_content, fixed = TRUE))
   expect_true(grepl("header.html", qmd_content, fixed = TRUE))
+  expect_true(grepl("include-after-body", qmd_content, fixed = TRUE))
+  expect_true(grepl("footer.html", qmd_content, fixed = TRUE))
 })
 
 test_that("warns when use_style = TRUE but assets/ directory does not exist", {
@@ -180,7 +222,7 @@ test_that("warns when use_style = TRUE but assets/ directory does not exist", {
   )
 })
 
-test_that("warns when use_style = TRUE and assets/ is empty", {
+test_that("warns when use_style = TRUE and assets/ has none of the standardized files", {
   tmp <- withr::local_tempdir()
   fs::dir_create(fs::path(tmp, "assets"))
 
@@ -189,8 +231,78 @@ test_that("warns when use_style = TRUE and assets/ is empty", {
       path = tmp, filename = "analysis.qmd",
       include_examples = FALSE, use_style = TRUE
     ),
-    "No.*files found"
+    "Skipping style injection"
   )
+})
+
+# -- use_style = TRUE: partial asset sets --------------------------------------
+
+test_that("injects only css when assets/ has styles.css but no html files", {
+  tmp <- withr::local_tempdir()
+  style_dir <- fs::path(tmp, "assets")
+  fs::dir_create(style_dir)
+  readr::write_file("body { color: red; }", fs::path(style_dir, "styles.css"))
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_style = TRUE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("css:", qmd_content, fixed = TRUE))
+  expect_false(grepl("include-before-body", qmd_content, fixed = TRUE))
+  expect_false(grepl("include-after-body", qmd_content, fixed = TRUE))
+})
+
+test_that("injects only include-before-body when assets/ has header.html but no css or footer", {
+  tmp <- withr::local_tempdir()
+  style_dir <- fs::path(tmp, "assets")
+  fs::dir_create(style_dir)
+  readr::write_file("<header>Hi</header>", fs::path(style_dir, "header.html"))
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_style = TRUE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_false(grepl("css:", qmd_content, fixed = TRUE))
+  expect_true(grepl("include-before-body", qmd_content, fixed = TRUE))
+  expect_false(grepl("include-after-body", qmd_content, fixed = TRUE))
+})
+
+test_that("injects only include-after-body when assets/ has footer.html but no css or header", {
+  tmp <- withr::local_tempdir()
+  style_dir <- fs::path(tmp, "assets")
+  fs::dir_create(style_dir)
+  readr::write_file("<footer>Bye</footer>", fs::path(style_dir, "footer.html"))
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_style = TRUE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_false(grepl("css:", qmd_content, fixed = TRUE))
+  expect_false(grepl("include-before-body", qmd_content, fixed = TRUE))
+  expect_true(grepl("include-after-body", qmd_content, fixed = TRUE))
+})
+
+test_that("ignores files in assets/ that do not match standardized names", {
+  tmp <- withr::local_tempdir()
+  style_dir <- fs::path(tmp, "assets")
+  fs::dir_create(style_dir)
+  readr::write_file("body {}", fs::path(style_dir, "custom-theme.css"))
+  readr::write_file("<div>hi</div>", fs::path(style_dir, "banner.html"))
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_style = TRUE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_false(grepl("css:", qmd_content, fixed = TRUE))
+  expect_false(grepl("include-before-body", qmd_content, fixed = TRUE))
 })
 
 # -- use_style = directory path -------------------------------------------------
@@ -207,70 +319,7 @@ test_that("scans a custom style directory when use_style is a path", {
   qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
   expect_true(grepl("css:", qmd_content, fixed = TRUE))
   expect_true(grepl("include-before-body", qmd_content, fixed = TRUE))
-})
-
-test_that("injects only css when style directory has .css but no .html", {
-  tmp <- withr::local_tempdir()
-  style_dir <- fs::path(tmp, "assets")
-  fs::dir_create(style_dir)
-  readr::write_file("body { color: red; }", fs::path(style_dir, "styles.css"))
-
-  create_qmd(
-    path = tmp, filename = "analysis.qmd",
-    include_examples = FALSE, use_style = TRUE
-  )
-
-  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
-  expect_true(grepl("css:", qmd_content, fixed = TRUE))
-  expect_false(grepl("include-before-body", qmd_content, fixed = TRUE))
-})
-
-test_that("injects only include-before-body when style directory has .html but no .css", {
-  tmp <- withr::local_tempdir()
-  style_dir <- fs::path(tmp, "assets")
-  fs::dir_create(style_dir)
-  readr::write_file("<header>Hi</header>", fs::path(style_dir, "header.html"))
-
-  create_qmd(
-    path = tmp, filename = "analysis.qmd",
-    include_examples = FALSE, use_style = TRUE
-  )
-
-  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
-  expect_false(grepl("css:", qmd_content, fixed = TRUE))
-  expect_true(grepl("include-before-body", qmd_content, fixed = TRUE))
-})
-
-test_that("errors when style directory contains multiple .css files", {
-  tmp <- withr::local_tempdir()
-  style_dir <- fs::path(tmp, "assets")
-  fs::dir_create(style_dir)
-  readr::write_file("body {}", fs::path(style_dir, "one.css"))
-  readr::write_file("body {}", fs::path(style_dir, "two.css"))
-
-  expect_error(
-    create_qmd(
-      path = tmp, filename = "analysis.qmd",
-      include_examples = FALSE, use_style = TRUE
-    ),
-    "\\.css"
-  )
-})
-
-test_that("errors when style directory contains multiple .html files", {
-  tmp <- withr::local_tempdir()
-  style_dir <- fs::path(tmp, "assets")
-  fs::dir_create(style_dir)
-  readr::write_file("<header>A</header>", fs::path(style_dir, "one.html"))
-  readr::write_file("<header>B</header>", fs::path(style_dir, "two.html"))
-
-  expect_error(
-    create_qmd(
-      path = tmp, filename = "analysis.qmd",
-      include_examples = FALSE, use_style = TRUE
-    ),
-    "\\.html"
-  )
+  expect_true(grepl("include-after-body", qmd_content, fixed = TRUE))
 })
 
 test_that("warns when custom style directory does not exist", {
@@ -404,14 +453,6 @@ test_that("skips existing sample.csv without erroring when overwrite is FALSE", 
   )
 })
 
-test_that("skips existing logo.png without erroring when overwrite is FALSE", {
-  tmp <- withr::local_tempdir()
-  create_qmd(path = tmp, filename = "analysis.qmd")
-  expect_no_error(
-    create_qmd(path = tmp, filename = "report.qmd", overwrite = TRUE)
-  )
-})
-
 test_that("errors when use_style receives an invalid type", {
   tmp <- withr::local_tempdir()
   expect_error(
@@ -424,7 +465,7 @@ test_that("errors when use_style receives an invalid type", {
 
 # -- Combination tests ---------------------------------------------------------
 
-test_that("include_examples = TRUE with use_style = TRUE copies data and injects style", {
+test_that("include_examples = TRUE with use_style = TRUE copies data and injects all style keys", {
   tmp <- withr::local_tempdir()
   make_style_dir(tmp)
 
@@ -439,6 +480,7 @@ test_that("include_examples = TRUE with use_style = TRUE copies data and injects
   qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
   expect_true(grepl("css:", qmd_content, fixed = TRUE))
   expect_true(grepl("include-before-body", qmd_content, fixed = TRUE))
+  expect_true(grepl("include-after-body", qmd_content, fixed = TRUE))
   expect_true(grepl("params", qmd_content, fixed = TRUE))
 })
 
@@ -505,21 +547,31 @@ test_that("inject_style_yaml() adds css to YAML", {
 test_that("inject_style_yaml() adds include-before-body to YAML", {
   template <- "---\nformat:\n  html:\n    toc: true\n---\n\nBody."
 
-  result <- .inject_style_yaml(template, html_file = "assets/header.html")
+  result <- .inject_style_yaml(template, header_file = "assets/header.html")
   expect_true(grepl("include-before-body", result, fixed = TRUE))
   expect_true(grepl("header.html", result, fixed = TRUE))
 })
 
-test_that("inject_style_yaml() adds both when both are provided", {
+test_that("inject_style_yaml() adds include-after-body to YAML", {
+  template <- "---\nformat:\n  html:\n    toc: true\n---\n\nBody."
+
+  result <- .inject_style_yaml(template, footer_file = "assets/footer.html")
+  expect_true(grepl("include-after-body", result, fixed = TRUE))
+  expect_true(grepl("footer.html", result, fixed = TRUE))
+})
+
+test_that("inject_style_yaml() adds all three when all are provided", {
   template <- "---\nformat:\n  html:\n    toc: true\n---\n\nBody."
 
   result <- .inject_style_yaml(
     template,
-    css_file = "assets/styles.css",
-    html_file = "assets/header.html"
+    css_file    = "assets/styles.css",
+    header_file = "assets/header.html",
+    footer_file = "assets/footer.html"
   )
   expect_true(grepl("css:", result, fixed = TRUE))
   expect_true(grepl("include-before-body", result, fixed = TRUE))
+  expect_true(grepl("include-after-body", result, fixed = TRUE))
 })
 
 test_that("inject_style_yaml() warns when no YAML header is found", {

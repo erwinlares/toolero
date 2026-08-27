@@ -2,7 +2,7 @@
 #'
 #' Creates a new Quarto document in the specified directory. Optionally
 #' copies a sample dataset and a worked analysis example, wires up custom
-#' CSS and header styling from a directory of assets, and scaffolds a
+#' branding assets from a directory of standardized files, and scaffolds a
 #' post-render purl hook for extracting R code.
 #'
 #' @param filename A string or `NULL`. Name of the generated `.qmd` file.
@@ -13,33 +13,46 @@
 #'   metadata to pre-populate the document header. If `NULL` (the default),
 #'   the template is copied as-is with placeholder prompts intact.
 #' @param overwrite A logical. Whether to overwrite existing files. Defaults
-#'   to `FALSE`.
+#'   to `FALSE`. Note the one exception: `assets/logo.png` is never
+#'   overwritten, since an existing logo is assumed to be deliberate
+#'   branding rather than a stale copy of the placeholder.
 #' @param use_purl Logical. If `TRUE` (the default), creates a `_quarto.yml`
 #'   file with a post-render hook and a `purl.R` script inside `R/` that
 #'   extracts R code from the rendered document into a `.R` file. The target
 #'   document is resolved dynamically by scanning the project root for `.qmd`
 #'   files, so the same `purl.R` works regardless of the document name.
 #' @param include_examples Logical. If `TRUE` (the default), copies a sample
-#'   dataset (`sample.csv`) into `data-raw/`, a placeholder logo (`logo.png`)
-#'   into `assets/`, and uses a template `.qmd` pre-populated with a worked
-#'   analysis example. The YAML header includes a `params` block referencing
-#'   the sample data. If `FALSE`, creates a blank `.qmd` with only the YAML
-#'   header and no example content, and skips copying the sample dataset and
-#'   logo.
-#' @param use_style Logical or character. Controls whether custom CSS and
-#'   header assets are wired into the YAML.
+#'   dataset (`sample.csv`) into `data-raw/`, a placeholder logo
+#'   (`generic-logo.png`, copied as `logo.png`) into `assets/`, and uses a
+#'   template `.qmd` pre-populated with a worked analysis example. If
+#'   `assets/logo.png` already exists (e.g. from a prior [init_project()]
+#'   call with `branding` set), it is always left untouched -- an existing
+#'   logo takes precedence over the generic placeholder even when
+#'   `overwrite = TRUE`. The YAML header includes a `params` block
+#'   referencing the sample data. If `FALSE`, creates a blank `.qmd` with
+#'   only the YAML header and no example content, and skips copying the
+#'   sample dataset and logo.
+#' @param use_style Logical or character. Controls whether custom branding
+#'   assets are wired into the YAML.
 #'   - `FALSE` (the default): no custom styling. The YAML `format: html:`
 #'     block contains only standard Quarto options.
-#'   - `TRUE`: shorthand for `"assets/"`. Scans `path/assets/` for `.css`
-#'     and `.html` files and adds them to the YAML.
-#'   - A directory path (e.g. `"my-branding/"`): scans the given directory
-#'     for `.css` and `.html` files and adds them to the YAML.
+#'   - `TRUE`: shorthand for `"assets/"`. Looks in `path/assets/` for
+#'     `styles.css`, `header.html`, and `footer.html` by name, and wires
+#'     up whichever of these are present.
+#'   - A directory path (e.g. `"my-branding/"`): looks in the given
+#'     directory for the same three standardized filenames. The caller is
+#'     responsible for ensuring the directory contains the files it needs
+#'     under these exact names; `create_qmd()` does not rename or infer
+#'     from other file names.
 #'
-#'   If the directory contains exactly one `.css` file, it is added as
-#'   `css:` in the YAML. If exactly one `.html` file is found, it is added
-#'   as `include-before-body:`. If multiple `.css` or `.html` files are
-#'   found, the function errors and asks the user to specify which file
-#'   to use via `yaml_data`. If neither is found, a warning is issued.
+#'   `styles.css` is added as `css:`, `header.html` as
+#'   `include-before-body:`, and `footer.html` as `include-after-body:`.
+#'   Any subset may be present; only files that exist are wired into the
+#'   YAML. If none of the three are found, a warning is issued and style
+#'   injection is skipped. Note that `favicon.png`, though shipped with
+#'   the branding asset set, is not wired into the document YAML --
+#'   favicons are a Quarto website-project option rather than an HTML
+#'   format option, so set it in `_quarto.yml` if you need one.
 #'
 #' @return Invisibly returns `path`.
 #'
@@ -48,12 +61,14 @@
 #'
 #' 1. Validates that `filename` is supplied and `path` exists.
 #' 2. If `include_examples = TRUE`: creates `data-raw/` under `path` and
-#'    copies `sample.csv` there. Creates `assets/` if needed and copies a
-#'    placeholder `logo.png`. Uses the example template for the `.qmd`.
+#'    copies `sample.csv` there. Creates `assets/` if needed and copies
+#'    the generic placeholder logo as `logo.png`, unless a logo already
+#'    exists there. Uses the example template for the `.qmd`.
 #' 3. If `include_examples = FALSE`: uses the skeleton template for the
 #'    `.qmd`. No sample data or logo is copied.
-#' 4. If `use_style` is `TRUE` or a directory path: scans the directory for
-#'    `.css` and `.html` files and injects them into the YAML header.
+#' 4. If `use_style` is `TRUE` or a directory path: looks for
+#'    `styles.css`, `header.html`, and `footer.html` by name and injects
+#'    whichever are present into the YAML header.
 #' 5. If `yaml_data` is provided, reads the YAML file and substitutes values
 #'    into the document header. This runs after style injection, so
 #'    `yaml_data` can override any auto-generated YAML keys.
@@ -80,7 +95,8 @@
 #' create_qmd(path = tempdir(), filename = "analysis.qmd",
 #'            overwrite = TRUE)
 #'
-#' # Blank document wired to UW branding assets (assumes assets/ exists)
+#' # Blank document wired to branding assets (assumes assets/ exists,
+#' # e.g. from init_project(branding = "uw-madison"))
 #' create_qmd(path = tempdir(), filename = "report.qmd",
 #'            include_examples = FALSE, use_style = TRUE,
 #'            overwrite = TRUE)
@@ -147,23 +163,26 @@ create_qmd <- function(
             )
         }
 
-        # assets/ with placeholder logo.png
+        # assets/ with placeholder logo.png -- deliberately exempt from
+        # overwrite. An existing logo (e.g. from init_project(branding = ))
+        # is assumed to be intentional branding, and silently replacing it
+        # with the generic placeholder would be surprising.
         assets_dir <- fs::path(path, "assets")
         fs::dir_create(assets_dir)
 
         logo_src <- system.file(
-            "templates", "logo.png",
+            "assets", "generic-logo.png",
             package = "toolero",
             mustWork = TRUE
         )
         logo_dst <- fs::path(assets_dir, "logo.png")
 
-        if (!fs::file_exists(logo_dst) || overwrite) {
-            fs::file_copy(logo_src, logo_dst, overwrite = overwrite)
+        if (!fs::file_exists(logo_dst)) {
+            fs::file_copy(logo_src, logo_dst)
             cli::cli_alert_success("Created {.path {logo_dst}}")
         } else {
             cli::cli_alert_info(
-                "Skipping {.path {logo_dst}} -- already exists."
+                "Skipping {.path {logo_dst}} -- existing logo left in place."
             )
         }
     }
@@ -206,74 +225,45 @@ create_qmd <- function(
             )
         }
 
+        # Absolutize so path_rel() below has comparable arguments even when
+        # use_style is relative and path is absolute (or vice versa).
+        style_dir <- fs::path_abs(style_dir)
+
         # Validate directory exists
         if (!fs::dir_exists(style_dir)) {
             cli::cli_warn(
                 "Style directory {.path {style_dir}} does not exist.
          Skipping style injection. Create the directory and add your
-         {.file .css} and/or {.file .html} assets, or set
-         {.code use_style = FALSE}."
+         branding assets, or set {.code use_style = FALSE}."
             )
         } else {
 
-            # Copy the RCI banner into the assets directory when use_style = TRUE
-            if (isTRUE(use_style)) {
-                banner_src <- system.file(
-                    "assets", "rci-banner.png",
-                    package = "toolero",
-                    mustWork = TRUE
-                )
-                banner_dst <- fs::path(style_dir, "rci-banner.png")
-                if (!fs::file_exists(banner_dst) || overwrite) {
-                    fs::file_copy(banner_src, banner_dst, overwrite = overwrite)
-                    cli::cli_alert_success("Created {.path {banner_dst}}")
-                } else {
-                    cli::cli_alert_info(
-                        "Skipping {.path {banner_dst}} -- already exists."
-                    )
-                }
-            }
+            # Look for each standardized file by name -- both the TRUE
+            # shorthand and a custom directory are expected to follow the
+            # same naming convention (styles.css, header.html,
+            # footer.html). Custom directories are the user's
+            # responsibility to populate correctly; create_qmd() does not
+            # rename or infer from other file names.
+            css_file    <- fs::path(style_dir, "styles.css")
+            header_file <- fs::path(style_dir, "header.html")
+            footer_file <- fs::path(style_dir, "footer.html")
 
-            # Scan for .css files
-            css_files <- fs::dir_ls(style_dir, glob = "*.css")
-            if (length(css_files) > 1) {
-                cli::cli_abort(c(
-                    "Found {length(css_files)} {.file .css} files in
-             {.path {style_dir}}:",
-                    paste0("- ", fs::path_file(css_files)),
-                    "i" = "Specify which one to use via {.arg yaml_data}."
-                ))
-            }
+            has_css    <- fs::file_exists(css_file)
+            has_header <- fs::file_exists(header_file)
+            has_footer <- fs::file_exists(footer_file)
 
-            # Scan for .html files
-            html_files <- fs::dir_ls(style_dir, glob = "*.html")
-            if (length(html_files) > 1) {
-                cli::cli_abort(c(
-                    "Found {length(html_files)} {.file .html} files in
-             {.path {style_dir}}:",
-                    paste0("- ", fs::path_file(html_files)),
-                    "i" = "Specify which one to use via {.arg yaml_data}."
-                ))
-            }
-
-            # Warn if directory is empty of relevant files
-            if (length(css_files) == 0 && length(html_files) == 0) {
+            if (!has_css && !has_header && !has_footer) {
                 cli::cli_warn(
-                    "No {.file .css} or {.file .html} files found in
-             {.path {style_dir}}. Skipping style injection."
+                    "No {.file styles.css}, {.file header.html}, or
+             {.file footer.html} found in {.path {style_dir}}.
+             Skipping style injection."
                 )
-            }
-
-            # Inject into YAML
-            if (length(css_files) == 1 || length(html_files) == 1) {
+            } else {
                 qmd_content <- .inject_style_yaml(
                     qmd_content,
-                    css_file = if (length(css_files) == 1) {
-                        .relative_style_path(css_files, path)
-                    },
-                    html_file = if (length(html_files) == 1) {
-                        .relative_style_path(html_files, path)
-                    }
+                    css_file    = if (has_css)    .relative_style_path(css_file, path),
+                    header_file = if (has_header) .relative_style_path(header_file, path),
+                    footer_file = if (has_footer) .relative_style_path(footer_file, path)
                 )
             }
         }
@@ -338,13 +328,16 @@ create_qmd <- function(
 # -- Helper: compute relative path from project root to style asset ----------
 
 .relative_style_path <- function(abs_path, project_root) {
-    fs::path_rel(abs_path, start = project_root)
+    fs::path_rel(abs_path, start = fs::path_abs(project_root))
 }
 
 
-# -- Helper: inject css and/or include-before-body into YAML -----------------
+# -- Helper: inject css and header/footer includes into YAML -----------------
 
-.inject_style_yaml <- function(qmd_content, css_file = NULL, html_file = NULL) {
+.inject_style_yaml <- function(qmd_content,
+                               css_file = NULL,
+                               header_file = NULL,
+                               footer_file = NULL) {
 
     # Normalize line endings
     qmd_content <- gsub("\r\n", "\n", qmd_content, fixed = TRUE)
@@ -376,9 +369,16 @@ create_qmd <- function(
         template_yaml[["format"]][["html"]][["css"]] <- as.character(css_file)
     }
 
-    if (!is.null(html_file)) {
+    # header.html holds visible banner markup, so it belongs before the
+    # body -- include-in-header would place it inside <head>.
+    if (!is.null(header_file)) {
         template_yaml[["format"]][["html"]][["include-before-body"]] <-
-            as.character(html_file)
+            as.character(header_file)
+    }
+
+    if (!is.null(footer_file)) {
+        template_yaml[["format"]][["html"]][["include-after-body"]] <-
+            as.character(footer_file)
     }
 
     merged_yaml_str <- yaml::as.yaml(
