@@ -179,7 +179,7 @@ execution later, and scalable computing when needed.
 | [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, and optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding). |
 | [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md) | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure. Edit to define a custom layout and pass to [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) via `config`. |
 | [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. Accepts a config YAML for project-specific folder auditing. |
-| [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling from a standardized `assets/` folder, and set up a purl post-render hook. |
+| [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling from a standardized `assets/` folder, and (opt-in via `use_purl`, `FALSE` by default) stamp `purl: true`/`false` into the document’s header and set up a post-render purl hook – merged into an existing `_quarto.yml` where possible, skipped with a warning for website/book/manuscript projects. |
 | [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md) | Extracts R code chunks from a Quarto document into a standalone `.R` script. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
 | [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md) | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
 | [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md) | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
@@ -312,9 +312,9 @@ out <- check_project()
 ### `create_qmd()`
 
 Scaffolds a new Quarto document from a reproducible template with
-optional sample data, custom styling, YAML pre-population, and a
-post-render hook that automatically extracts R code from the rendered
-document into a companion `.R` file.
+optional sample data, custom styling, YAML pre-population, and – opt-in,
+via `use_purl` – a post-render hook that extracts R code from the
+rendered document into a companion `.R` file automatically.
 
 The function has two main motivations. First, it reduces repetitive
 setup work. If you regularly create Quarto documents with the same
@@ -323,13 +323,13 @@ settings, the `yaml_data` argument lets you pre-populate the YAML header
 from a personal configuration file instead of rebuilding the same header
 by hand.
 
-Second, it helps reduce code drift. In a literate programming workflow,
-the `.qmd` document can serve as the source of truth: prose, code,
-results, and interpretation live together. The post-render hook derives
-the standalone `.R` script from the document automatically, so you do
-not have to maintain a separate script by hand. This pattern is
-discussed in more detail in the post [From the Notebook to the Cluster.
-Part 1: Start with the
+Second, it helps reduce code drift, when you opt in. In a literate
+programming workflow, the `.qmd` document can serve as the source of
+truth: prose, code, results, and interpretation live together. With
+`use_purl = TRUE`, the post-render hook derives the standalone `.R`
+script from the document automatically, so you do not have to maintain a
+separate script by hand. This pattern is discussed in more detail in the
+post [From the Notebook to the Cluster. Part 1: Start with the
 Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
 
 **Arguments:**
@@ -338,11 +338,35 @@ Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
 - `path` – directory where the document is created. Defaults to `"."`.
 - `yaml_data` – path to a YAML file for pre-populating the header.
 - `overwrite` – whether to overwrite existing files. Defaults to
-  `FALSE`. Note: `assets/logo.png` is always exempt from overwrite – an
-  existing logo is assumed to be deliberate branding and is never
-  replaced by the generic placeholder.
-- `use_purl` – if `TRUE` (default), scaffolds `_quarto.yml` and
-  `R/purl.R`.
+  `FALSE`. Note two exceptions: `assets/logo.png` is always exempt from
+  overwrite – an existing logo is assumed to be deliberate branding and
+  is never replaced by the generic placeholder; and `_quarto.yml` is
+  never governed by `overwrite` at all – when it’s touched it’s merged,
+  not replaced, and in some cases (see `use_purl` below) it’s
+  deliberately left untouched regardless of `overwrite`.
+- `use_purl` – defaults to `FALSE`. When `TRUE`:
+  - Stamps the document’s own YAML header with `purl: true` (or
+    `purl: false` when `use_purl = FALSE`, so a document can positively
+    confirm it should be skipped rather than merely lacking an opinion).
+  - Creates `R/purl.R` in `path` unconditionally.
+  - Wires `R/purl.R` into `_quarto.yml`’s `project: post-render:` –
+    creating `_quarto.yml` from the package template if it doesn’t exist
+    yet, or merging the hook into an existing file’s `project:` block
+    (preserving every other key) if it does – **unless** that existing
+    `_quarto.yml` declares `project: type:` as `website`, `book`, or
+    `manuscript`. Those three project types render many documents on
+    every full build, and the person scaffolding one `.qmd` may not be
+    thinking about the others, so automatic wiring is skipped with a
+    warning explaining how to add it by hand.
+  - `R/purl.R` itself only purls documents whose own header carries
+    `purl: true`, and mirrors each document’s path under `R/` (so
+    `posts/2026-08-04-giscus/index.qmd` purls to
+    `R/posts/2026-08-04-giscus/index.R`, not a flattened `R/index.R`) –
+    together, this means turning `use_purl` on for one document inside a
+    larger project doesn’t purl every other `.qmd` in it, and two
+    documents that happen to share a filename in different directories
+    (a directory-per-post convention, for instance) don’t overwrite each
+    other’s output.
 - `include_examples` – if `TRUE` (default), copies a sample dataset into
   `data-raw/`, a placeholder logo into `assets/` (skipped if a logo
   already exists), and uses a worked example template. If `FALSE`,
@@ -358,12 +382,17 @@ Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
 
 ``` r
 
-# Blank skeleton -- no examples, no styling, no purl hook
+# Blank skeleton -- no examples, no styling (use_purl = FALSE is the default)
 create_qmd(path = "my-project", filename = "analysis.qmd",
-           include_examples = FALSE, use_purl = FALSE)
+           include_examples = FALSE)
 
 # Full worked example with sample data and placeholder logo (default)
 create_qmd(path = "my-project", filename = "analysis.qmd")
+
+# Opt this document into purl: stamps purl: true, creates R/purl.R, and
+# wires up the _quarto.yml post-render hook (merged if the file already
+# exists and isn't a website/book/manuscript project)
+create_qmd(path = "my-project", filename = "analysis.qmd", use_purl = TRUE)
 
 # Blank document wired to branding assets in assets/
 create_qmd(path = "my-project", filename = "report.qmd",
@@ -377,6 +406,18 @@ create_qmd(path = "my-project", filename = "report.qmd",
 create_qmd(path = "my-project", filename = "analysis.qmd",
            yaml_data = "my-config.yml")
 ```
+
+If `use_purl = TRUE` is used inside an existing website, book, or
+manuscript project, `_quarto.yml` is left untouched and a warning shows
+the snippet needed to wire the hook up by hand:
+
+``` yaml
+project:
+  post-render: R/purl.R
+```
+
+`R/purl.R` and the document’s `purl: true` header stamp are created
+either way – only the automatic `_quarto.yml` edit is skipped.
 
 ------------------------------------------------------------------------
 

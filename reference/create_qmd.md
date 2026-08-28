@@ -13,7 +13,7 @@ create_qmd(
   path = ".",
   yaml_data = NULL,
   overwrite = FALSE,
-  use_purl = TRUE,
+  use_purl = FALSE,
   include_examples = TRUE,
   use_style = FALSE
 )
@@ -40,17 +40,56 @@ create_qmd(
 - overwrite:
 
   A logical. Whether to overwrite existing files. Defaults to `FALSE`.
-  Note the one exception: `assets/logo.png` is never overwritten, since
-  an existing logo is assumed to be deliberate branding rather than a
-  stale copy of the placeholder.
+  Note two exceptions: `assets/logo.png` is never overwritten, since an
+  existing logo is assumed to be deliberate branding rather than a stale
+  copy of the placeholder; and `_quarto.yml` is never governed by
+  `overwrite` at all – when it is touched, it is merged rather than
+  replaced, and in some cases (see `use_purl` below) it is left
+  untouched entirely regardless of `overwrite`, on purpose.
 
 - use_purl:
 
-  Logical. If `TRUE` (the default), creates a `_quarto.yml` file with a
-  post-render hook and a `purl.R` script inside `R/` that extracts R
-  code from the rendered document into a `.R` file. The target document
-  is resolved dynamically by scanning the project root for `.qmd` files,
-  so the same `purl.R` works regardless of the document name.
+  Logical. Defaults to `FALSE`. When `TRUE`:
+
+  - Stamps the document's own YAML header with `purl: true`.
+
+  - Ensures `R/purl.R` exists in `path` (subject to `overwrite`, like
+    any other scaffolded file).
+
+  - Ensures `path/_quarto.yml` has a `project: post-render:` entry
+    pointing at `R/purl.R` – *unless* `_quarto.yml` already exists and
+    declares `project: type:` as `website`, `book`, or `manuscript`, in
+    which case the hook is deliberately **not** wired automatically. A
+    `cli_warn()` explains why and shows the `project:` snippet needed to
+    add it by hand. This guard exists because `R/purl.R` purls each
+    document to a path mirroring its source location under `R/` – safe
+    within a single project, but the interesting failure mode it's
+    protecting against is deciding *whether* to opt a multi-document
+    project in at all, since a website or book renders many documents on
+    every full build and the person scaffolding one `.qmd` may not be
+    thinking about the other twenty. If `_quarto.yml` does not yet exist
+    at all, the package template is copied in as usual (nothing to guard
+    against yet – a fresh `_quarto.yml` with no `type:` is not a multi-
+    document project). Outside the guarded types, an existing
+    `_quarto.yml` gets the hook merged into its existing `project:`
+    block rather than overwritten, so `type`, `website`, and any other
+    project options are left untouched. This merge (when it happens) is
+    unaffected by `overwrite`, since appending one line to `post-render`
+    is non-destructive.
+
+  When `use_purl = FALSE`, the document's header is still stamped, with
+  `purl: false`, so `R/purl.R` (in a project where some other document
+  has `use_purl = TRUE`) can positively confirm this document should be
+  skipped rather than merely lacking an opinion.
+
+  `R/purl.R` itself only purls documents whose own header carries
+  `purl: true`, so turning this on for one document inside a larger
+  project – a Quarto website, a book – does not cause every other `.qmd`
+  in that project to be purled whenever the project renders in full.
+  Output paths under `R/` mirror each source document's path relative to
+  the project root, so two documents that happen to share a filename in
+  different directories (e.g. a directory-per-post convention using
+  `index.qmd`) do not overwrite each other's output.
 
 - include_examples:
 
@@ -116,14 +155,23 @@ Invisibly returns `path`.
     `styles.css`, `header.html`, and `footer.html` by name and injects
     whichever are present into the YAML header.
 
-5.  If `yaml_data` is provided, reads the YAML file and substitutes
-    values into the document header. This runs after style injection, so
-    `yaml_data` can override any auto-generated YAML keys.
+5.  Stamps `purl: true` or `purl: false` into the document's own YAML
+    header, reflecting `use_purl`.
 
-6.  If `use_purl = TRUE`, writes `_quarto.yml` with a post-render hook
-    and copies `purl.R` into `path/R/`.
+6.  If `yaml_data` is provided, reads the YAML file and substitutes
+    values into the document header. This runs after style injection and
+    the purl stamp, so `yaml_data` can override any auto-generated YAML
+    key, including `purl` itself.
 
-7.  The sample dataset bundled with the template is a subset of the
+7.  If `use_purl = TRUE`, ensures `R/purl.R` exists. Then, unless
+    `_quarto.yml` already exists and declares `project: type:` as
+    `website`, `book`, or `manuscript` (in which case wiring is skipped
+    with a warning explaining why), ensures `_quarto.yml` has the
+    post-render hook – creating `_quarto.yml` from the package template
+    if absent, or merging the hook into the existing file's `project:`
+    block if present.
+
+8.  The sample dataset bundled with the template is a subset of the
     Palmer Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB
     (2020). palmerpenguins: Palmer Archipelago (Antarctica) Penguin
     Data. R package version 0.1.0.
@@ -137,51 +185,54 @@ temporary output during testing or exploration.
 
 ``` r
 # \donttest{
-# Minimal blank document -- no examples, no styling
+# Minimal blank document -- no examples, no styling, no purl
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
-#> ✔ Created /tmp/RtmpZBWMWX/analysis.qmd
-#> ✔ Created /tmp/RtmpZBWMWX/_quarto.yml
-#> ✔ Created /tmp/RtmpZBWMWX/R/purl.R
+#> ✔ Created /tmp/Rtmpzi3IQZ/analysis.qmd
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
-#> ✔ Created /tmp/RtmpZBWMWX/data-raw/sample.csv
-#> ✔ Created /tmp/RtmpZBWMWX/assets/logo.png
-#> ✔ Created /tmp/RtmpZBWMWX/analysis.qmd
-#> ✔ Created /tmp/RtmpZBWMWX/_quarto.yml
-#> ✔ Created /tmp/RtmpZBWMWX/R/purl.R
+#> ✔ Created /tmp/Rtmpzi3IQZ/data-raw/sample.csv
+#> ✔ Created /tmp/Rtmpzi3IQZ/assets/logo.png
+#> ✔ Created /tmp/Rtmpzi3IQZ/analysis.qmd
+
+# Opt this document into purl: stamps purl: true and wires up
+# R/purl.R + the _quarto.yml post-render hook (merged if the file
+# already exists, e.g. inside a larger Quarto website project)
+create_qmd(path = tempdir(), filename = "analysis.qmd",
+           overwrite = TRUE, use_purl = TRUE)
+#> ✔ Created /tmp/Rtmpzi3IQZ/data-raw/sample.csv
+#> ℹ Skipping /tmp/Rtmpzi3IQZ/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/Rtmpzi3IQZ/analysis.qmd
+#> ✔ Created /tmp/Rtmpzi3IQZ/R/purl.R
+#> ✔ Created /tmp/Rtmpzi3IQZ/_quarto.yml
 
 # Blank document wired to branding assets (assumes assets/ exists,
 # e.g. from init_project(branding = "uw-madison"))
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)
-#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmpZBWMWX/assets.
+#> Warning: No styles.css, header.html, or footer.html found in /tmp/Rtmpzi3IQZ/assets.
 #> Skipping style injection.
-#> ✔ Created /tmp/RtmpZBWMWX/report.qmd
-#> ✔ Created /tmp/RtmpZBWMWX/_quarto.yml
-#> ✔ Created /tmp/RtmpZBWMWX/R/purl.R
+#> ✔ Created /tmp/Rtmpzi3IQZ/report.qmd
 
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = "my-branding/",
-           overwrite = TRUE, use_purl = FALSE)
+           overwrite = TRUE)
 #> Warning: Style directory /home/runner/work/toolero/toolero/docs/reference/my-branding
 #> does not exist. Skipping style injection. Create the directory and add your
 #> branding assets, or set `use_style = FALSE`.
-#> ✔ Created /tmp/RtmpZBWMWX/report.qmd
+#> ✔ Created /tmp/Rtmpzi3IQZ/report.qmd
 
 # Pre-populated YAML overrides
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpZBWMWX/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmpZBWMWX/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmpZBWMWX/analysis.qmd
-#> ✔ Created /tmp/RtmpZBWMWX/_quarto.yml
-#> ✔ Created /tmp/RtmpZBWMWX/R/purl.R
+#> ✔ Created /tmp/Rtmpzi3IQZ/data-raw/sample.csv
+#> ℹ Skipping /tmp/Rtmpzi3IQZ/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/Rtmpzi3IQZ/analysis.qmd
 # }
 ```
