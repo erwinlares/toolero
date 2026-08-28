@@ -9,7 +9,7 @@ create_qmd(
   path = ".",
   yaml_data = NULL,
   overwrite = FALSE,
-  use_purl = TRUE,
+  use_purl = FALSE,
   include_examples = TRUE,
   use_style = FALSE
 )
@@ -26,15 +26,55 @@ metadata to pre-populate the document header. If \code{NULL} (the default),
 the template is copied as-is with placeholder prompts intact.}
 
 \item{overwrite}{A logical. Whether to overwrite existing files. Defaults
-to \code{FALSE}. Note the one exception: \code{assets/logo.png} is never
+to \code{FALSE}. Note two exceptions: \code{assets/logo.png} is never
 overwritten, since an existing logo is assumed to be deliberate
-branding rather than a stale copy of the placeholder.}
+branding rather than a stale copy of the placeholder; and
+\verb{_quarto.yml} is never governed by \code{overwrite} at all -- when it
+is touched, it is merged rather than replaced, and in some cases
+(see \code{use_purl} below) it is left untouched entirely regardless of
+\code{overwrite}, on purpose.}
 
-\item{use_purl}{Logical. If \code{TRUE} (the default), creates a \verb{_quarto.yml}
-file with a post-render hook and a \code{purl.R} script inside \verb{R/} that
-extracts R code from the rendered document into a \code{.R} file. The target
-document is resolved dynamically by scanning the project root for \code{.qmd}
-files, so the same \code{purl.R} works regardless of the document name.}
+\item{use_purl}{Logical. Defaults to \code{FALSE}. When \code{TRUE}:
+\itemize{
+\item Stamps the document's own YAML header with \code{purl: true}.
+\item Ensures \code{R/purl.R} exists in \code{path} (subject to \code{overwrite}, like
+any other scaffolded file).
+\item Ensures \verb{path/_quarto.yml} has a \verb{project: post-render:} entry
+pointing at \code{R/purl.R} -- \emph{unless} \verb{_quarto.yml} already exists
+and declares \verb{project: type:} as \code{website}, \code{book}, or
+\code{manuscript}, in which case the hook is deliberately \strong{not}
+wired automatically. A \code{cli_warn()} explains why and shows the
+\verb{project:} snippet needed to add it by hand. This guard exists
+because \code{R/purl.R} purls each document to a path mirroring its
+source location under \verb{R/} -- safe within a single project, but
+the interesting failure mode it's protecting against is deciding
+\emph{whether} to opt a multi-document project in at all, since a
+website or book renders many documents on every full build and
+the person scaffolding one \code{.qmd} may not be thinking about the
+other twenty. If \verb{_quarto.yml} does not yet exist at all, the
+package template is copied in as usual (nothing to guard against
+yet -- a fresh \verb{_quarto.yml} with no \verb{type:} is not a multi-
+document project). Outside the guarded types, an existing
+\verb{_quarto.yml} gets the hook merged into its existing \verb{project:}
+block rather than overwritten, so \code{type}, \code{website}, and any
+other project options are left untouched. This merge (when it
+happens) is unaffected by \code{overwrite}, since appending one line
+to \code{post-render} is non-destructive.
+}
+
+When \code{use_purl = FALSE}, the document's header is still stamped,
+with \code{purl: false}, so \code{R/purl.R} (in a project where some other
+document has \code{use_purl = TRUE}) can positively confirm this document
+should be skipped rather than merely lacking an opinion.
+
+\code{R/purl.R} itself only purls documents whose own header carries
+\code{purl: true}, so turning this on for one document inside a larger
+project -- a Quarto website, a book -- does not cause every other
+\code{.qmd} in that project to be purled whenever the project renders in
+full. Output paths under \verb{R/} mirror each source document's path
+relative to the project root, so two documents that happen to share
+a filename in different directories (e.g. a directory-per-post
+convention using \code{index.qmd}) do not overwrite each other's output.}
 
 \item{include_examples}{Logical. If \code{TRUE} (the default), copies a sample
 dataset (\code{sample.csv}) into \verb{data-raw/}, a placeholder logo
@@ -94,11 +134,19 @@ exists there. Uses the example template for the \code{.qmd}.
 \item If \code{use_style} is \code{TRUE} or a directory path: looks for
 \code{styles.css}, \code{header.html}, and \code{footer.html} by name and injects
 whichever are present into the YAML header.
-\item If \code{yaml_data} is provided, reads the YAML file and substitutes values
-into the document header. This runs after style injection, so
-\code{yaml_data} can override any auto-generated YAML keys.
-\item If \code{use_purl = TRUE}, writes \verb{_quarto.yml} with a post-render hook
-and copies \code{purl.R} into \verb{path/R/}.
+\item Stamps \code{purl: true} or \code{purl: false} into the document's own YAML
+header, reflecting \code{use_purl}.
+\item If \code{yaml_data} is provided, reads the YAML file and substitutes
+values into the document header. This runs after style injection
+and the purl stamp, so \code{yaml_data} can override any auto-generated
+YAML key, including \code{purl} itself.
+\item If \code{use_purl = TRUE}, ensures \code{R/purl.R} exists. Then, unless
+\verb{_quarto.yml} already exists and declares \verb{project: type:} as
+\code{website}, \code{book}, or \code{manuscript} (in which case wiring is
+skipped with a warning explaining why), ensures \verb{_quarto.yml} has
+the post-render hook -- creating \verb{_quarto.yml} from the package
+template if absent, or merging the hook into the existing file's
+\verb{project:} block if present.
 \item The sample dataset bundled with the template is a subset of the Palmer
 Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB (2020).
 palmerpenguins: Palmer Archipelago (Antarctica) Penguin Data. R package
@@ -111,13 +159,19 @@ exploration.
 }
 \examples{
 \donttest{
-# Minimal blank document -- no examples, no styling
+# Minimal blank document -- no examples, no styling, no purl
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
+
+# Opt this document into purl: stamps purl: true and wires up
+# R/purl.R + the _quarto.yml post-render hook (merged if the file
+# already exists, e.g. inside a larger Quarto website project)
+create_qmd(path = tempdir(), filename = "analysis.qmd",
+           overwrite = TRUE, use_purl = TRUE)
 
 # Blank document wired to branding assets (assumes assets/ exists,
 # e.g. from init_project(branding = "uw-madison"))
@@ -128,7 +182,7 @@ create_qmd(path = tempdir(), filename = "report.qmd",
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = "my-branding/",
-           overwrite = TRUE, use_purl = FALSE)
+           overwrite = TRUE)
 
 # Pre-populated YAML overrides
 yaml_file <- tempfile(fileext = ".yml")

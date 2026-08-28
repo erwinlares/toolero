@@ -1,2 +1,2 @@
 project:
-  post-render: Rscript R/purl.R
+  post-render: R/purl.R

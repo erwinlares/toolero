@@ -13,14 +13,52 @@
 #'   metadata to pre-populate the document header. If `NULL` (the default),
 #'   the template is copied as-is with placeholder prompts intact.
 #' @param overwrite A logical. Whether to overwrite existing files. Defaults
-#'   to `FALSE`. Note the one exception: `assets/logo.png` is never
+#'   to `FALSE`. Note two exceptions: `assets/logo.png` is never
 #'   overwritten, since an existing logo is assumed to be deliberate
-#'   branding rather than a stale copy of the placeholder.
-#' @param use_purl Logical. If `TRUE` (the default), creates a `_quarto.yml`
-#'   file with a post-render hook and a `purl.R` script inside `R/` that
-#'   extracts R code from the rendered document into a `.R` file. The target
-#'   document is resolved dynamically by scanning the project root for `.qmd`
-#'   files, so the same `purl.R` works regardless of the document name.
+#'   branding rather than a stale copy of the placeholder; and
+#'   `_quarto.yml` is never governed by `overwrite` at all -- when it
+#'   is touched, it is merged rather than replaced, and in some cases
+#'   (see `use_purl` below) it is left untouched entirely regardless of
+#'   `overwrite`, on purpose.
+#' @param use_purl Logical. Defaults to `FALSE`. When `TRUE`:
+#'   - Stamps the document's own YAML header with `purl: true`.
+#'   - Ensures `R/purl.R` exists in `path` (subject to `overwrite`, like
+#'     any other scaffolded file).
+#'   - Ensures `path/_quarto.yml` has a `project: post-render:` entry
+#'     pointing at `R/purl.R` -- *unless* `_quarto.yml` already exists
+#'     and declares `project: type:` as `website`, `book`, or
+#'     `manuscript`, in which case the hook is deliberately **not**
+#'     wired automatically. A `cli_warn()` explains why and shows the
+#'     `project:` snippet needed to add it by hand. This guard exists
+#'     because `R/purl.R` purls each document to a path mirroring its
+#'     source location under `R/` -- safe within a single project, but
+#'     the interesting failure mode it's protecting against is deciding
+#'     *whether* to opt a multi-document project in at all, since a
+#'     website or book renders many documents on every full build and
+#'     the person scaffolding one `.qmd` may not be thinking about the
+#'     other twenty. If `_quarto.yml` does not yet exist at all, the
+#'     package template is copied in as usual (nothing to guard against
+#'     yet -- a fresh `_quarto.yml` with no `type:` is not a multi-
+#'     document project). Outside the guarded types, an existing
+#'     `_quarto.yml` gets the hook merged into its existing `project:`
+#'     block rather than overwritten, so `type`, `website`, and any
+#'     other project options are left untouched. This merge (when it
+#'     happens) is unaffected by `overwrite`, since appending one line
+#'     to `post-render` is non-destructive.
+#'
+#'   When `use_purl = FALSE`, the document's header is still stamped,
+#'   with `purl: false`, so `R/purl.R` (in a project where some other
+#'   document has `use_purl = TRUE`) can positively confirm this document
+#'   should be skipped rather than merely lacking an opinion.
+#'
+#'   `R/purl.R` itself only purls documents whose own header carries
+#'   `purl: true`, so turning this on for one document inside a larger
+#'   project -- a Quarto website, a book -- does not cause every other
+#'   `.qmd` in that project to be purled whenever the project renders in
+#'   full. Output paths under `R/` mirror each source document's path
+#'   relative to the project root, so two documents that happen to share
+#'   a filename in different directories (e.g. a directory-per-post
+#'   convention using `index.qmd`) do not overwrite each other's output.
 #' @param include_examples Logical. If `TRUE` (the default), copies a sample
 #'   dataset (`sample.csv`) into `data-raw/`, a placeholder logo
 #'   (`generic-logo.png`, copied as `logo.png`) into `assets/`, and uses a
@@ -69,12 +107,20 @@
 #' 4. If `use_style` is `TRUE` or a directory path: looks for
 #'    `styles.css`, `header.html`, and `footer.html` by name and injects
 #'    whichever are present into the YAML header.
-#' 5. If `yaml_data` is provided, reads the YAML file and substitutes values
-#'    into the document header. This runs after style injection, so
-#'    `yaml_data` can override any auto-generated YAML keys.
-#' 6. If `use_purl = TRUE`, writes `_quarto.yml` with a post-render hook
-#'    and copies `purl.R` into `path/R/`.
-#' 7. The sample dataset bundled with the template is a subset of the Palmer
+#' 5. Stamps `purl: true` or `purl: false` into the document's own YAML
+#'    header, reflecting `use_purl`.
+#' 6. If `yaml_data` is provided, reads the YAML file and substitutes
+#'    values into the document header. This runs after style injection
+#'    and the purl stamp, so `yaml_data` can override any auto-generated
+#'    YAML key, including `purl` itself.
+#' 7. If `use_purl = TRUE`, ensures `R/purl.R` exists. Then, unless
+#'    `_quarto.yml` already exists and declares `project: type:` as
+#'    `website`, `book`, or `manuscript` (in which case wiring is
+#'    skipped with a warning explaining why), ensures `_quarto.yml` has
+#'    the post-render hook -- creating `_quarto.yml` from the package
+#'    template if absent, or merging the hook into the existing file's
+#'    `project:` block if present.
+#' 8. The sample dataset bundled with the template is a subset of the Palmer
 #'    Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB (2020).
 #'    palmerpenguins: Palmer Archipelago (Antarctica) Penguin Data. R package
 #'    version 0.1.0. \doi{10.5281/zenodo.3960218}
@@ -87,13 +133,19 @@
 #'
 #' @examples
 #' \donttest{
-#' # Minimal blank document -- no examples, no styling
+#' # Minimal blank document -- no examples, no styling, no purl
 #' create_qmd(path = tempdir(), filename = "analysis.qmd",
 #'            include_examples = FALSE)
 #'
 #' # Full worked example with sample data and placeholder logo
 #' create_qmd(path = tempdir(), filename = "analysis.qmd",
 #'            overwrite = TRUE)
+#'
+#' # Opt this document into purl: stamps purl: true and wires up
+#' # R/purl.R + the _quarto.yml post-render hook (merged if the file
+#' # already exists, e.g. inside a larger Quarto website project)
+#' create_qmd(path = tempdir(), filename = "analysis.qmd",
+#'            overwrite = TRUE, use_purl = TRUE)
 #'
 #' # Blank document wired to branding assets (assumes assets/ exists,
 #' # e.g. from init_project(branding = "uw-madison"))
@@ -104,7 +156,7 @@
 #' # Blank document with custom branding from a different directory
 #' create_qmd(path = tempdir(), filename = "report.qmd",
 #'            include_examples = FALSE, use_style = "my-branding/",
-#'            overwrite = TRUE, use_purl = FALSE)
+#'            overwrite = TRUE)
 #'
 #' # Pre-populated YAML overrides
 #' yaml_file <- tempfile(fileext = ".yml")
@@ -117,7 +169,7 @@ create_qmd <- function(
         path = ".",
         yaml_data = NULL,
         overwrite = FALSE,
-        use_purl = TRUE,
+        use_purl = FALSE,
         include_examples = TRUE,
         use_style = FALSE) {
 
@@ -269,7 +321,17 @@ create_qmd <- function(
         }
     }
 
-    # -- 6. Substitute YAML if yaml_data is provided ----------------------------
+    # -- 6. Stamp purl: true/false into the document's own header ---------------
+    # Always stamp explicitly, even when FALSE -- an omitted key would
+    # leave R/purl.R unable to distinguish "not opted in" from "not a
+    # toolero-scaffolded document at all" when it scans a project for
+    # candidates.
+    qmd_content <- .inject_purl_yaml(qmd_content, purl = use_purl)
+
+    # -- 7. Substitute YAML if yaml_data is provided -----------------------------
+    # Runs after style injection and the purl stamp, so a user's own
+    # config can still override either -- including purl itself, if they
+    # really want to hand-author that key.
     if (!is.null(yaml_data)) {
         if (!fs::file_exists(yaml_data)) {
             cli::cli_abort(
@@ -284,26 +346,14 @@ create_qmd <- function(
     readr::write_file(qmd_content, qmd_dst)
     cli::cli_alert_success("Created {.path {qmd_dst}}")
 
-    # -- 7. Scaffold _quarto.yml and R/purl.R if use_purl = TRUE ----------------
+    # -- 8. Ensure the post-render hook and R/purl.R exist if use_purl = TRUE ----
     if (use_purl) {
 
-        # _quarto.yml at project root, copied from inst/templates
-        quarto_yml_src <- system.file(
-            "templates", "_quarto.yml",
-            package = "toolero",
-            mustWork = TRUE
-        )
-        quarto_yml_dst <- fs::path(path, "_quarto.yml")
-        if (!fs::file_exists(quarto_yml_dst) || overwrite) {
-            fs::file_copy(quarto_yml_src, quarto_yml_dst, overwrite = overwrite)
-            cli::cli_alert_success("Created {.path {quarto_yml_dst}}")
-        } else {
-            cli::cli_alert_info(
-                "Skipping {.path {quarto_yml_dst}} -- already exists."
-            )
-        }
-
-        # purl.R goes into R/, not the project root
+        # purl.R goes into R/, not the project root. Copied unconditionally
+        # whenever use_purl = TRUE, regardless of whether _quarto.yml
+        # wiring below is skipped by the multi-document-project guard --
+        # the script being present is what lets someone wire the hook up
+        # by hand after reading the warning.
         purl_src <- system.file(
             "templates", "purl.R",
             package = "toolero",
@@ -318,6 +368,70 @@ create_qmd <- function(
             cli::cli_alert_info(
                 "Skipping {.path {purl_dst}} -- already exists."
             )
+        }
+
+        quarto_yml_dst <- fs::path(path, "_quarto.yml")
+        multi_doc_types <- c("website", "book", "manuscript")
+        project_type <- .quarto_project_type(quarto_yml_dst)
+
+        if (!fs::file_exists(quarto_yml_dst)) {
+            # No _quarto.yml yet -- copy the package template as a
+            # starting point (preserves whatever other project defaults
+            # it carries), then merge the hook in explicitly rather than
+            # trusting the template already has it correctly wired. This
+            # keeps "R/purl.R" defined in exactly one place --
+            # .merge_post_render_hook()'s `hook` argument -- instead of
+            # also depending on the template file's own contents staying
+            # in sync with it. Not governed by overwrite: there is
+            # nothing to overwrite. Nothing to guard against either -- a
+            # brand-new _quarto.yml has no project: type: yet, so it
+            # cannot be a multi-document project by definition.
+            quarto_yml_src <- system.file(
+                "templates", "_quarto.yml",
+                package = "toolero",
+                mustWork = TRUE
+            )
+            fs::file_copy(quarto_yml_src, quarto_yml_dst)
+            .merge_post_render_hook(
+                quarto_yml_path = quarto_yml_dst,
+                hook             = "R/purl.R"
+            )
+            cli::cli_alert_success("Created {.path {quarto_yml_dst}}")
+        } else if (!is.null(project_type) && project_type %in% multi_doc_types) {
+            # A website, book, or manuscript project renders many
+            # documents on every full build, and the person scaffolding
+            # this one .qmd may not be thinking about the others. Skip
+            # automatic wiring and explain how to add it deliberately.
+            cli::cli_warn(c(
+                "!" = "{.path {quarto_yml_dst}} is a {.val {project_type}} project -- skipping automatic post-render wiring.",
+                "i" = "This project likely renders many documents at once,
+                       and {.file R/purl.R} purls each one to a path
+                       mirroring its own location under {.path R/}. Wiring
+                       the hook automatically would opt the whole project
+                       in without anyone deciding that on purpose.",
+                "i" = "{.path R/purl.R} was still created. To enable it
+                       yourself, add this to {.path {quarto_yml_dst}}:
+                       project:
+                         post-render: R/purl.R"
+            ))
+        } else {
+            # Any other existing _quarto.yml -- merge the hook into its
+            # project: block rather than overwriting the file. This
+            # happens regardless of overwrite, since appending to
+            # post-render is additive, not destructive.
+            hook_added <- .merge_post_render_hook(
+                quarto_yml_path = quarto_yml_dst,
+                hook             = "R/purl.R"
+            )
+            if (hook_added) {
+                cli::cli_alert_success(
+                    "Added post-render hook to {.path {quarto_yml_dst}}"
+                )
+            } else {
+                cli::cli_alert_info(
+                    "{.path {quarto_yml_dst}} already has the purl hook -- nothing to add."
+                )
+            }
         }
     }
 
@@ -392,6 +506,77 @@ create_qmd <- function(
     new_header <- paste0("---\n", merged_yaml_str, "---")
 
     sub(yaml_pattern, new_header, qmd_content, perl = TRUE)
+}
+
+
+# -- Helper: stamp purl: true/false into a document's YAML header ------------
+
+.inject_purl_yaml <- function(qmd_content, purl = TRUE) {
+
+    qmd_content <- gsub("\r\n", "\n", qmd_content, fixed = TRUE)
+
+    yaml_pattern <- "(?s)^---\\n(.+?)\\n---"
+    yaml_match <- regmatches(
+        qmd_content,
+        regexpr(yaml_pattern, qmd_content, perl = TRUE)
+    )
+
+    if (length(yaml_match) == 0) {
+        cli::cli_warn("No YAML header found in template. Skipping purl flag.")
+        return(qmd_content)
+    }
+
+    template_yaml <- yaml::yaml.load(yaml_match)
+    template_yaml[["purl"]] <- purl
+
+    merged_yaml_str <- yaml::as.yaml(
+        template_yaml,
+        handlers = list(
+            logical = function(x) {
+                structure(ifelse(x, "true", "false"), class = "verbatim")
+            }
+        )
+    )
+    new_header <- paste0("---\n", merged_yaml_str, "---")
+
+    sub(yaml_pattern, new_header, qmd_content, perl = TRUE)
+}
+
+
+# -- Helper: read project: type: from an existing _quarto.yml, if any -------
+
+.quarto_project_type <- function(quarto_yml_path) {
+    if (!fs::file_exists(quarto_yml_path)) {
+        return(NULL)
+    }
+    existing <- yaml::read_yaml(quarto_yml_path)
+    existing[["project"]][["type"]]
+}
+
+
+# -- Helper: merge a post-render hook into an existing _quarto.yml -----------
+
+.merge_post_render_hook <- function(quarto_yml_path, hook = "R/purl.R") {
+
+    existing <- yaml::read_yaml(quarto_yml_path)
+    if (is.null(existing[["project"]])) {
+        existing[["project"]] <- list()
+    }
+
+    # post-render may already exist as a bare string or as a YAML
+    # sequence -- normalize to a character vector before checking or
+    # appending, so either form already present in a hand-written
+    # _quarto.yml is respected rather than clobbered.
+    post_render <- existing[["project"]][["post-render"]]
+    post_render <- if (is.null(post_render)) character(0) else as.character(post_render)
+
+    if (hook %in% post_render) {
+        return(invisible(FALSE))  # already wired -- nothing to do
+    }
+
+    existing[["project"]][["post-render"]] <- c(post_render, hook)
+    yaml::write_yaml(existing, quarto_yml_path)
+    invisible(TRUE)
 }
 
 
