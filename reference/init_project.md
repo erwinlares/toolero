@@ -16,7 +16,8 @@ init_project(
   config = NULL,
   open = FALSE,
   branding = "none",
-  uw_branding = deprecated()
+  uw_branding = deprecated(),
+  use_readme = TRUE
 )
 ```
 
@@ -79,6 +80,14 @@ init_project(
   maps to `branding = "uw-madison"`; `uw_branding = FALSE` maps to
   `branding = "none"`.
 
+- use_readme:
+
+  Logical or character. Controls whether a README file is created at the
+  project root. `TRUE` creates `README.md` from the generalist toolero
+  template. `FALSE` creates no README file. `"plain"` creates
+  `README.txt` with the same generalist content as `README.md` – only
+  the extension differs, not the content. Defaults to `TRUE`.
+
 ## Value
 
 Called for its side effects. Invisibly returns `path`.
@@ -107,5 +116,13 @@ init_project(path = file.path(tempdir(), "project3"),
 init_project(path = file.path(tempdir(), "project4"),
              config = "~/linguistics-project.yml",
              use_renv = FALSE, use_git = FALSE)
+
+# Plain-text README instead of Markdown (same content, README.txt)
+init_project(path = file.path(tempdir(), "project5"),
+             use_readme = "plain", use_renv = FALSE, use_git = FALSE)
+
+# Skip the README entirely
+init_project(path = file.path(tempdir(), "project6"),
+             use_readme = FALSE, use_renv = FALSE, use_git = FALSE)
 } # }
 ```

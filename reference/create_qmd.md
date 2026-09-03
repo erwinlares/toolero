@@ -188,34 +188,34 @@ temporary output during testing or exploration.
 # Minimal blank document -- no examples, no styling, no purl
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
-#> ✔ Created /tmp/Rtmpzi3IQZ/analysis.qmd
+#> ✔ Created /tmp/RtmpwfS68b/analysis.qmd
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
-#> ✔ Created /tmp/Rtmpzi3IQZ/data-raw/sample.csv
-#> ✔ Created /tmp/Rtmpzi3IQZ/assets/logo.png
-#> ✔ Created /tmp/Rtmpzi3IQZ/analysis.qmd
+#> ✔ Created /tmp/RtmpwfS68b/data-raw/sample.csv
+#> ✔ Created /tmp/RtmpwfS68b/assets/logo.png
+#> ✔ Created /tmp/RtmpwfS68b/analysis.qmd
 
 # Opt this document into purl: stamps purl: true and wires up
 # R/purl.R + the _quarto.yml post-render hook (merged if the file
 # already exists, e.g. inside a larger Quarto website project)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE, use_purl = TRUE)
-#> ✔ Created /tmp/Rtmpzi3IQZ/data-raw/sample.csv
-#> ℹ Skipping /tmp/Rtmpzi3IQZ/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/Rtmpzi3IQZ/analysis.qmd
-#> ✔ Created /tmp/Rtmpzi3IQZ/R/purl.R
-#> ✔ Created /tmp/Rtmpzi3IQZ/_quarto.yml
+#> ✔ Created /tmp/RtmpwfS68b/data-raw/sample.csv
+#> ℹ Skipping /tmp/RtmpwfS68b/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/RtmpwfS68b/analysis.qmd
+#> ✔ Created /tmp/RtmpwfS68b/R/purl.R
+#> ✔ Created /tmp/RtmpwfS68b/_quarto.yml
 
 # Blank document wired to branding assets (assumes assets/ exists,
 # e.g. from init_project(branding = "uw-madison"))
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)
-#> Warning: No styles.css, header.html, or footer.html found in /tmp/Rtmpzi3IQZ/assets.
+#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmpwfS68b/assets.
 #> Skipping style injection.
-#> ✔ Created /tmp/Rtmpzi3IQZ/report.qmd
+#> ✔ Created /tmp/RtmpwfS68b/report.qmd
 
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
@@ -224,15 +224,15 @@ create_qmd(path = tempdir(), filename = "report.qmd",
 #> Warning: Style directory /home/runner/work/toolero/toolero/docs/reference/my-branding
 #> does not exist. Skipping style injection. Create the directory and add your
 #> branding assets, or set `use_style = FALSE`.
-#> ✔ Created /tmp/Rtmpzi3IQZ/report.qmd
+#> ✔ Created /tmp/RtmpwfS68b/report.qmd
 
 # Pre-populated YAML overrides
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/Rtmpzi3IQZ/data-raw/sample.csv
-#> ℹ Skipping /tmp/Rtmpzi3IQZ/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/Rtmpzi3IQZ/analysis.qmd
+#> ✔ Created /tmp/RtmpwfS68b/data-raw/sample.csv
+#> ℹ Skipping /tmp/RtmpwfS68b/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/RtmpwfS68b/analysis.qmd
 # }
 ```

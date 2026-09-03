@@ -58,7 +58,8 @@ initializes <code>renv</code> for package management and git for version control
 <span>  config <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  open <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  branding <span class="op">=</span> <span class="st">"none"</span>,</span>
-<span>  uw_branding <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span></span>
+<span>  uw_branding <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  use_readme <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -122,6 +123,14 @@ option set in <code>_quarto.yml</code> rather than a per-document HTML option.</
 instead. <code>uw_branding = TRUE</code> now maps to <code>branding = "uw-madison"</code>;
 <code>uw_branding = FALSE</code> maps to <code>branding = "none"</code>.</p></dd>
 
+
+<dt id="arg-use-readme">use_readme<a class="anchor" aria-label="anchor" href="#arg-use-readme"></a></dt>
+<dd><p>Logical or character. Controls whether a README file is
+created at the project root. <code>TRUE</code> creates <code>README.md</code> from the
+generalist toolero template. <code>FALSE</code> creates no README file. <code>"plain"</code>
+creates <code>README.txt</code> with the same generalist content as <code>README.md</code> –
+only the extension differs, not the content. Defaults to <code>TRUE</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -151,6 +160,14 @@ instead. <code>uw_branding = TRUE</code> now maps to <code>branding = "uw-madiso
 <span class="r-in"><span><span class="fu">init_project</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"project4"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>             config <span class="op">=</span> <span class="st">"~/linguistics-project.yml"</span>,</span></span>
 <span class="r-in"><span>             use_renv <span class="op">=</span> <span class="cn">FALSE</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Plain-text README instead of Markdown (same content, README.txt)</span></span></span>
+<span class="r-in"><span><span class="fu">init_project</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"project5"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>             use_readme <span class="op">=</span> <span class="st">"plain"</span>, use_renv <span class="op">=</span> <span class="cn">FALSE</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Skip the README entirely</span></span></span>
+<span class="r-in"><span><span class="fu">init_project</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"project6"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>             use_readme <span class="op">=</span> <span class="cn">FALSE</span>, use_renv <span class="op">=</span> <span class="cn">FALSE</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>
