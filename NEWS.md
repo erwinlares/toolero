@@ -21,6 +21,12 @@
   present in previous versions. Projects using `use_style = TRUE` will now
   have a footer included if `assets/footer.html` exists.
 
+* `init_project()`: now creates a `README.md` file at the project root by
+  default. The new `use_readme` argument defaults to `TRUE`; calls that
+  previously created no README -- which was all of them, since the argument
+  did not exist -- will now produce one. Pass `use_readme = FALSE` to opt
+  out and preserve the old behavior.
+
 ### New features
 
 * `init_project()`: new `branding` argument replacing `uw_branding`. Accepts
@@ -30,6 +36,19 @@
   `header.html`, `footer.html`, `styles.css` -- so downstream consumers
   (`create_qmd()`, `containr::generate_dockerfile()`) can reference those
   names regardless of which branding mode was used.
+
+* `init_project()`: new `use_readme` argument controlling whether a README
+  is created at the project root. `TRUE` (default) creates `README.md`;
+  `"plain"` creates `README.txt` with identical content -- only the
+  extension differs; `FALSE` creates no README. Both formats copy the same
+  file, `inst/templates/readme-template.md`: a generalist guide that
+  explains what a README is and why it matters, lays out a recommended
+  section structure covering material shared by all research artifacts as
+  well as software-specific and data-specific sections, and defers detailed
+  guidance to the Cornell Data Services README guides rather than
+  reproducing them. If a README already exists at the destination,
+  `init_project()` aborts with an informative message instead of
+  overwriting it.
 
 * `create_qmd()`: `use_style = TRUE` now wires all three styling files
   present in `assets/` -- `styles.css` as `css:`, `header.html` as
@@ -67,6 +86,9 @@
 * `style_dir` is absolutized via `fs::path_abs()` in `create_qmd()` before
   style detection, ensuring `fs::path_rel()` comparisons are valid when a
   relative `use_style` path is combined with an absolute `path` argument.
+
+* Added `inst/templates/readme-template.md`, the generalist README template
+  copied by `init_project()`'s new `use_readme` argument.
 
 
 # toolero 0.4.0.9000 (prior development entries)
