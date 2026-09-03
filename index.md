@@ -176,7 +176,7 @@ execution later, and scalable computing when needed.
 
 | Function | What it does |
 |----|----|
-| [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, and optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding). |
+| [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding), and creates a README at the project root via `use_readme` (`README.md` by default, `"plain"` for `README.txt`, or `FALSE` to skip it). |
 | [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md) | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure. Edit to define a custom layout and pass to [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) via `config`. |
 | [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. Accepts a config YAML for project-specific folder auditing. |
 | [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling from a standardized `assets/` folder, and (opt-in via `use_purl`, `FALSE` by default) stamp `purl: true`/`false` into the document’s header and set up a post-render purl hook – merged into an existing `_quarto.yml` where possible, skipped with a warning for website/book/manuscript projects. |
@@ -256,6 +256,27 @@ init_project(path = "~/Documents/my-project", branding = TRUE)
 
 # UW-Madison RCI branding
 init_project(path = "~/Documents/my-project", branding = "uw-madison")
+```
+
+The `use_readme` argument controls whether a README file is created at
+the project root. `use_readme = TRUE` (the default) creates `README.md`
+from toolero’s generalist README template – a short guide covering what
+a README is, general best practices, and a recommended section structure
+for documenting software, data, or both, with pointers to the Cornell
+Data Services guides for further detail. `use_readme = "plain"` creates
+`README.txt` with identical content; only the extension differs.
+`use_readme = FALSE` skips the README entirely. If a README already
+exists at the destination,
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+stops with an informative error rather than overwriting it.
+
+``` r
+
+# Skip the README
+init_project(path = "~/Documents/my-project", use_readme = FALSE)
+
+# Plain-text README instead of Markdown -- same content, different extension
+init_project(path = "~/Documents/my-project", use_readme = "plain")
 ```
 
 The `renv` lockfile that

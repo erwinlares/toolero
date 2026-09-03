@@ -28,6 +28,13 @@
   versions. Projects using `use_style = TRUE` will now have a footer
   included if `assets/footer.html` exists.
 
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  now creates a `README.md` file at the project root by default. The new
+  `use_readme` argument defaults to `TRUE`; calls that previously
+  created no README – which was all of them, since the argument did not
+  exist – will now produce one. Pass `use_readme = FALSE` to opt out and
+  preserve the old behavior.
+
 #### New features
 
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
@@ -40,6 +47,20 @@
   ([`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md),
   `containr::generate_dockerfile()`) can reference those names
   regardless of which branding mode was used.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  new `use_readme` argument controlling whether a README is created at
+  the project root. `TRUE` (default) creates `README.md`; `"plain"`
+  creates `README.txt` with identical content – only the extension
+  differs; `FALSE` creates no README. Both formats copy the same file,
+  `inst/templates/readme-template.md`: a generalist guide that explains
+  what a README is and why it matters, lays out a recommended section
+  structure covering material shared by all research artifacts as well
+  as software-specific and data-specific sections, and defers detailed
+  guidance to the Cornell Data Services README guides rather than
+  reproducing them. If a README already exists at the destination,
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  aborts with an informative message instead of overwriting it.
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   `use_style = TRUE` now wires all three styling files present in
@@ -87,6 +108,11 @@
   [`fs::path_rel()`](https://fs.r-lib.org/reference/path_math.html)
   comparisons are valid when a relative `use_style` path is combined
   with an absolute `path` argument.
+
+- Added `inst/templates/readme-template.md`, the generalist README
+  template copied by
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)’s
+  new `use_readme` argument.
 
 ## toolero 0.4.0.9000 (prior development entries)
 
