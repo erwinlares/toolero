@@ -12,7 +12,8 @@ init_project(
   config = NULL,
   open = FALSE,
   branding = "none",
-  uw_branding = deprecated()
+  uw_branding = deprecated(),
+  use_readme = TRUE
 )
 }
 \arguments{
@@ -56,6 +57,12 @@ option set in \verb{_quarto.yml} rather than a per-document HTML option.}
 \item{uw_branding}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Use \code{branding}
 instead. \code{uw_branding = TRUE} now maps to \code{branding = "uw-madison"};
 \code{uw_branding = FALSE} maps to \code{branding = "none"}.}
+
+\item{use_readme}{Logical or character. Controls whether a README file is
+created at the project root. \code{TRUE} creates \code{README.md} from the
+generalist toolero template. \code{FALSE} creates no README file. \code{"plain"}
+creates \code{README.txt} with the same generalist content as \code{README.md} --
+only the extension differs, not the content. Defaults to \code{TRUE}.}
 }
 \value{
 Called for its side effects. Invisibly returns \code{path}.
@@ -87,5 +94,13 @@ init_project(path = file.path(tempdir(), "project3"),
 init_project(path = file.path(tempdir(), "project4"),
              config = "~/linguistics-project.yml",
              use_renv = FALSE, use_git = FALSE)
+
+# Plain-text README instead of Markdown (same content, README.txt)
+init_project(path = file.path(tempdir(), "project5"),
+             use_readme = "plain", use_renv = FALSE, use_git = FALSE)
+
+# Skip the README entirely
+init_project(path = file.path(tempdir(), "project6"),
+             use_readme = FALSE, use_renv = FALSE, use_git = FALSE)
 }
 }

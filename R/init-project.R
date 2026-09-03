@@ -37,6 +37,11 @@
 #' @param uw_branding `r lifecycle::badge("deprecated")` Use `branding`
 #'   instead. `uw_branding = TRUE` now maps to `branding = "uw-madison"`;
 #'   `uw_branding = FALSE` maps to `branding = "none"`.
+#' @param use_readme Logical or character. Controls whether a README file is
+#'   created at the project root. `TRUE` creates `README.md` from the
+#'   generalist toolero template. `FALSE` creates no README file. `"plain"`
+#'   creates `README.txt` with the same generalist content as `README.md` --
+#'   only the extension differs, not the content. Defaults to `TRUE`.
 #' @importFrom yaml read_yaml
 #' @importFrom lifecycle deprecated is_present deprecate_warn
 #' @return Called for its side effects. Invisibly returns `path`.
@@ -64,6 +69,14 @@
 #' init_project(path = file.path(tempdir(), "project4"),
 #'              config = "~/linguistics-project.yml",
 #'              use_renv = FALSE, use_git = FALSE)
+#'
+#' # Plain-text README instead of Markdown (same content, README.txt)
+#' init_project(path = file.path(tempdir(), "project5"),
+#'              use_readme = "plain", use_renv = FALSE, use_git = FALSE)
+#'
+#' # Skip the README entirely
+#' init_project(path = file.path(tempdir(), "project6"),
+#'              use_readme = FALSE, use_renv = FALSE, use_git = FALSE)
 #' }
 
 init_project <- function(path,
@@ -73,7 +86,8 @@ init_project <- function(path,
                          config         = NULL,
                          open           = FALSE,
                          branding       = "none",
-                         uw_branding    = deprecated()) {
+                         uw_branding    = deprecated(),
+                         use_readme     = TRUE) {
 
     # -- 1. Normalize path early, before usethis shifts the active project ------
     path <- fs::path_abs(path)
@@ -98,12 +112,20 @@ init_project <- function(path,
         )
     }
 
+    # -- 4. Validate use_readme ---------------------------------------------
+    valid_readme <- list(TRUE, FALSE, "plain")
+    if (!any(vapply(valid_readme, identical, logical(1L), y = use_readme))) {
+        cli::cli_abort(
+            "{.arg use_readme} must be {.val TRUE}, {.val FALSE}, or {.val plain}, not {.val {use_readme}}."
+        )
+    }
+
     withr::with_dir(getwd(), {
 
-        # -- 4. Create the RStudio project --------------------------------------
+        # -- 5. Create the RStudio project --------------------------------------
         usethis::create_project(path, open = FALSE)
 
-        # -- 5. Resolve the base folder set: config or standard -----------------
+        # -- 6. Resolve the base folder set: config or standard -----------------
         if (!is.null(config)) {
 
             if (!fs::file_exists(config)) {
@@ -140,15 +162,15 @@ init_project <- function(path,
 
         }
 
-        # -- 6. Apply custom_folders additions and removals ---------------------
+        # -- 7. Apply custom_folders additions and removals ---------------------
         final_folders <- .resolve_custom_folders(base_folders, custom_folders)
 
-        # -- 7. Create folders --------------------------------------------------
+        # -- 8. Create folders --------------------------------------------------
         purrr::walk(final_folders, \(folder) {
             fs::dir_create(fs::path(path, folder), recurse = TRUE)
         })
 
-        # -- 8. Copy branding files into assets/ --------------------------------
+        # -- 9. Copy branding files into assets/ ---------------------------------
         if (isTRUE(branding) || identical(branding, "uw-madison")) {
 
             assets_dir <- fs::path(path, "assets")
@@ -170,17 +192,40 @@ init_project <- function(path,
         }
         # branding = "none" or FALSE: no assets/ folder created
 
-        # -- 9. Initialize renv ------------------------------------------------
+        # -- 10. Create README file -----------------------------------------
+        if (isTRUE(use_readme) || identical(use_readme, "plain")) {
+
+            readme_src <- system.file(
+                "templates", "readme-template.md",
+                package  = "toolero",
+                mustWork = TRUE
+            )
+
+            readme_name <- if (identical(use_readme, "plain")) "README.txt" else "README.md"
+            readme_dest <- fs::path(path, readme_name)
+
+            if (fs::file_exists(readme_dest)) {
+                cli::cli_abort(
+                    c("A {.path {readme_name}} file already exists in {.path {path}}.",
+                      "i" = "{.fn init_project} is designed to scaffold new projects and does not overwrite an existing README.")
+                )
+            }
+
+            fs::file_copy(readme_src, readme_dest)
+        }
+        # use_readme = FALSE: no README file created
+
+        # -- 11. Initialize renv ------------------------------------------------
         if (use_renv) {
             renv::init(project = path, restart = FALSE)
             writeLines("*.qmd", file.path(path, ".renvignore"))
             renv::snapshot(project = path, prompt = FALSE)
         }
 
-        # -- 10. Initialize git -------------------------------------------------
+        # -- 12. Initialize git -------------------------------------------------
         if (use_git) usethis::use_git(message = "initial commit")
 
-        # -- 11. Open the project in RStudio ------------------------------------
+        # -- 13. Open the project in RStudio ------------------------------------
         if (open) usethis::proj_activate(path)
 
     })

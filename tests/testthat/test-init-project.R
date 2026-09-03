@@ -1,6 +1,6 @@
 # Tests for init_project() and generate_project_config()
 # Organized by: standard structure, config file, custom_folders,
-#               branding, generate_project_config()
+#               branding, use_readme, generate_project_config()
 
 # -- Shared helpers ------------------------------------------------------------
 
@@ -379,7 +379,103 @@ test_that("uw_branding = FALSE maps to 'none' -- no assets/ created", {
 })
 
 
-# -- 5. generate_project_config() ----------------------------------------------
+# -- 5. use_readme ---------------------------------------------------------
+
+test_that("use_readme defaults to TRUE -- README.md is created when not supplied", {
+    proj <- fs::path(tmp, "rm-01")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::file_exists(fs::path(proj, "README.md")))
+})
+
+test_that("use_readme = TRUE creates README.md at the project's top level", {
+    proj <- fs::path(tmp, "rm-02")
+    init_project(proj, use_readme = TRUE, use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::file_exists(fs::path(proj, "README.md")))
+    expect_false(fs::file_exists(fs::path(proj, "README.txt")))
+})
+
+test_that("use_readme = FALSE creates no README file", {
+    proj <- fs::path(tmp, "rm-03")
+    init_project(proj, use_readme = FALSE, use_renv = FALSE, use_git = FALSE)
+
+    expect_false(fs::file_exists(fs::path(proj, "README.md")))
+    expect_false(fs::file_exists(fs::path(proj, "README.txt")))
+})
+
+test_that("use_readme = 'plain' creates README.txt, not README.md", {
+    proj <- fs::path(tmp, "rm-04")
+    init_project(proj, use_readme = "plain", use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::file_exists(fs::path(proj, "README.txt")))
+    expect_false(fs::file_exists(fs::path(proj, "README.md")))
+})
+
+test_that("README.md content matches the toolero template exactly", {
+    proj <- fs::path(tmp, "rm-05")
+    init_project(proj, use_readme = TRUE, use_renv = FALSE, use_git = FALSE)
+
+    template <- system.file("templates", "readme-template.md", package = "toolero")
+    expect_identical(
+        readLines(fs::path(proj, "README.md")),
+        readLines(template)
+    )
+})
+
+test_that("README.txt content matches the toolero template exactly", {
+    proj <- fs::path(tmp, "rm-06")
+    init_project(proj, use_readme = "plain", use_renv = FALSE, use_git = FALSE)
+
+    template <- system.file("templates", "readme-template.md", package = "toolero")
+    expect_identical(
+        readLines(fs::path(proj, "README.txt")),
+        readLines(template)
+    )
+})
+
+test_that("README.md and README.txt carry identical content -- only the extension differs", {
+    proj_md  <- fs::path(tmp, "rm-07a")
+    proj_txt <- fs::path(tmp, "rm-07b")
+    init_project(proj_md,  use_readme = TRUE,    use_renv = FALSE, use_git = FALSE)
+    init_project(proj_txt, use_readme = "plain", use_renv = FALSE, use_git = FALSE)
+
+    expect_identical(
+        readLines(fs::path(proj_md,  "README.md")),
+        readLines(fs::path(proj_txt, "README.txt"))
+    )
+})
+
+test_that("use_readme rejects invalid values with an informative error", {
+    proj <- fs::path(tmp, "rm-08")
+    expect_error(
+        init_project(proj, use_readme = "text", use_renv = FALSE, use_git = FALSE),
+        class = "rlang_error"
+    )
+})
+
+test_that("init_project() errors informatively when README.md already exists at the destination", {
+    proj <- make_project(tmp, "rm-09")
+    writeLines("pre-existing", fs::path(proj, "README.md"))
+
+    expect_error(
+        init_project(proj, use_readme = TRUE, use_renv = FALSE, use_git = FALSE),
+        regexp = "already exists"
+    )
+})
+
+test_that("init_project() errors informatively when README.txt already exists at the destination", {
+    proj <- make_project(tmp, "rm-10")
+    writeLines("pre-existing", fs::path(proj, "README.txt"))
+
+    expect_error(
+        init_project(proj, use_readme = "plain", use_renv = FALSE, use_git = FALSE),
+        regexp = "already exists"
+    )
+})
+
+
+# -- 6. generate_project_config() ----------------------------------------------
 
 test_that("generate_project_config() creates a file at the given path", {
     dest <- generate_project_config("test-config.yml", path = tmp,
