@@ -1048,3 +1048,89 @@ test_that("the caller's active project is restored even when the call fails", {
 
     expect_equal(before, after)
 })
+
+
+# -- 11. .gitkeep in empty folders ---------------------------------------------
+
+test_that("every empty scaffolded folder gets a .gitkeep", {
+    proj <- fs::path(tmp, "keep-01")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    purrr::walk(standard_folders, \(folder) {
+        expect_true(
+            fs::file_exists(fs::path(proj, folder, ".gitkeep")),
+            info = paste("missing .gitkeep in:", folder)
+        )
+    })
+})
+
+test_that(".gitkeep is written for folders added via custom_folders", {
+    proj <- fs::path(tmp, "keep-02")
+    init_project(proj, custom_folders = "models",
+                 use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::file_exists(fs::path(proj, "models", ".gitkeep")))
+})
+
+test_that("assets/ gets no .gitkeep because branding files fill it", {
+    proj <- fs::path(tmp, "keep-03")
+    init_project(proj, branding = TRUE, use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::dir_exists(fs::path(proj, "assets")))
+    expect_false(fs::file_exists(fs::path(proj, "assets", ".gitkeep")))
+})
+
+test_that("a parent folder holding subfolders gets no .gitkeep", {
+    proj <- fs::path(tmp, "keep-04")
+    init_project(proj, custom_folders = "-output/figures",
+                 use_renv = FALSE, use_git = FALSE)
+
+    # output/ is preserved as a parent and holds output/tables, so it is
+    # tracked through its child rather than through a placeholder
+    expect_true(fs::dir_exists(fs::path(proj, "output")))
+    expect_false(fs::file_exists(fs::path(proj, "output", ".gitkeep")))
+    expect_true(fs::file_exists(fs::path(proj, "output", "tables", ".gitkeep")))
+})
+
+test_that("an emptied parent folder does get a .gitkeep", {
+    proj <- fs::path(tmp, "keep-05")
+    init_project(proj,
+                 custom_folders = c("-output/figures", "-output/tables"),
+                 use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::file_exists(fs::path(proj, "output", ".gitkeep")))
+})
+
+test_that("a suppressed folder gets neither a directory nor a .gitkeep", {
+    proj <- fs::path(tmp, "keep-06")
+    init_project(proj, custom_folders = "-reports",
+                 use_renv = FALSE, use_git = FALSE)
+
+    expect_false(fs::dir_exists(fs::path(proj, "reports")))
+    expect_false(fs::file_exists(fs::path(proj, "reports", ".gitkeep")))
+})
+
+test_that(".gitkeep files are empty", {
+    proj <- fs::path(tmp, "keep-07")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    expect_equal(
+        as.numeric(fs::file_info(fs::path(proj, "data", ".gitkeep"))$size),
+        0
+    )
+})
+
+test_that(".add_gitkeep() ignores directories that do not exist", {
+    expect_equal(
+        .add_gitkeep(fs::path(tmp, "no-such-directory")),
+        character(0)
+    )
+})
+
+test_that(".add_gitkeep() skips a directory holding only a hidden file", {
+    dir <- make_project(tmp, "keep-08")
+    fs::file_create(fs::path(dir, ".hidden"))
+
+    expect_equal(.add_gitkeep(dir), character(0))
+    expect_false(fs::file_exists(fs::path(dir, ".gitkeep")))
+})

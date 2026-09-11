@@ -119,6 +119,17 @@
   unrecognized keys are ignored with a warning. These are the names the
   toolero family resolves rather than hardcodes.
 
+* `init_project()`: writes a zero-byte `.gitkeep` into each folder it creates
+  that is still empty when the call finishes. git tracks files rather than
+  directories, so without this a scaffolded structure survives nothing -- the
+  opening commit contains the files at the project root and none of the
+  layout, and a collaborator cloning the repository gets a project with no
+  folders in it. It is also the most common way `check_project()` would report
+  a folder as failing on a project where nothing is actually wrong. The
+  placeholders are written whether or not `use_git = TRUE`, since a project
+  can be git-initialized at any point afterwards. Folders that already have
+  content are left alone, so `assets/` gets none.
+
 * `init_project()`: when `branding` is enabled, `assets/` now joins the
   project's folder set and is recorded in the manifest alongside every other
   folder, so downstream packages can find the branding files without being

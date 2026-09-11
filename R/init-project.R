@@ -74,6 +74,20 @@
 #' `schema_version` field exists so that a reader can tell whether it
 #' understands what it is holding.
 #'
+#' @section Empty folders and git:
+#' Each folder `init_project()` creates that is still empty when the call
+#' finishes receives a zero-byte `.gitkeep`.
+#'
+#' git tracks files rather than directories, so without this a scaffolded
+#' structure survives nothing: the opening commit contains the files at the
+#' project root and none of the layout, and a collaborator cloning the
+#' repository gets a project with no folders in it. The placeholders are
+#' written whether or not `use_git = TRUE`, since a project can be
+#' git-initialized at any point afterwards.
+#'
+#' Folders that already have content are left alone -- `assets/` holds
+#' branding files by then and is tracked on the strength of those.
+#'
 #' @section The active project:
 #' `init_project()` makes the new project the active `usethis` project for the
 #' duration of the call, and restores whichever project was active before when
@@ -366,7 +380,23 @@ init_project <- function(path,
     }
     # use_readme = FALSE: no README file created
 
-    # -- 11. Write the project manifest --------------------------------------
+    # -- 11. Keep the empty folders under version control --------------------
+    # git tracks files, not directories, so a scaffolded structure of empty
+    # folders survives nothing: the opening commit contains the files at the
+    # project root and none of the layout, and a clone arrives with the
+    # structure missing. That is also the most common way check_project()
+    # would report a folder as failing on a project where nothing is wrong.
+    #
+    # Runs after everything that might populate a folder, and only writes
+    # into folders that are still empty -- assets/ has branding files in it
+    # by this point and does not need a placeholder.
+    #
+    # Unconditional rather than gated on use_git: a project can be
+    # git-initialized later, and a handful of empty files is a cheap premium
+    # against losing the structure.
+    .add_gitkeep(fs::path(path, final_folders))
+
+    # -- 12. Write the project manifest --------------------------------------
     # Records the resolved structure, not the inputs that produced it. This
     # is what check_project() audits against and what containr and submitr
     # read instead of assuming a layout.
@@ -382,7 +412,7 @@ init_project <- function(path,
         "Recorded project structure in {.file {manifest_name}}"
     )
 
-    # -- 12. Set up renv -----------------------------------------------------
+    # -- 13. Set up renv -----------------------------------------------------
     # scaffold(), not init(). init() loads the project into the CALLING
     # session -- it repoints .libPaths() at the new project's empty library,
     # so every package the caller had available disappears until they restart
@@ -400,11 +430,11 @@ init_project <- function(path,
         renv::scaffold(project = path)
     }
 
-    # -- 13. Initialize git --------------------------------------------------
+    # -- 14. Initialize git --------------------------------------------------
     # Targets the project set by local_project() above, not the caller's.
     if (use_git) usethis::use_git(message = "initial commit")
 
-    # -- 14. Open the project in RStudio -------------------------------------
+    # -- 15. Open the project in RStudio -------------------------------------
     if (open) usethis::proj_activate(path)
 
     invisible(path)

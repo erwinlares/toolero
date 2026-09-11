@@ -360,6 +360,52 @@
 }
 
 
+#' Place a .gitkeep in each empty directory
+#'
+#' Internal helper used by [init_project()] to keep a scaffolded folder
+#' structure under version control.
+#'
+#' git tracks files, not directories, so a project consisting of empty
+#' folders commits as nothing at all: the opening commit carries the files at
+#' the project root and none of the layout, and a clone arrives with the
+#' structure missing. A zero-byte `.gitkeep` in each otherwise empty folder is
+#' the conventional remedy -- git has no opinion about the name, it simply
+#' needs a file to track.
+#'
+#' Only empty directories get one. A folder that already has content, such as
+#' `assets/` after branding files have been copied in, is tracked on the
+#' strength of that content and does not need a placeholder.
+#'
+#' @param dirs Character vector of directory paths.
+#'
+#' @return The paths written, invisibly.
+#'
+#' @keywords internal
+.add_gitkeep <- function(dirs) {
+    existing <- dirs[fs::dir_exists(dirs)]
+
+    if (length(existing) == 0L) {
+        return(invisible(character(0)))
+    }
+
+    is_empty <- vapply(
+        existing,
+        function(dir) length(fs::dir_ls(dir, all = TRUE)) == 0L,
+        logical(1L),
+        USE.NAMES = FALSE
+    )
+
+    if (!any(is_empty)) {
+        return(invisible(character(0)))
+    }
+
+    keeps <- fs::path(existing[is_empty], ".gitkeep")
+    fs::file_create(keeps)
+
+    invisible(as.character(keeps))
+}
+
+
 #' Find a README file in a project directory
 #'
 #' Internal helper locating a README regardless of capitalization or
