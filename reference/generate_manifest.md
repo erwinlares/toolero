@@ -87,9 +87,9 @@ save_output(
   .f = saveRDS,
   output_dir = output_dir
 )
-#> ℹ Created the directory /tmp/RtmpmVDia1/file4e752f834659 to hold mtcars.rds.
+#> ℹ Created the directory /tmp/RtmpVVyFzf/file4e4541b18b57 to hold mtcars.rds.
 
 generate_manifest(output_dir = output_dir)
-#> ✔ Wrote /tmp/RtmpmVDia1/file4e752f834659/project-manifest.json describing 1
+#> ✔ Wrote /tmp/RtmpVVyFzf/file4e4541b18b57/project-manifest.json describing 1
 #>   artifact.
 ```

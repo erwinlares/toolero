@@ -1,8 +1,8 @@
 # Generate a project configuration file
 
 Writes a YAML configuration file pre-filled with the standard toolero
-folder structure. Edit the file to define a custom project layout, then
-pass its path to
+folder structure and naming conventions. Edit the file to define a
+custom project layout, then pass its path to
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
 via the `config` argument.
 
@@ -35,6 +35,19 @@ generate_project_config(filename, path = ".", overwrite = FALSE)
 ## Value
 
 Invisibly returns the full path to the written file.
+
+## Details
+
+The file uses the same schema as the `_toolero.yml` that
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+writes into a project, so a config you author by hand and a manifest a
+project carries are the same kind of document. The only difference is
+who wrote it.
+
+## See also
+
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md),
+[`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
 
 ## Examples
 

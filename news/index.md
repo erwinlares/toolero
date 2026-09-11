@@ -1,8 +1,93 @@
 # Changelog
 
-## toolero 0.4.0.9000
+## toolero 0.5.0
 
 #### Breaking changes
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  uses
+  [`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html)
+  instead of
+  [`renv::init()`](https://rstudio.github.io/renv/reference/init.html)
+  when `use_renv = TRUE`, no longer writes a `.renvignore` containing
+  `*.qmd`, and no longer takes a snapshot at creation time.
+
+  [`renv::init()`](https://rstudio.github.io/renv/reference/init.html)
+  loads the newly created project into the **calling** R session,
+  repointing [`.libPaths()`](https://rdrr.io/r/base/libPaths.html) at a
+  library that is empty apart from `renv` itself. Every package the
+  caller had available disappears until they restart R, which surfaces
+  later as confusing `there is no package called ...` errors having
+  nothing to do with the project just created. The `restart` argument
+  suppresses the restart, not the activation, and `bare = TRUE` skips
+  dependency discovery but still loads.
+  [`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html)
+  creates the same infrastructure – `renv/library`, `renv/activate.R`,
+  `renv/.gitignore`, an `.Rprofile` that activates the project in future
+  sessions, and an initial `renv.lock` – and leaves the caller’s session
+  untouched.
+
+  The `.renvignore` excluded Quarto documents from `renv`’s dependency
+  discovery, so a project whose
+  [`library()`](https://rdrr.io/r/base/library.html) calls live in its
+  `.qmd` source – the arrangement this package recommends – could
+  snapshot a lockfile with none of the analysis packages in it, and
+  `containr::generate_dockerfile()` would then build an image that could
+  not run the analysis. The file was written at a point in
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  where the project contained no `.qmd` files at all, so it never
+  affected the snapshot taken at creation time; its only effect was on
+  every snapshot the user took afterwards. Take a snapshot yourself once
+  the project has code in it, and before containerizing. Projects
+  created by earlier versions still carry the file and should have it
+  removed by hand.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  `R/` is now part of the standard folder set. The derived `.R` script
+  belongs there, whether it comes from
+  [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+  or from the post-render hook `create_qmd(use_purl = TRUE)` scaffolds,
+  and `R/purl.R` was already being created there by
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+  without the folder ever being declared. `scripts/` remains in the set
+  and is now documented as the home for hand-written scripts.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  every precondition is now checked before anything is created. A call
+  that would previously create the project directory, its folders, and
+  its branding assets before aborting on an existing README now aborts
+  first and leaves nothing behind.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  README detection at the destination is now case-insensitive and
+  extension-agnostic, matching
+  [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md).
+  A project already containing `readme.txt`, `README`, or `Readme.pdf`
+  now aborts rather than quietly acquiring a second `README.md` beside
+  it. Both functions now share one
+  [`.find_readme()`](https://erwinlares.github.io/toolero/reference/dot-find_readme.md)
+  helper (issue
+  [\#11](https://github.com/erwinlares/toolero/issues/11)).
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  when the folder set comes from `config`, a `custom_folders` removal is
+  honored literally and the parent folder is no longer added back.
+  `custom_folders = "-output/figures"` against the built-in default set
+  still leaves `output/` behind, since that set is a convention; against
+  a config it does not, since a config is an explicit and complete
+  statement of the intended structure.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  aborts rather than overwriting an existing `_toolero.yml` or existing
+  files in `assets/`.
+
+- [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md):
+  the generated file now carries `schema_version` and a `conventions:`
+  block in addition to `folders:`, and is written from the same template
+  and writer as the `_toolero.yml` that
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  records. Files produced by earlier versions, which carried only
+  `folders:`, continue to be read without change.
 
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
   the `uw_branding` argument is deprecated in favor of the new
@@ -36,6 +121,50 @@
   preserve the old behavior.
 
 #### New features
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  writes a project manifest, `_toolero.yml`, to the project root,
+  recording the folder set it resolved and the naming conventions in
+  force. The file records the *resolved* structure, never the inputs
+  that produced it, so a project built from a `config`, one built with
+  `custom_folders`, and one built from the defaults all produce the same
+  shape of file. It exists because the structure is configurable:
+  [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
+  can audit a customized project without being handed the same config
+  again, and `containr` and `submitr` can resolve where code, data, and
+  outputs live rather than assuming. Commit the file – it describes the
+  project, not the machine it was created on. The format is experimental
+  and may gain keys before it settles; `schema_version` exists so a
+  reader can tell whether it understands what it is holding (issue
+  [\#12](https://github.com/erwinlares/toolero/issues/12)).
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  and
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
+  now share one schema, one template (`inst/templates/_toolero.yml`),
+  and one writer. A config authored by hand and a manifest a project
+  carries are the same kind of document; the only difference is who
+  wrote it.
+
+- Project configuration files may now declare a `conventions:` block
+  alongside `folders:`. Three keys are recognized: `output_dir` (where
+  the analysis writes artifacts, read by
+  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+  and
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)),
+  `script_dir` (where the derived `.R` script lives), and `split_dir`
+  (where
+  [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
+  writes per-group subsets). Any key a file does not supply falls back
+  to the package default, and unrecognized keys are ignored with a
+  warning. These are the names the toolero family resolves rather than
+  hardcodes.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  when `branding` is enabled, `assets/` now joins the project’s folder
+  set and is recorded in the manifest alongside every other folder, so
+  downstream packages can find the branding files without being told
+  about them separately.
 
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
   new `branding` argument replacing `uw_branding`. Accepts `TRUE`
@@ -77,7 +206,87 @@
   (`sample.csv`, `_quarto.yml`, `purl.R`, the `.qmd` itself) continue to
   respect `overwrite`.
 
+#### Bug fixes
+
+- `init_project(use_git = TRUE)` initialized the git repository, staged
+  files and made the opening commit in **the caller’s project rather
+  than the project it had just created**.
+  [`usethis::create_project()`](https://usethis.r-lib.org/reference/create_package.html)
+  sets the active `usethis` project only for its own duration – it uses
+  [`usethis::local_project()`](https://usethis.r-lib.org/reference/proj_utils.html)
+  internally and restores the caller’s project when it returns with
+  `open = FALSE` – and
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  then called
+  [`usethis::use_git()`](https://usethis.r-lib.org/reference/use_git.html)
+  without setting the project again. Running
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  from inside another package or project therefore added entries to
+  *that* project’s `.gitignore` and offered to commit *its* uncommitted
+  files under the message `"initial commit"`, which is easy to accept
+  because the prompt looks entirely plausible.
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  now calls `usethis::local_project(path, force = TRUE, setwd = FALSE)`
+  after creating the project, so every later step resolves against the
+  new project, and the caller’s project is restored when the function
+  returns. Every test in the suite passed `use_git = FALSE`, which is
+  why this went unnoticed; the git path is now covered.
+
 #### Internal changes
+
+- Added `R/utils-project.R`, holding the facts about a toolero project
+  that more than one function needs:
+  [`.default_folders()`](https://erwinlares.github.io/toolero/reference/dot-default_folders.md),
+  [`.default_conventions()`](https://erwinlares.github.io/toolero/reference/dot-default_conventions.md),
+  [`.project_yml_name()`](https://erwinlares.github.io/toolero/reference/dot-project_yml_name.md),
+  [`.project_yml_schema_version()`](https://erwinlares.github.io/toolero/reference/dot-project_yml_schema_version.md),
+  [`.write_project_yml()`](https://erwinlares.github.io/toolero/reference/dot-write_project_yml.md),
+  [`.read_project_yml()`](https://erwinlares.github.io/toolero/reference/dot-read_project_yml.md),
+  [`.read_config_file()`](https://erwinlares.github.io/toolero/reference/dot-read_config_file.md),
+  [`.substitute_block()`](https://erwinlares.github.io/toolero/reference/dot-substitute_block.md),
+  and
+  [`.find_readme()`](https://erwinlares.github.io/toolero/reference/dot-find_readme.md).
+  The standard folder set was previously spelled out in four places –
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md),
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md),
+  [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md),
+  and
+  [`.standard_folder_message()`](https://erwinlares.github.io/toolero/reference/dot-standard_folder_message.md)
+  – with nothing keeping them in step. Adding a folder to the standard
+  set is now a one-line change in
+  [`.default_folders()`](https://erwinlares.github.io/toolero/reference/dot-default_folders.md).
+
+- Added `inst/templates/_toolero.yml`, the annotated template both
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  and
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
+  render. The folder list and conventions block are placeholders filled
+  at write time from
+  [`.default_folders()`](https://erwinlares.github.io/toolero/reference/dot-default_folders.md)
+  and
+  [`.default_conventions()`](https://erwinlares.github.io/toolero/reference/dot-default_conventions.md)
+  rather than literal text, so the template cannot drift from the
+  package defaults. Substitution is line-based rather than a YAML round
+  trip, so the template’s explanatory comments survive into the written
+  file.
+
+- [`.resolve_custom_folders()`](https://erwinlares.github.io/toolero/reference/dot-resolve_custom_folders.md)
+  gains a `preserve_parents` argument.
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  passes `FALSE` when the base folder set came from a `config`.
+
+- Added
+  [`.branding_asset_names()`](https://erwinlares.github.io/toolero/reference/dot-branding_asset_names.md),
+  replacing the inline vector of five standardized asset filenames.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  the new project is now made the active `usethis` project explicitly,
+  via
+  [`usethis::local_project()`](https://usethis.r-lib.org/reference/proj_utils.html),
+  for the duration of the call. The surrounding
+  `withr::with_dir(getwd(), ...)` block, which set the working directory
+  to the working directory and therefore did nothing, has been removed.
+  See the bug fix below for why the explicit call is needed.
 
 - `inst/assets/` now contains ten files under a `uw-*` / `generic-*`
   prefix convention: `uw-logo.png`, `uw-favicon.png`, `uw-header.html`,
@@ -114,9 +323,7 @@
   [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)’s
   new `use_readme` argument.
 
-## toolero 0.4.0.9000 (prior development entries)
-
-#### New features
+#### New features (continued)
 
 - Added
   [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
