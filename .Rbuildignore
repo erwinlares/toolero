@@ -17,3 +17,4 @@
 ^JOURNAL\.md$
 ^PLAN\.md$
 ^codecov\.yml$
+toolero-audit.*
