@@ -23,8 +23,15 @@ Invisibly returns the full path to the written file.
 }
 \description{
 Writes a YAML configuration file pre-filled with the standard toolero
-folder structure. Edit the file to define a custom project layout, then
-pass its path to \code{\link[=init_project]{init_project()}} via the \code{config} argument.
+folder structure and naming conventions. Edit the file to define a custom
+project layout, then pass its path to \code{\link[=init_project]{init_project()}} via the \code{config}
+argument.
+}
+\details{
+The file uses the same schema as the \verb{_toolero.yml} that \code{\link[=init_project]{init_project()}}
+writes into a project, so a config you author by hand and a manifest a
+project carries are the same kind of document. The only difference is who
+wrote it.
 }
 \examples{
 \dontrun{
@@ -37,4 +44,7 @@ generate_project_config("linguistics-project.yml", path = "~")
 # Overwrite an existing config
 generate_project_config("my-project.yml", overwrite = TRUE)
 }
+}
+\seealso{
+\code{\link[=init_project]{init_project()}}, \code{\link[=check_project]{check_project()}}
 }
