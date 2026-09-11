@@ -1,6 +1,54 @@
-# toolero 0.4.0.9000
+# toolero 0.5.0
 
 ### Breaking changes
+
+* `init_project()`: no longer writes a `.renvignore` containing `*.qmd`, and
+  no longer takes a second `renv::snapshot()` after `renv::init()`. The
+  `.renvignore` excluded Quarto documents from `renv`'s dependency
+  discovery, so a project whose `library()` calls live in its `.qmd` source
+  -- the arrangement this package recommends -- could snapshot a lockfile
+  with none of the analysis packages in it, and
+  `containr::generate_dockerfile()` would then build an image that could not
+  run the analysis. The file was written at a point in `init_project()` where
+  the project contained no `.qmd` files at all, so it never affected the
+  snapshot taken at creation time; its only effect was on every snapshot the
+  user took afterwards. Take a snapshot yourself once the project has code in
+  it, and before containerizing. Projects created by earlier versions still
+  carry the file and should have it removed by hand.
+
+* `init_project()`: `R/` is now part of the standard folder set. The derived
+  `.R` script belongs there, whether it comes from `qmd_to_r()` or from the
+  post-render hook `create_qmd(use_purl = TRUE)` scaffolds, and `R/purl.R`
+  was already being created there by `create_qmd()` without the folder ever
+  being declared. `scripts/` remains in the set and is now documented as the
+  home for hand-written scripts.
+
+* `init_project()`: every precondition is now checked before anything is
+  created. A call that would previously create the project directory, its
+  folders, and its branding assets before aborting on an existing README now
+  aborts first and leaves nothing behind.
+
+* `init_project()`: README detection at the destination is now
+  case-insensitive and extension-agnostic, matching `check_project()`. A
+  project already containing `readme.txt`, `README`, or `Readme.pdf` now
+  aborts rather than quietly acquiring a second `README.md` beside it. Both
+  functions now share one `.find_readme()` helper (issue #11).
+
+* `init_project()`: when the folder set comes from `config`, a
+  `custom_folders` removal is honored literally and the parent folder is no
+  longer added back. `custom_folders = "-output/figures"` against the
+  built-in default set still leaves `output/` behind, since that set is a
+  convention; against a config it does not, since a config is an explicit and
+  complete statement of the intended structure.
+
+* `init_project()`: aborts rather than overwriting an existing `_toolero.yml`
+  or existing files in `assets/`.
+
+* `generate_project_config()`: the generated file now carries
+  `schema_version` and a `conventions:` block in addition to `folders:`, and
+  is written from the same template and writer as the `_toolero.yml` that
+  `init_project()` records. Files produced by earlier versions, which carried
+  only `folders:`, continue to be read without change.
 
 * `init_project()`: the `uw_branding` argument is deprecated in favor of the
   new `branding` argument. `uw_branding = TRUE` maps to `branding =
@@ -28,6 +76,39 @@
   out and preserve the old behavior.
 
 ### New features
+
+* `init_project()`: writes a project manifest, `_toolero.yml`, to the project
+  root, recording the folder set it resolved and the naming conventions in
+  force. The format is **experimental**. The file records the *resolved*
+  structure, never the inputs that produced it, so a project built from a
+  `config`, one built with `custom_folders`, and one built from the defaults
+  all produce the same shape of file. It exists because the structure is
+  configurable: `check_project()` can audit a customized project without
+  being handed the same config again, and `containr` and `submitr` can
+  resolve where code, data, and outputs live rather than assuming. Commit the
+  file -- it describes the project, not the machine it was created on. The
+  format is experimental and may gain keys before it settles; `schema_version`
+  exists so a reader can tell whether it understands what it is holding
+  (issue #12).
+
+* `init_project()` and `generate_project_config()` now share one schema, one
+  template (`inst/templates/_toolero.yml`), and one writer. A config authored
+  by hand and a manifest a project carries are the same kind of document; the
+  only difference is who wrote it.
+
+* Project configuration files may now declare a `conventions:` block
+  alongside `folders:`. Three keys are recognized: `output_dir` (where the
+  analysis writes artifacts, read by `save_output()` and
+  `generate_manifest()`), `script_dir` (where the derived `.R` script lives),
+  and `split_dir` (where `write_by_group()` writes per-group subsets). Any
+  key a file does not supply falls back to the package default, and
+  unrecognized keys are ignored with a warning. These are the names the
+  toolero family resolves rather than hardcodes.
+
+* `init_project()`: when `branding` is enabled, `assets/` now joins the
+  project's folder set and is recorded in the manifest alongside every other
+  folder, so downstream packages can find the branding files without being
+  told about them separately.
 
 * `init_project()`: new `branding` argument replacing `uw_branding`. Accepts
   `TRUE` (generic placeholder assets), `"uw-madison"` (UW-Madison RCI
@@ -65,6 +146,39 @@
 
 ### Internal changes
 
+* Added `R/utils-project.R`, holding the facts about a toolero project that
+  more than one function needs: `.default_folders()`, `.default_conventions()`,
+  `.project_yml_name()`, `.project_yml_schema_version()`, `.write_project_yml()`,
+  `.read_project_yml()`, `.read_config_file()`, `.substitute_block()`, and
+  `.find_readme()`. The standard folder set was previously spelled out in
+  four places -- `init_project()`, `generate_project_config()`,
+  `check_project()`, and `.standard_folder_message()` -- with nothing keeping
+  them in step. Adding a folder to the standard set is now a one-line change
+  in `.default_folders()`.
+
+* Added `inst/templates/_toolero.yml`, the annotated template both
+  `init_project()` and `generate_project_config()` render. The folder list
+  and conventions block are placeholders filled at write time from
+  `.default_folders()` and `.default_conventions()` rather than literal text,
+  so the template cannot drift from the package defaults. Substitution is
+  line-based rather than a YAML round trip, so the template's explanatory
+  comments survive into the written file.
+
+* `.resolve_custom_folders()` gains a `preserve_parents` argument.
+  `init_project()` passes `FALSE` when the base folder set came from a
+  `config`.
+
+* Added `.branding_asset_names()`, replacing the inline vector of five
+  standardized asset filenames.
+
+* `init_project()`: the active `usethis` project is now restored when the
+  function exits. `usethis::create_project()` switches it to the new project
+  and `use_git()` relies on that, so the switch is deliberate for the
+  duration of the call, but it is no longer left pointing somewhere the
+  caller did not ask for. The surrounding `withr::with_dir(getwd(), ...)`
+  block, which set the working directory to the working directory and
+  therefore did nothing, has been removed.
+
 * `inst/assets/` now contains ten files under a `uw-*` / `generic-*` prefix
   convention: `uw-logo.png`, `uw-favicon.png`, `uw-header.html`,
   `uw-footer.html`, `uw-styles.css`, and five `generic-*` counterparts.
@@ -91,9 +205,7 @@
   copied by `init_project()`'s new `use_readme` argument.
 
 
-# toolero 0.4.0.9000 (prior development entries)
-
-### New features
+### New features (continued)
 
 * Added `save_output()` for writing an object to disk via a user-supplied
   function and recording the write in a project-level accumulator at

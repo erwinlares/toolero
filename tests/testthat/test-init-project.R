@@ -1,12 +1,13 @@
 # Tests for init_project() and generate_project_config()
-# Organized by: standard structure, config file, custom_folders,
-#               branding, use_readme, generate_project_config()
+# Organized by: standard structure, project manifest, config file,
+#               custom_folders, branding, use_readme, renv,
+#               generate_project_config(), internal helpers
 
 # -- Shared helpers ------------------------------------------------------------
 
-# Standard folders as defined in init_project()
+# Standard folders as defined in .default_folders()
 standard_folders <- c(
-    "data-raw", "data", "scripts",
+    "data-raw", "data", "R", "scripts",
     "output/figures", "output/tables", "reports"
 )
 
@@ -21,14 +22,27 @@ make_project <- function(root, name = "proj") {
 
 # Write a minimal valid toolero YAML config into a directory.
 # Returns the full path to the written file.
-write_config <- function(root, folders, filename = "test-config.yml") {
+write_config <- function(root, folders, filename = "test-config.yml",
+                         conventions = NULL) {
     lines <- c(
         "folders:",
         paste0("  - ", folders)
     )
+    if (!is.null(conventions)) {
+        lines <- c(
+            lines,
+            "conventions:",
+            paste0("  ", names(conventions), ": ", unlist(conventions))
+        )
+    }
     dest <- fs::path(root, filename)
     writeLines(lines, dest)
     dest
+}
+
+# Read the manifest init_project() wrote into a project.
+read_manifest <- function(project) {
+    yaml::read_yaml(fs::path(project, "_toolero.yml"))
 }
 
 # File-level temp dir. Scoped to this test file so helpers that receive it
@@ -48,6 +62,13 @@ test_that("init_project() creates all standard folders", {
             info = paste("missing:", folder)
         )
     })
+})
+
+test_that("init_project() creates R/ as part of the standard set", {
+    proj <- fs::path(tmp, "std-02")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::dir_exists(fs::path(proj, "R")))
 })
 
 # The .Rproj file is written by usethis::create_project() to the resolved
@@ -74,7 +95,148 @@ test_that("init_project() creates output/ parent when nested folders are made", 
 })
 
 
-# -- 2. Config file ------------------------------------------------------------
+# -- 2. Project manifest (_toolero.yml) ----------------------------------------
+
+test_that("init_project() writes _toolero.yml at the project root", {
+    proj <- fs::path(tmp, "man-01")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::file_exists(fs::path(proj, "_toolero.yml")))
+})
+
+test_that("the manifest carries schema_version, folders, and conventions", {
+    proj <- fs::path(tmp, "man-02")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    manifest <- read_manifest(proj)
+
+    expect_equal(manifest[["schema_version"]], 1L)
+    expect_true(!is.null(manifest[["folders"]]))
+    expect_true(!is.null(manifest[["conventions"]]))
+})
+
+test_that("the manifest records the default folder set", {
+    proj <- fs::path(tmp, "man-03")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    expect_equal(
+        as.character(unlist(read_manifest(proj)[["folders"]])),
+        standard_folders
+    )
+})
+
+test_that("the manifest records the default conventions", {
+    proj <- fs::path(tmp, "man-04")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    conventions <- read_manifest(proj)[["conventions"]]
+
+    expect_equal(conventions[["output_dir"]], "output")
+    expect_equal(conventions[["script_dir"]], "R")
+    expect_equal(conventions[["split_dir"]], "data/jobs")
+})
+
+test_that("the manifest records the resolved set, not the defaults", {
+    proj <- fs::path(tmp, "man-05")
+    init_project(proj,
+                 custom_folders = c("models", "-reports"),
+                 use_renv = FALSE, use_git = FALSE)
+
+    folders <- as.character(unlist(read_manifest(proj)[["folders"]]))
+
+    expect_true("models" %in% folders)
+    expect_false("reports" %in% folders)
+})
+
+test_that("the manifest records a config-derived folder set", {
+    proj        <- fs::path(tmp, "man-06")
+    custom_set  <- c("raw", "processed", "notebooks")
+    config_path <- write_config(tmp, custom_set, "man-06.yml")
+
+    init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
+
+    expect_equal(
+        as.character(unlist(read_manifest(proj)[["folders"]])),
+        custom_set
+    )
+})
+
+test_that("conventions declared in a config reach the manifest", {
+    proj        <- fs::path(tmp, "man-07")
+    config_path <- write_config(
+        tmp, c("data", "results"), "man-07.yml",
+        conventions = list(output_dir = "results")
+    )
+
+    init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
+
+    conventions <- read_manifest(proj)[["conventions"]]
+
+    expect_equal(conventions[["output_dir"]], "results")
+    # unspecified keys fall back to the defaults
+    expect_equal(conventions[["script_dir"]], "R")
+})
+
+test_that("an unrecognized convention key warns and is dropped", {
+    proj        <- fs::path(tmp, "man-08")
+    config_path <- write_config(
+        tmp, c("data"), "man-08.yml",
+        conventions = list(nonsense_dir = "somewhere")
+    )
+
+    expect_warning(
+        init_project(proj, config = config_path,
+                     use_renv = FALSE, use_git = FALSE),
+        regexp = "unrecognized convention"
+    )
+
+    expect_null(read_manifest(proj)[["conventions"]][["nonsense_dir"]])
+})
+
+test_that("the manifest records assets/ when branding is enabled", {
+    proj <- fs::path(tmp, "man-09")
+    init_project(proj, branding = TRUE, use_renv = FALSE, use_git = FALSE)
+
+    expect_true("assets" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
+})
+
+test_that("the manifest omits assets/ when branding is off", {
+    proj <- fs::path(tmp, "man-10")
+    init_project(proj, branding = "none", use_renv = FALSE, use_git = FALSE)
+
+    expect_false("assets" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
+})
+
+test_that("a manifest written by init_project() is usable as a config", {
+    source_proj <- fs::path(tmp, "man-11a")
+    init_project(source_proj,
+                 custom_folders = "models",
+                 use_renv = FALSE, use_git = FALSE)
+
+    target_proj <- fs::path(tmp, "man-11b")
+    init_project(target_proj,
+                 config = fs::path(source_proj, "_toolero.yml"),
+                 use_renv = FALSE, use_git = FALSE)
+
+    expect_equal(
+        as.character(unlist(read_manifest(source_proj)[["folders"]])),
+        as.character(unlist(read_manifest(target_proj)[["folders"]]))
+    )
+    expect_true(fs::dir_exists(fs::path(target_proj, "models")))
+})
+
+test_that("init_project() refuses to overwrite an existing manifest", {
+    proj <- make_project(tmp, "man-12")
+    writeLines("schema_version: 1", fs::path(proj, "_toolero.yml"))
+
+    expect_error(
+        init_project(proj, use_readme = FALSE, use_renv = FALSE, use_git = FALSE),
+        regexp = "already exists"
+    )
+})
+
+
+# -- 3. Config file ------------------------------------------------------------
 
 test_that("config overrides the standard structure with custom folders", {
     proj        <- fs::path(tmp, "cfg-01")
@@ -137,8 +299,60 @@ test_that("config supports nested folder paths", {
     expect_true(fs::dir_exists(fs::path(proj, "output", "tables")))
 })
 
+test_that("a rejected config creates no project directory", {
+    proj <- fs::path(tmp, "cfg-06")
 
-# -- 3. custom_folders ---------------------------------------------------------
+    expect_error(
+        init_project(proj, config = fs::path(tmp, "no-such-file.yml"),
+                     use_renv = FALSE, use_git = FALSE)
+    )
+
+    expect_false(fs::dir_exists(proj))
+})
+
+test_that("a config with a blank folder name raises an error", {
+    bad_config <- fs::path(tmp, "blank-folder.yml")
+    writeLines(c("folders:", "  - data", "  - ''"), bad_config)
+    proj <- fs::path(tmp, "cfg-07")
+
+    expect_error(
+        init_project(proj, config = bad_config, use_renv = FALSE, use_git = FALSE),
+        class = "rlang_error"
+    )
+})
+
+test_that("a config with duplicate folders is deduplicated with a message", {
+    config_path <- write_config(tmp, c("data", "data", "scripts"), "cfg-08.yml")
+    proj        <- fs::path(tmp, "cfg-08")
+
+    expect_message(
+        init_project(proj, config = config_path,
+                     use_renv = FALSE, use_git = FALSE),
+        regexp = "duplicate folder"
+    )
+
+    expect_equal(
+        as.character(unlist(read_manifest(proj)[["folders"]])),
+        c("data", "scripts")
+    )
+})
+
+test_that("a config declaring a newer schema_version warns but is read", {
+    future_config <- fs::path(tmp, "future.yml")
+    writeLines(c("schema_version: 99", "folders:", "  - data"), future_config)
+    proj <- fs::path(tmp, "cfg-09")
+
+    expect_warning(
+        init_project(proj, config = future_config,
+                     use_renv = FALSE, use_git = FALSE),
+        regexp = "schema version"
+    )
+
+    expect_true(fs::dir_exists(fs::path(proj, "data")))
+})
+
+
+# -- 4. custom_folders ---------------------------------------------------------
 
 test_that("custom_folders adds a new folder to the standard set", {
     proj <- fs::path(tmp, "cst-01")
@@ -241,8 +455,25 @@ test_that("custom_folders is applied on top of a config-derived set", {
     expect_true(fs::dir_exists(fs::path(proj, "scripts")))
 })
 
+test_that("a config-derived removal does not resurrect the parent folder", {
+    proj        <- fs::path(tmp, "cst-11")
+    config_path <- write_config(tmp, c("data", "output/figures"), "cst-11.yml")
 
-# -- 4. branding ---------------------------------------------------------------
+    init_project(proj,
+                 config         = config_path,
+                 custom_folders = "-output/figures",
+                 use_renv       = FALSE,
+                 use_git        = FALSE)
+
+    # A config is a complete statement of the structure, so the removal is
+    # honored literally -- unlike the same removal against the default set,
+    # which preserves output/ (see cst-04).
+    expect_false(fs::dir_exists(fs::path(proj, "output")))
+    expect_false("output" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
+})
+
+
+# -- 5. branding ---------------------------------------------------------------
 
 # Standardized asset filenames -- same set regardless of branding mode
 standard_assets <- c("logo.png", "favicon.png", "header.html",
@@ -316,6 +547,21 @@ test_that("branding rejects invalid values with an informative error", {
     )
 })
 
+test_that("init_project() refuses to overwrite existing branding files", {
+    proj <- make_project(tmp, "br-14")
+    fs::dir_create(fs::path(proj, "assets"))
+    writeLines("custom", fs::path(proj, "assets", "styles.css"))
+
+    expect_error(
+        init_project(proj, branding = TRUE, use_readme = FALSE,
+                     use_renv = FALSE, use_git = FALSE),
+        regexp = "already exist"
+    )
+
+    # the caller's own file is untouched
+    expect_equal(readLines(fs::path(proj, "assets", "styles.css")), "custom")
+})
+
 # -- deprecated uw_branding ----------------------------------------------------
 
 test_that("uw_branding = TRUE emits a deprecation warning", {
@@ -379,7 +625,7 @@ test_that("uw_branding = FALSE maps to 'none' -- no assets/ created", {
 })
 
 
-# -- 5. use_readme ---------------------------------------------------------
+# -- 6. use_readme ---------------------------------------------------------
 
 test_that("use_readme defaults to TRUE -- README.md is created when not supplied", {
     proj <- fs::path(tmp, "rm-01")
@@ -474,8 +720,82 @@ test_that("init_project() errors informatively when README.txt already exists at
     )
 })
 
+test_that("README detection matches check_project() across casing and extension", {
+    variants <- c("readme.txt", "ReadMe.MD", "README", "readme.org")
 
-# -- 6. generate_project_config() ----------------------------------------------
+    for (i in seq_along(variants)) {
+        proj <- make_project(tmp, paste0("rm-11-", i))
+        writeLines("pre-existing", fs::path(proj, variants[i]))
+
+        expect_error(
+            init_project(proj, use_readme = TRUE,
+                         use_renv = FALSE, use_git = FALSE),
+            regexp = "already exists",
+            info   = variants[i]
+        )
+    }
+})
+
+test_that("a file merely starting with readme does not block the README", {
+    proj <- make_project(tmp, "rm-12")
+    writeLines("not a readme", fs::path(proj, "readme-old.md"))
+
+    init_project(proj, use_readme = TRUE, use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::file_exists(fs::path(proj, "README.md")))
+})
+
+test_that("use_readme = FALSE ignores an existing README", {
+    proj <- make_project(tmp, "rm-13")
+    writeLines("pre-existing", fs::path(proj, "README.md"))
+
+    expect_no_error(
+        init_project(proj, use_readme = FALSE,
+                     use_renv = FALSE, use_git = FALSE)
+    )
+})
+
+test_that("a rejected call leaves no scaffolding behind", {
+    proj <- make_project(tmp, "rm-14")
+    writeLines("pre-existing", fs::path(proj, "README.md"))
+
+    expect_error(
+        init_project(proj, use_readme = TRUE, use_renv = FALSE, use_git = FALSE)
+    )
+
+    # preconditions are checked before anything is created
+    expect_false(fs::file_exists(fs::path(proj, "_toolero.yml")))
+    expect_false(fs::dir_exists(fs::path(proj, "data-raw")))
+    expect_length(fs::dir_ls(proj, glob = "*.Rproj"), 0L)
+})
+
+
+# -- 7. renv -------------------------------------------------------------------
+
+test_that("init_project() no longer writes a .renvignore", {
+    # renv::init() is mocked so the test stays fast and offline. What is
+    # being asserted is toolero's own behavior around the call, not renv's.
+    local_mocked_bindings(
+        init = function(...) invisible(NULL),
+        .package = "renv"
+    )
+
+    proj <- fs::path(tmp, "renv-01")
+    init_project(proj, use_renv = TRUE, use_git = FALSE)
+
+    expect_false(fs::file_exists(fs::path(proj, ".renvignore")))
+})
+
+test_that("use_renv = FALSE creates no renv scaffolding", {
+    proj <- fs::path(tmp, "renv-02")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    expect_false(fs::file_exists(fs::path(proj, ".renvignore")))
+    expect_false(fs::dir_exists(fs::path(proj, "renv")))
+})
+
+
+# -- 8. generate_project_config() ----------------------------------------------
 
 test_that("generate_project_config() creates a file at the given path", {
     dest <- generate_project_config("test-config.yml", path = tmp,
@@ -525,6 +845,37 @@ test_that("generate_project_config() produces valid YAML with a folders key", {
     expect_true(length(parsed[["folders"]]) > 0L)
 })
 
+test_that("generate_project_config() writes the same schema as the manifest", {
+    dest   <- generate_project_config("schema.yml", path = tmp, overwrite = TRUE)
+    parsed <- yaml::read_yaml(dest)
+
+    expect_equal(parsed[["schema_version"]], 1L)
+    expect_equal(as.character(unlist(parsed[["folders"]])), standard_folders)
+    expect_equal(parsed[["conventions"]][["output_dir"]], "output")
+    expect_equal(parsed[["conventions"]][["script_dir"]], "R")
+    expect_equal(parsed[["conventions"]][["split_dir"]], "data/jobs")
+})
+
+test_that("generate_project_config() output matches what init_project() records", {
+    dest <- generate_project_config("parity.yml", path = tmp, overwrite = TRUE)
+    proj <- fs::path(tmp, "parity-proj")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    from_generator <- yaml::read_yaml(dest)
+    from_manifest  <- read_manifest(proj)
+
+    expect_equal(from_generator[["folders"]],     from_manifest[["folders"]])
+    expect_equal(from_generator[["conventions"]], from_manifest[["conventions"]])
+})
+
+test_that("generate_project_config() retains its explanatory comments", {
+    dest  <- generate_project_config("comments.yml", path = tmp, overwrite = TRUE)
+    lines <- readLines(dest)
+
+    expect_true(any(grepl("^# toolero project configuration", lines)))
+    expect_true(any(grepl("check_project", lines, fixed = TRUE)))
+})
+
 test_that("generate_project_config() output is usable by init_project()", {
     dest <- generate_project_config("roundtrip.yml", path = tmp,
                                     overwrite = TRUE)
@@ -537,4 +888,64 @@ test_that("generate_project_config() output is usable by init_project()", {
             info = paste("missing:", folder)
         )
     })
+})
+
+
+# -- 9. Internal helpers -------------------------------------------------------
+
+test_that(".default_folders() and .default_conventions() are stable", {
+    expect_equal(.default_folders(), standard_folders)
+    expect_named(.default_conventions(),
+                 c("output_dir", "script_dir", "split_dir"))
+})
+
+test_that(".substitute_block() replaces exactly one placeholder line", {
+    template <- c("a:", "{{x}}", "b:")
+    expect_equal(
+        .substitute_block(template, "{{x}}", c("  - one", "  - two")),
+        c("a:", "  - one", "  - two", "b:")
+    )
+})
+
+test_that(".substitute_block() errors when the placeholder is missing", {
+    expect_error(
+        .substitute_block(c("a:", "b:"), "{{x}}", "  - one"),
+        class = "rlang_error"
+    )
+})
+
+test_that(".find_readme() returns NULL for a directory with none", {
+    dir <- make_project(tmp, "fr-01")
+    expect_null(.find_readme(dir))
+})
+
+test_that(".find_readme() returns NULL for a non-existent directory", {
+    expect_null(.find_readme(fs::path(tmp, "no-such-directory")))
+})
+
+test_that(".find_readme() matches across casing and extension", {
+    variants <- c("README.md", "readme", "Readme.pdf", "README.tex")
+
+    for (i in seq_along(variants)) {
+        dir <- make_project(tmp, paste0("fr-02-", i))
+        writeLines("", fs::path(dir, variants[i]))
+
+        expect_equal(
+            fs::path_file(.find_readme(dir)),
+            variants[i],
+            info = variants[i]
+        )
+    }
+})
+
+test_that(".find_readme() ignores a directory named readme", {
+    dir <- make_project(tmp, "fr-03")
+    fs::dir_create(fs::path(dir, "readme"))
+    expect_null(.find_readme(dir))
+})
+
+test_that(".find_readme() ignores a double-extension readme", {
+    dir <- make_project(tmp, "fr-04")
+    writeLines("", fs::path(dir, "readme.tar.gz"))
+    expect_null(.find_readme(dir))
 })

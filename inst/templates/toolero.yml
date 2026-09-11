@@ -1,0 +1,37 @@
+# toolero project configuration
+# ---------------------------------------------------------------------------
+# Records the folder structure and naming conventions of a toolero project.
+#
+# init_project() writes this file to the project root as _toolero.yml after
+# resolving the folder set. It records the RESOLVED structure, never the
+# inputs that produced it, so a project built from a config file, one built
+# with custom_folders, and one built from the defaults all produce the same
+# shape of file.
+#
+# Who reads it:
+#   check_project()                  audits the project against this file
+#   containr::generate_dockerfile()  learns which folders belong in the image
+#   submitr::htc_gen_executable()    learns where the analysis writes output
+#
+# Commit this file. It describes the project, not your machine.
+#
+# You can also write one by hand with generate_project_config(), edit it, and
+# pass it to init_project(config = ) to drive the structure of a new project.
+# ---------------------------------------------------------------------------
+
+schema_version: 1
+
+# One folder per line. Nested paths such as output/figures are supported.
+# When this file is passed to init_project(config = ), the list below
+# replaces the built-in default set entirely, so list every folder you want
+# created.
+folders:
+{{folders}}
+
+# Names the toolero family resolves rather than assumes.
+#   output_dir  where the analysis writes artifacts, read by save_output()
+#               and generate_manifest()
+#   script_dir  where the .R script derived from the .qmd lives
+#   split_dir   where write_by_group() writes its per-group subsets
+conventions:
+{{conventions}}

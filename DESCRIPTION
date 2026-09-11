@@ -1,25 +1,26 @@
 Package: toolero
 Title: A Toolkit for Research Workflows
-Version: 0.4.0.9000
-Authors@R: 
+Version: 0.5.0
+Authors@R:
     person("Erwin", "Lares", , "erwin.lares@wisc.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-3284-828X"))
 Description: Provides utility functions to help researchers implement best
     practices for their coding projects. Includes tools for reading and
     cleaning data files, initializing R projects with a standard folder
-    structure and optional YAML configuration, creating 'Quarto' documents
-    from reproducible templates with optional sample data and custom styling,
-    detecting the execution context across interactive, 'Quarto', and
-    script-based workflows, splitting data frames into group-level output
-    files, applying analysis functions to each group with optional parallel
-    execution, and rendering syntactic tree diagrams as standalone PNG images
-    via 'Typst'.
+    structure and optional YAML configuration, recording the resolved
+    structure in a project manifest that downstream tools can read,
+    creating 'Quarto' documents from reproducible templates with optional
+    sample data and custom styling, detecting the execution context across
+    interactive, 'Quarto', and script-based workflows, splitting data frames
+    into group-level output files, applying analysis functions to each group
+    with optional parallel execution, and rendering syntactic tree diagrams
+    as standalone PNG images via 'Typst'.
 License: MIT + file LICENSE
 Depends: R (>= 4.2.0)
 Encoding: UTF-8
 Language: en-US
 Roxygen: list(markdown = TRUE)
-Suggests: 
+Suggests:
     dplyr,
     furrr,
     future,
@@ -27,9 +28,9 @@ Suggests:
     pdftools,
     rmarkdown,
     spelling,
-    testthat (>= 3.0.0)
+    testthat (>= 3.2.0)
 Config/testthat/edition: 3
-Imports: 
+Imports:
     cli,
     fs,
     glue,
