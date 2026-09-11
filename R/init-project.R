@@ -89,22 +89,39 @@
 #' in the calling session rather than the project just created.
 #'
 #' @section Dependency discovery and `renv`:
-#' When `use_renv = TRUE`, `init_project()` calls [renv::init()] and stops
-#' there. Earlier versions additionally wrote a `.renvignore` containing
-#' `*.qmd` and took a second snapshot. Both are gone as of v0.5.0.
+#' When `use_renv = TRUE`, `init_project()` calls [renv::scaffold()], which
+#' creates `renv/library`, `renv/activate.R`, `renv/.gitignore`, an
+#' `.Rprofile` that activates the project in future sessions, and an initial
+#' `renv.lock`.
 #'
-#' The `.renvignore` excluded `.qmd` files from `renv`'s dependency
-#' discovery, which meant that a project whose `library()` calls live in its
-#' Quarto source -- the arrangement this package recommends -- could snapshot
-#' a lockfile with none of the analysis packages in it, and
-#' `containr::generate_dockerfile()` would then build an image that could not
-#' run the analysis. Note that at the moment the file was written there were
-#' no `.qmd` files in the project yet, so it never affected the snapshot
-#' taken at creation time; its only effect was on every snapshot the user
-#' took afterwards.
+#' Three things changed here in v0.5.0, and they are worth understanding
+#' together.
 #'
-#' Take a snapshot yourself once the project has code in it, and before
-#' containerizing:
+#' `renv::scaffold()` replaces [renv::init()]. `init()` loads the new project
+#' into the *calling* session, repointing `.libPaths()` at a library that is
+#' empty apart from `renv` itself -- so every package the caller had
+#' available vanishes until they restart R. Its `restart` argument suppresses
+#' the restart, not the activation. That is reasonable behavior for someone
+#' adopting `renv` in the project they are sitting in, and the wrong behavior
+#' for a function whose job is to scaffold a project somewhere else.
+#' `scaffold()` builds the same infrastructure and leaves the caller's
+#' session untouched.
+#'
+#' The `.renvignore` containing `*.qmd` is gone. It excluded Quarto documents
+#' from `renv`'s dependency discovery, which meant that a project whose
+#' `library()` calls live in its `.qmd` source -- the arrangement this
+#' package recommends -- could snapshot a lockfile with none of the analysis
+#' packages in it, and `containr::generate_dockerfile()` would then build an
+#' image that could not run the analysis. At the point the file was written
+#' the project contained no `.qmd` files at all, so it never affected the
+#' snapshot taken at creation time; its only effect was on every snapshot the
+#' user took afterwards.
+#'
+#' The snapshot at creation time is gone too, for the same underlying reason
+#' the `.renvignore` was pointless there: a project that has just been
+#' created has no code in it, so there is nothing to discover and nothing
+#' worth recording. Take a snapshot yourself once the project has code, and
+#' before containerizing:
 #'
 #' ```r
 #' renv::snapshot()
@@ -365,12 +382,22 @@ init_project <- function(path,
         "Recorded project structure in {.file {manifest_name}}"
     )
 
-    # -- 12. Initialize renv -------------------------------------------------
-    # No .renvignore and no second snapshot -- see the "Dependency discovery
-    # and renv" section of this function's documentation for why both were
-    # removed in v0.5.0.
+    # -- 12. Set up renv -----------------------------------------------------
+    # scaffold(), not init(). init() loads the project into the CALLING
+    # session -- it repoints .libPaths() at the new project's empty library,
+    # so every package the caller had available disappears until they restart
+    # R. Its restart argument suppresses the restart, not the activation, and
+    # bare = TRUE skips dependency discovery but still loads. scaffold()
+    # creates the same infrastructure (renv/library, renv/activate.R,
+    # .Rprofile, renv/.gitignore, renv.lock) and leaves the caller's session
+    # alone, which is the right semantics when the project being set up is
+    # not the one you are working in.
+    #
+    # Nothing is lost by skipping discovery: the project has no code in it
+    # yet, so there is nothing to discover. See the "Dependency discovery and
+    # renv" section of this function's documentation.
     if (use_renv) {
-        renv::init(project = path, restart = FALSE)
+        renv::scaffold(project = path)
     }
 
     # -- 13. Initialize git --------------------------------------------------

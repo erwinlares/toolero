@@ -41,7 +41,7 @@ Imports:
     purrr,
     quarto,
     readr,
-    renv,
+    renv (>= 1.0.0),
     rlang,
     rvest,
     tibble,

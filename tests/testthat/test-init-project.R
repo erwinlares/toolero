@@ -773,10 +773,10 @@ test_that("a rejected call leaves no scaffolding behind", {
 # -- 7. renv -------------------------------------------------------------------
 
 test_that("init_project() no longer writes a .renvignore", {
-    # renv::init() is mocked so the test stays fast and offline. What is
-    # being asserted is toolero's own behavior around the call, not renv's.
+    # renv::scaffold() is mocked so the test stays fast. What is being
+    # asserted is toolero's own behavior around the call, not renv's.
     local_mocked_bindings(
-        init = function(...) invisible(NULL),
+        scaffold = function(...) invisible(NULL),
         .package = "renv"
     )
 
@@ -784,6 +784,43 @@ test_that("init_project() no longer writes a .renvignore", {
     init_project(proj, use_renv = TRUE, use_git = FALSE)
 
     expect_false(fs::file_exists(fs::path(proj, ".renvignore")))
+})
+
+test_that("init_project() uses renv::scaffold(), not renv::init()", {
+    # renv::init() loads the new project into the CALLING session, repointing
+    # .libPaths() at an almost-empty library. scaffold() does not.
+    called <- character(0)
+
+    local_mocked_bindings(
+        scaffold = function(...) {
+            called <<- c(called, "scaffold")
+            invisible(NULL)
+        },
+        init = function(...) {
+            called <<- c(called, "init")
+            invisible(NULL)
+        },
+        .package = "renv"
+    )
+
+    proj <- fs::path(tmp, "renv-04")
+    init_project(proj, use_renv = TRUE, use_git = FALSE)
+
+    expect_equal(called, "scaffold")
+})
+
+test_that("init_project() leaves the caller's library paths alone", {
+    # The regression this guards against: renv::init() activated the new
+    # project in the calling session, so every package the caller had
+    # available disappeared until they restarted R.
+    skip_on_cran()
+
+    before <- .libPaths()
+
+    proj <- fs::path(tmp, "renv-03")
+    init_project(proj, use_renv = TRUE, use_git = FALSE)
+
+    expect_equal(.libPaths(), before)
 })
 
 test_that("use_renv = FALSE creates no renv scaffolding", {

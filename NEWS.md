@@ -2,9 +2,23 @@
 
 ### Breaking changes
 
-* `init_project()`: no longer writes a `.renvignore` containing `*.qmd`, and
-  no longer takes a second `renv::snapshot()` after `renv::init()`. The
-  `.renvignore` excluded Quarto documents from `renv`'s dependency
+* `init_project()`: uses `renv::scaffold()` instead of `renv::init()` when
+  `use_renv = TRUE`, no longer writes a `.renvignore` containing `*.qmd`, and
+  no longer takes a snapshot at creation time.
+
+  `renv::init()` loads the newly created project into the **calling** R
+  session, repointing `.libPaths()` at a library that is empty apart from
+  `renv` itself. Every package the caller had available disappears until they
+  restart R, which surfaces later as confusing `there is no package called
+  ...` errors having nothing to do with the project just created. The
+  `restart` argument suppresses the restart, not the activation, and
+  `bare = TRUE` skips dependency discovery but still loads. `renv::scaffold()`
+  creates the same infrastructure -- `renv/library`, `renv/activate.R`,
+  `renv/.gitignore`, an `.Rprofile` that activates the project in future
+  sessions, and an initial `renv.lock` -- and leaves the caller's session
+  untouched.
+
+  The `.renvignore` excluded Quarto documents from `renv`'s dependency
   discovery, so a project whose `library()` calls live in its `.qmd` source
   -- the arrangement this package recommends -- could snapshot a lockfile
   with none of the analysis packages in it, and
@@ -79,7 +93,7 @@
 
 * `init_project()`: writes a project manifest, `_toolero.yml`, to the project
   root, recording the folder set it resolved and the naming conventions in
-  force. The format is **experimental**. The file records the *resolved*
+  force. The file records the *resolved*
   structure, never the inputs that produced it, so a project built from a
   `config`, one built with `custom_folders`, and one built from the defaults
   all produce the same shape of file. It exists because the structure is
