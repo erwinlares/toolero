@@ -86,6 +86,38 @@
 }
 
 
+#' Locate a template shipped with the package
+#'
+#' Internal helper wrapping [system.file()] for files under
+#' `inst/templates/`. It exists for the error message rather than the lookup:
+#' `system.file(mustWork = TRUE)` reports "no file found" when the package is
+#' installed and "Can't find package file." under [pkgload::load_all()],
+#' neither of which says which file was missing or where it was expected.
+#' During development that is the difference between a five-second fix and a
+#' traceback.
+#'
+#' @param name Character. Filename within `inst/templates/`.
+#'
+#' @return The full path to the template.
+#'
+#' @keywords internal
+.package_template <- function(name) {
+    path <- system.file("templates", name, package = "toolero")
+
+    if (!nzchar(path) || !file.exists(path)) {
+        cli::cli_abort(c(
+            "Could not find the packaged template {.file {name}}.",
+            "i" = "Expected it at {.path inst/templates/{name}} in the toolero
+                   source tree.",
+            "i" = "If you are developing toolero, confirm the file exists and
+                   re-run {.fn devtools::load_all}."
+        ))
+    }
+
+    path
+}
+
+
 #' Substitute a block placeholder in a template
 #'
 #' Internal helper used by [.write_project_yml()]. Replaces the single line
@@ -136,13 +168,7 @@
                                folders     = .default_folders(),
                                conventions = .default_conventions()) {
 
-    template_path <- system.file(
-        "templates", .project_yml_name(),
-        package  = "toolero",
-        mustWork = TRUE
-    )
-
-    template <- readLines(template_path, warn = FALSE)
+    template <- readLines(.package_template(.project_yml_name()), warn = FALSE)
 
     folder_block <- paste0("  - ", folders)
 
@@ -225,7 +251,11 @@
     parsed <- yaml::read_yaml(config)
 
     # -- schema version ------------------------------------------------------
-    declared_schema <- parsed[["schema_version"]]
+    # supported_schema is bound to a local rather than interpolated directly:
+    # cli >= 3.4.0 reads a `{}` expression starting with a dot as a style
+    # name, so `{.val {.project_yml_schema_version()}}` is a parse error.
+    supported_schema <- .project_yml_schema_version()
+    declared_schema  <- parsed[["schema_version"]]
 
     if (!is.null(declared_schema)) {
         declared_schema <- suppressWarnings(as.integer(declared_schema))
@@ -234,15 +264,15 @@
             cli::cli_abort(c(
                 "The {.field schema_version} in {.file {config}} is not a number.",
                 "i" = "This version of toolero writes and reads schema
-                       {.val {.project_yml_schema_version()}}."
+                       {.val {supported_schema}}."
             ))
         }
 
-        if (declared_schema > .project_yml_schema_version()) {
+        if (declared_schema > supported_schema) {
             cli::cli_warn(c(
                 "!" = "{.file {config}} declares schema version
                        {.val {declared_schema}}, newer than the
-                       {.val {.project_yml_schema_version()}} this version of
+                       {.val {supported_schema}} this version of
                        toolero understands.",
                 "i" = "Reading it anyway. Upgrade toolero if the structure
                        does not come out as expected."

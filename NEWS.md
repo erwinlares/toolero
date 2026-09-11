@@ -144,6 +144,25 @@
   (`sample.csv`, `_quarto.yml`, `purl.R`, the `.qmd` itself) continue to
   respect `overwrite`.
 
+### Bug fixes
+
+* `init_project(use_git = TRUE)` initialized the git repository, staged files
+  and made the opening commit in **the caller's project rather than the
+  project it had just created**. `usethis::create_project()` sets the active
+  `usethis` project only for its own duration -- it uses
+  `usethis::local_project()` internally and restores the caller's project when
+  it returns with `open = FALSE` -- and `init_project()` then called
+  `usethis::use_git()` without setting the project again. Running
+  `init_project()` from inside another package or project therefore added
+  entries to *that* project's `.gitignore` and offered to commit *its*
+  uncommitted files under the message `"initial commit"`, which is easy to
+  accept because the prompt looks entirely plausible. `init_project()` now
+  calls `usethis::local_project(path, force = TRUE, setwd = FALSE)` after
+  creating the project, so every later step resolves against the new project,
+  and the caller's project is restored when the function returns. Every test
+  in the suite passed `use_git = FALSE`, which is why this went unnoticed; the
+  git path is now covered.
+
 ### Internal changes
 
 * Added `R/utils-project.R`, holding the facts about a toolero project that
@@ -171,13 +190,11 @@
 * Added `.branding_asset_names()`, replacing the inline vector of five
   standardized asset filenames.
 
-* `init_project()`: the active `usethis` project is now restored when the
-  function exits. `usethis::create_project()` switches it to the new project
-  and `use_git()` relies on that, so the switch is deliberate for the
-  duration of the call, but it is no longer left pointing somewhere the
-  caller did not ask for. The surrounding `withr::with_dir(getwd(), ...)`
-  block, which set the working directory to the working directory and
-  therefore did nothing, has been removed.
+* `init_project()`: the new project is now made the active `usethis` project
+  explicitly, via `usethis::local_project()`, for the duration of the call.
+  The surrounding `withr::with_dir(getwd(), ...)` block, which set the
+  working directory to the working directory and therefore did nothing, has
+  been removed. See the bug fix below for why the explicit call is needed.
 
 * `inst/assets/` now contains ten files under a `uw-*` / `generic-*` prefix
   convention: `uw-logo.png`, `uw-favicon.png`, `uw-header.html`,

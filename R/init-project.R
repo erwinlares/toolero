@@ -74,6 +74,20 @@
 #' `schema_version` field exists so that a reader can tell whether it
 #' understands what it is holding.
 #'
+#' @section The active project:
+#' `init_project()` makes the new project the active `usethis` project for the
+#' duration of the call, and restores whichever project was active before when
+#' it returns. Nothing is left pointing somewhere the caller did not ask for.
+#'
+#' This matters more than it sounds. [usethis::create_project()] sets the
+#' active project only for its own duration -- it uses
+#' [usethis::local_project()] internally and restores the caller's project on
+#' exit when `open = FALSE`. Any step that resolves paths through the active
+#' project therefore has to set it again explicitly. In v0.5.0 and earlier
+#' `init_project()` did not, so with `use_git = TRUE` the `git` initialization
+#' and its opening commit ran against whatever project happened to be active
+#' in the calling session rather than the project just created.
+#'
 #' @section Dependency discovery and `renv`:
 #' When `use_renv = TRUE`, `init_project()` calls [renv::init()] and stops
 #' there. Earlier versions additionally wrote a `.renvignore` containing
@@ -237,11 +251,16 @@ init_project <- function(path,
             }
         }
 
-        manifest_path <- fs::path(path, .project_yml_name())
+        # Bound to a local rather than interpolated directly: cli >= 3.4.0
+        # reads a `{}` expression starting with a dot as a style name, so
+        # `{.file {.project_yml_name()}}` is a parse error rather than a
+        # nested call.
+        manifest_name <- .project_yml_name()
+        manifest_path <- fs::path(path, manifest_name)
 
         if (fs::file_exists(manifest_path)) {
             cli::cli_abort(c(
-                "A {.file {.project_yml_name()}} file already exists in {.path {path}}.",
+                "A {.file {manifest_name}} file already exists in {.path {path}}.",
                 "i" = "{.fn init_project} is designed to scaffold new projects and
                        does not overwrite an existing project manifest.",
                 "i" = "Run {.fn check_project} to audit the existing project instead."
@@ -271,21 +290,25 @@ init_project <- function(path,
     # =======================================================================
 
     # -- 7. Create the RStudio project ---------------------------------------
-    # usethis::create_project() sets the active usethis project to the new
-    # path and leaves it there. use_git() below relies on that, so the switch
-    # is deliberate for the duration of this call, but it is restored on exit
-    # rather than left pointing somewhere the caller did not ask for.
-    old_project <- tryCatch(usethis::proj_get(), error = function(e) NULL)
-
-    withr::defer({
-        if (is.null(old_project)) {
-            try(usethis::proj_set(NULL), silent = TRUE)
-        } else {
-            try(usethis::proj_set(old_project, force = TRUE), silent = TRUE)
-        }
-    })
-
     usethis::create_project(path, open = FALSE)
+
+    # create_project() sets the active usethis project only for its own
+    # duration: it uses local_project(path, force = TRUE) internally, which
+    # restores the caller's project when it returns with open = FALSE. So by
+    # this line the active project is whatever it was before init_project()
+    # was called -- typically the package or project the user is working in.
+    #
+    # Anything below that resolves paths through the active project has to
+    # set it again, use_git() above all. Without this, use_git() initializes,
+    # stages and commits in the CALLER's repository rather than the project
+    # just created, which is destructive and easy to miss because the prompt
+    # it raises looks plausible.
+    #
+    # local_project() is scoped to this function, so the caller's project is
+    # restored when init_project() returns. setwd = FALSE because every path
+    # used below is absolute and changing the working directory underneath
+    # the caller is a side effect nobody asked for.
+    usethis::local_project(path, force = TRUE, setwd = FALSE)
 
     # -- 8. Create folders ---------------------------------------------------
     purrr::walk(final_folders, \(folder) {
@@ -330,14 +353,16 @@ init_project <- function(path,
     # Records the resolved structure, not the inputs that produced it. This
     # is what check_project() audits against and what containr and submitr
     # read instead of assuming a layout.
+    manifest_name <- .project_yml_name()
+
     .write_project_yml(
-        dest        = fs::path(path, .project_yml_name()),
+        dest        = fs::path(path, manifest_name),
         folders     = final_folders,
         conventions = conventions
     )
 
     cli::cli_alert_success(
-        "Recorded project structure in {.file {.project_yml_name()}}"
+        "Recorded project structure in {.file {manifest_name}}"
     )
 
     # -- 12. Initialize renv -------------------------------------------------
@@ -349,6 +374,7 @@ init_project <- function(path,
     }
 
     # -- 13. Initialize git --------------------------------------------------
+    # Targets the project set by local_project() above, not the caller's.
     if (use_git) usethis::use_git(message = "initial commit")
 
     # -- 14. Open the project in RStudio -------------------------------------

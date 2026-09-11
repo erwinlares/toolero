@@ -949,3 +949,65 @@ test_that(".find_readme() ignores a double-extension readme", {
     writeLines("", fs::path(dir, "readme.tar.gz"))
     expect_null(.find_readme(dir))
 })
+
+test_that(".package_template() errors informatively for a missing template", {
+    expect_error(
+        .package_template("no-such-template.yml"),
+        regexp = "no-such-template.yml"
+    )
+})
+
+test_that(".package_template() finds the project manifest template", {
+    expect_true(fs::file_exists(.package_template("_toolero.yml")))
+})
+
+
+# -- 10. The active usethis project --------------------------------------------
+
+test_that("use_git() operates on the new project, not the caller's", {
+    # The regression this guards against: usethis::create_project() restores
+    # the caller's active project when it returns, so use_git() ran against
+    # the calling session's repository -- initializing, staging and committing
+    # there instead of in the project just created.
+    seen <- NULL
+
+    local_mocked_bindings(
+        use_git = function(...) {
+            seen <<- usethis::proj_get()
+            invisible(TRUE)
+        },
+        .package = "usethis"
+    )
+
+    proj <- fs::path(tmp, "git-01")
+    init_project(proj, use_renv = FALSE, use_git = TRUE)
+
+    # path_real() resolves the /var -> /private/var symlink on macOS
+    expect_equal(fs::path_real(seen), fs::path_real(proj))
+})
+
+test_that("init_project() restores the caller's active project", {
+    before <- tryCatch(usethis::proj_get(), error = function(e) NULL)
+
+    proj <- fs::path(tmp, "git-02")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    after <- tryCatch(usethis::proj_get(), error = function(e) NULL)
+
+    expect_equal(before, after)
+})
+
+test_that("the caller's active project is restored even when the call fails", {
+    before <- tryCatch(usethis::proj_get(), error = function(e) NULL)
+
+    proj <- make_project(tmp, "git-03")
+    writeLines("pre-existing", fs::path(proj, "README.md"))
+
+    expect_error(
+        init_project(proj, use_readme = TRUE, use_renv = FALSE, use_git = FALSE)
+    )
+
+    after <- tryCatch(usethis::proj_get(), error = function(e) NULL)
+
+    expect_equal(before, after)
+})
