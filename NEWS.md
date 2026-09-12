@@ -30,6 +30,35 @@
   it, and before containerizing. Projects created by earlier versions still
   carry the file and should have it removed by hand.
 
+* `write_by_group()`: the job manifest now has one schema regardless of how
+  many grouping columns were supplied. One column per grouping variable
+  holding the raw value, then `group_value`, `n_rows`, `file_path`. Grouping
+  on a single column previously produced only the last three; it now also
+  carries the grouping column, whose value repeats `group_value` exactly.
+  That redundancy is deliberate -- one schema with a varying column count is
+  easier to read, validate and rely on than two schemas selected by how many
+  columns you happened to group on. `run_by_group()` and
+  `submitr::htc_gen_submit()` read `group_value` and `file_path` and are
+  unaffected.
+
+* `write_by_group()`: groups are now written, and manifest rows recorded, in
+  order of first appearance in the data rather than in sort order of the
+  sanitized key. Numeric groups no longer come out `10, 11, 9`. This is more
+  than cosmetic: `submitr` writes `subdatasets.csv` in manifest order,
+  HTCondor assigns `ProcId` in that order, and log filenames are
+  reconstructed from position, so manifest row order is the mapping from a
+  job number back to a group. The caveat about iteration order has been
+  removed from the documentation, since there is no longer anything to warn
+  about.
+
+* `write_by_group()`: with `drop_na = FALSE`, a grouping column holding both
+  missing values and the literal string `"NA"` is now an error naming the
+  column, rather than silently merging two different groups into one file.
+  Missing values are coerced to `"NA"` so they form their own group, so a
+  column containing North America, Not Applicable, or a country code would
+  otherwise have collapsed the two. `drop_na = TRUE` is unaffected: the
+  missing rows are gone before the coercion, so no collision is possible.
+
 * `check_project()`: the standard folder set now comes from
   `.default_folders()` and therefore includes `R/`. A project without an `R/`
   folder gains a `"warn"` row it did not have before.
@@ -94,6 +123,20 @@
   out and preserve the old behavior.
 
 ### New features
+
+* `write_by_group()`: new `prefix` argument, a namespace prepended to every
+  output filename. `prefix = "data"` turns `a.csv` into `data-a.csv`, and
+  `a--female.csv` into `data-a--female.csv`. It is sanitized the same way
+  group values are and joined with a single `-`, not the `--` that separates
+  grouping columns: `--` is there to keep the group tuple and the filename in
+  one-to-one correspondence, and a prefix is constant across every file in a
+  call, so it cannot create a collision. Without a prefix, splitting on a
+  short column produces short filenames such as `a.csv`, and since
+  `submitr::htc_gen_submit()` reduces the manifest to `basename()` those land
+  in one flat directory on the access point where two datasets split on the
+  same column would overwrite each other. `prefix` is last in the signature,
+  so adding it shifts no existing positional argument. Defaults to `NULL`,
+  which leaves filenames exactly as before.
 
 * `check_project()`: reads the project's own `_toolero.yml` when no `config`
   argument is supplied, so a customized project no longer has to be handed
@@ -239,6 +282,18 @@
   `assets/` in the move. `check_project()`'s inline config parsing and README
   detection were replaced by calls to the shared `.read_config_file()` and
   `.find_readme()`.
+
+* `write_by_group()`: documentation now uses the term *job manifest*
+  consistently for the `manifest.csv` it writes, distinguishing it from the
+  *project manifest* `generate_manifest()` produces. The first lists inputs to
+  a computation that has not happened; the second records outputs from one
+  that has.
+
+* `sanitize_filename()` gained roxygen explaining the invariant the filename
+  scheme depends on: because a run of non-alphanumeric characters collapses
+  to exactly one dash, a sanitized value can contain a single `-` but never
+  two consecutive ones, which is what leaves `--` free to mark a column
+  boundary.
 
 * Added `.renv_lock_is_bare()`, `.project_has_sources()` and
   `.renvignore_excludes_qmd()` to `R/check-project.R`, backing the two new

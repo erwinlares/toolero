@@ -1,14 +1,13 @@
 #' Split a data frame by one or more grouping columns and write each group to a CSV file
 #'
 #' Splits a data frame by one or more grouping columns and writes each group
-#' to a separate CSV file. Optionally writes a manifest file listing the
+#' to a separate CSV file. Optionally writes a job manifest listing the
 #' output files, their group values, and row counts.
 #'
 #' @param data A data frame or tibble to split and save.
 #' @param group_col A character vector. The name(s) of the column(s) to
-#'   group by. A single column name behaves exactly as in previous versions.
-#'   When more than one column is supplied, groups are formed from the
-#'   combinations of values actually present in the data (not the full
+#'   group by. When more than one column is supplied, groups are formed from
+#'   the combinations of values actually present in the data (not the full
 #'   cross-product of possible values).
 #' @param output_dir A string or `NULL`. Path to the directory where output
 #'   files will be written. Created if it does not exist. If `NULL`, the
@@ -21,41 +20,87 @@
 #'   reports how many rows were dropped and from which column(s). If
 #'   `FALSE`, missing values are treated as their own group instead of
 #'   being dropped.
+#' @param prefix A string or `NULL`. An optional namespace prepended to every
+#'   output filename, sanitized the same way group values are and joined with
+#'   a single `-`. `prefix = "data"` grouping on one column turns `a.csv` into
+#'   `data-a.csv`; grouping on two turns `a--female.csv` into
+#'   `data-a--female.csv`. Defaults to `NULL`, which leaves filenames
+#'   unchanged. Placed last in the signature so that adding it does not shift
+#'   any existing positional argument.
 #'
 #' @return Invisibly returns `output_dir`.
 #'
 #' @details
-#' Output filenames are derived from the group values of `group_col`.
-#' Each value is sanitized independently: converted to lowercase, spaces
-#' and special characters replaced with `-`, consecutive dashes collapsed,
-#' and leading/trailing dashes stripped. When `group_col` has more than one
-#' element, the sanitized values are joined with `--` in the order supplied
-#' (e.g. `group_col = c("species", "sex")` on an Adelie male produces
-#' `adelie--male.csv`). Because a single sanitized value can never itself
-#' contain two consecutive dashes, `--` is an unambiguous separator between
-#' columns.
+#' Output filenames are derived from the group values of `group_col`. Each
+#' value is sanitized independently: converted to lowercase, runs of
+#' non-alphanumeric characters replaced with a single `-`, and
+#' leading/trailing dashes stripped. When `group_col` has more than one
+#' element, the sanitized values are joined with `--` in the order supplied,
+#' so `group_col = c("species", "sex")` on an Adelie male produces
+#' `adelie--male.csv`. A `prefix`, if supplied, is sanitized the same way and
+#' joined to the front with a single `-`.
 #'
-#' If `manifest = TRUE`, a `manifest.csv` is written to `output_dir`. For a
-#' single grouping column, the manifest schema is unchanged from previous
-#' versions: `group_value`, `n_rows`, `file_path`. For multiple grouping
-#' columns, the manifest additionally includes one column per grouping
-#' variable (holding the raw, unsanitized value), inserted before
-#' `group_value`, which becomes a human-readable composite of the raw
-#' values joined by `" | "` (e.g. `"Adelie | male"`).
+#' @section Why the separators differ:
+#' Because a run of non-alphanumeric characters collapses to exactly one
+#' dash, a sanitized value can contain a single `-` but never two in a row.
+#' That is what makes `--` safe between columns: it can only ever appear
+#' where this function put it.
+#'
+#' The alternative would lose data rather than merely look untidy. Joined
+#' with a single dash, the groups `("a-b", "c")` and `("a", "b-c")` both
+#' produce the key `a-b-c`, and since the split is performed on that key the
+#' two groups would be merged into one file and reported as one manifest
+#' row. Joined with `--` they are `a-b--c` and `a--b-c`, and stay distinct.
+#'
+#' `prefix` is joined with a single `-` instead, because it is constant
+#' across every file in a call and so cannot create a collision: prepending
+#' the same string to two keys leaves them exactly as distinct as they were.
+#' It is a namespace for the whole split rather than another field of the
+#' group, and reads better as one.
+#'
+#' @section The job manifest:
+#' If `manifest = TRUE`, a `manifest.csv` is written to `output_dir`. This is
+#' the *job manifest*: a list of inputs to a computation that has not
+#' happened yet, and the file consumed by [run_by_group()] and by
+#' `submitr::htc_gen_submit()` in multiple-job mode. It is a different
+#' document from the *project manifest* that [generate_manifest()] writes,
+#' which records outputs from a computation that already has.
+#'
+#' The schema is one column per grouping variable, holding the raw
+#' unsanitized value, followed by `group_value`, `n_rows`, and `file_path`.
+#' Grouping on one column therefore produces a manifest whose first column
+#' repeats `group_value` exactly. That redundancy is deliberate: one schema
+#' with a varying column count is easier to read, validate and rely on than
+#' two schemas selected by how many columns you happened to group on.
+#'
+#' `group_value` is a human-readable composite of the raw values joined by
+#' `" | "`, so `"Adelie | male"` for two columns and simply `"Adelie"` for
+#' one.
+#'
+#' @section Row order:
+#' Groups are written, and manifest rows recorded, in order of first
+#' appearance in `data`. This matters downstream: `submitr` writes its
+#' `subdatasets.csv` in manifest order, HTCondor assigns `ProcId` in that
+#' order, and log filenames are reconstructed from position, so manifest row
+#' order is the mapping from a job number back to a group.
+#'
+#' @section Missing values:
+#' With `drop_na = TRUE` (the default), rows with a missing value in any
+#' grouping column are removed before splitting and a message reports how
+#' many.
+#'
+#' With `drop_na = FALSE`, missing values are coerced to the string `"NA"` so
+#' that they form their own group rather than being dropped silently by
+#' `split()`. A column that also contains a literal `"NA"` value -- North
+#' America, Not Applicable, a country code -- would then have two
+#' semantically different groups collapse into one file. Rather than merge
+#' them, `write_by_group()` aborts and names the column.
 #'
 #' Note: `output_dir` has no default value. Always supply an explicit path
 #' to avoid writing files to unexpected locations. Use `tempdir()` for
 #' temporary output during testing or exploration.
 #'
-#' Note on group iteration order: groups are split on the sanitized,
-#' character-coerced composite key, so iteration order follows the sort
-#' order of that key rather than the original column's native type. For
-#' single-column grouping this can differ from previous versions when
-#' `group_col` is numeric with values of differing digit length (e.g.
-#' `9, 10, 11` sorts numerically in earlier versions but lexicographically
-#' as `10, 11, 9` here) or when case affects locale-specific sort order.
-#' File contents and manifest row counts are unaffected -- only the order
-#' in which groups are written and reported.
+#' @seealso [run_by_group()], the apply half of this pair.
 #'
 #' @export
 #'
@@ -68,9 +113,13 @@
 #' )
 #' write_by_group(data, group_col = "species", output_dir = tempdir())
 #'
-#' # Same but also write a manifest
+#' # Same but also write a job manifest
 #' write_by_group(data, group_col = "species",
 #'                output_dir = tempdir(), manifest = TRUE)
+#'
+#' # Namespace the filenames -- adelie.csv becomes penguins-adelie.csv
+#' write_by_group(data, group_col = "species", prefix = "penguins",
+#'                output_dir = tempdir())
 #'
 #' # Group by more than one column
 #' data2 <- data.frame(
@@ -86,7 +135,8 @@ write_by_group <- function(
         group_col,
         output_dir = NULL,
         manifest = FALSE,
-        drop_na = TRUE) {
+        drop_na = TRUE,
+        prefix = NULL) {
 
     # -- 0. Validate output_dir -------------------------------------------------
     if (is.null(output_dir)) {
@@ -144,10 +194,57 @@ write_by_group <- function(
         }
     }
 
-    # -- 3. Create output_dir if needed -----------------------------------------
+    # -- 3. Validate prefix -------------------------------------------------------
+    prefix_key <- NULL
+
+    if (!is.null(prefix)) {
+        if (!is.character(prefix) || length(prefix) != 1L || is.na(prefix)) {
+            cli::cli_abort(
+                "{.arg prefix} must be a single, non-missing character string, or
+         {.code NULL}."
+            )
+        }
+
+        prefix_key <- sanitize_filename(prefix)
+
+        if (!nzchar(prefix_key)) {
+            cli::cli_abort(c(
+                "{.arg prefix} sanitizes to an empty string.",
+                "x" = "Received {.val {prefix}}.",
+                "i" = "A prefix must contain at least one letter or digit."
+            ))
+        }
+    }
+
+    # -- 4. Guard against the NA-versus-\"NA\" collision ----------------------------
+    # Only reachable when drop_na = FALSE: missing values are coerced to the
+    # string "NA" below so they form their own group, and a column holding a
+    # literal "NA" would otherwise merge two different groups into one file.
+    # With drop_na = TRUE the missing rows are gone before the coercion, so no
+    # collision is possible.
+    if (!drop_na) {
+        collides <- vapply(group_col, function(col) {
+            values <- data[[col]]
+            anyNA(values) && any(as.character(values) == "NA", na.rm = TRUE)
+        }, logical(1L))
+
+        if (any(collides)) {
+            offending <- group_col[collides]
+            cli::cli_abort(c(
+                "{length(offending)} grouping column{?s} contain{?s/} both missing
+         values and the literal string {.val NA}: {.val {offending}}.",
+                "x" = "Both would be written to the same file, silently merging two
+           different groups.",
+                "i" = "Use {.code drop_na = TRUE} to drop the missing rows, or recode
+           the literal {.val NA} values to something distinguishable."
+            ))
+        }
+    }
+
+    # -- 5. Create output_dir if needed -----------------------------------------
     fs::dir_create(output_dir)
 
-    # -- 4. Handle NA rows in grouping columns -----------------------------------
+    # -- 6. Handle NA rows in grouping columns -----------------------------------
     na_mask <- rowSums(is.na(data[group_col])) > 0
 
     if (drop_na && any(na_mask)) {
@@ -158,10 +255,11 @@ write_by_group <- function(
         data <- data[!na_mask, , drop = FALSE]
     }
 
-    # -- 5. Build raw and sanitized composite grouping keys -----------------------
+    # -- 7. Build raw and sanitized composite grouping keys -----------------------
     # NA is coerced to the literal string "NA" before sanitizing, so that when
     # drop_na = FALSE, missing values form their own group instead of being
-    # silently dropped by split() further down.
+    # silently dropped by split() further down. Step 4 has already established
+    # that no column holds both a missing value and a literal "NA".
     raw_cols <- lapply(group_col, function(col) {
         val <- as.character(data[[col]])
         ifelse(is.na(val), "NA", val)
@@ -173,45 +271,53 @@ write_by_group <- function(
     composite_sanitized <- do.call(paste, c(sanitized_cols, sep = "--"))
     composite_raw        <- do.call(paste, c(raw_cols, sep = " | "))
 
-    # -- 6. Split row indices by the sanitized composite key -----------------------
+    # -- 8. Split row indices by the sanitized composite key -----------------------
     # Splitting on the already-sanitized key means only combinations actually
     # present in the data are realized (no unobserved-level cross-product),
     # and the split key doubles directly as the filename stem.
+    #
+    # split() returns groups in sort order of the key. Reordering by the first
+    # row each group occupies puts them back in the order they appear in the
+    # data, which is both what a reader expects and what downstream job
+    # numbering is derived from.
     row_index <- split(seq_len(nrow(data)), composite_sanitized)
+    row_index <- row_index[order(vapply(row_index, min, integer(1L)))]
 
-    # -- 7. Write each group to CSV, assembling manifest rows ----------------------
+    # -- 9. Write each group to CSV, assembling manifest rows ----------------------
     manifest_rows <- purrr::map(names(row_index), function(sanitized_key) {
         rows      <- row_index[[sanitized_key]]
         subset    <- data[rows, , drop = FALSE]
         first_row <- rows[[1]]
 
-        file_path <- fs::path(output_dir, paste0(sanitized_key, ".csv"))
+        file_stem <- if (is.null(prefix_key)) {
+            sanitized_key
+        } else {
+            paste0(prefix_key, "-", sanitized_key)
+        }
+
+        file_path <- fs::path(output_dir, paste0(file_stem, ".csv"))
         readr::write_csv(subset, file_path)
 
         cli::cli_alert_success(
             "Written {.val {composite_raw[[first_row]]}} ({nrow(subset)} rows) to {.path {file_path}}"
         )
 
-        if (length(group_col) == 1L) {
-            # Single grouping column: manifest schema is byte-for-byte
-            # unchanged from previous versions.
-            tibble::tibble(
-                group_value = raw_cols[[group_col]][[first_row]],
-                n_rows      = nrow(subset),
-                file_path   = as.character(file_path)
-            )
-        } else {
-            row_data <- lapply(group_col, function(col) raw_cols[[col]][[first_row]])
-            names(row_data) <- group_col
-            row_data$group_value <- composite_raw[[first_row]]
-            row_data$n_rows      <- nrow(subset)
-            row_data$file_path   <- as.character(file_path)
+        # One manifest schema regardless of how many grouping columns were
+        # supplied: one column per grouping variable holding the raw value,
+        # then group_value, n_rows, file_path. For a single grouping column
+        # the first column repeats group_value, which is the price of not
+        # having two schemas to tell apart.
+        row_data <- lapply(group_col, function(col) raw_cols[[col]][[first_row]])
+        names(row_data) <- group_col
 
-            tibble::as_tibble(row_data)
-        }
+        row_data$group_value <- composite_raw[[first_row]]
+        row_data$n_rows      <- nrow(subset)
+        row_data$file_path   <- as.character(file_path)
+
+        tibble::as_tibble(row_data)
     })
 
-    # -- 8. Write manifest if requested -----------------------------------------
+    # -- 10. Write manifest if requested -----------------------------------------
     if (manifest) {
         manifest_df   <- purrr::list_rbind(manifest_rows)
         manifest_path <- fs::path(output_dir, "manifest.csv")
@@ -225,6 +331,22 @@ write_by_group <- function(
 
 # -- Helper: sanitize a string for use as a filename -------------------------
 
+#' Sanitize a string for use in a filename
+#'
+#' Lowercases, replaces every run of non-alphanumeric characters with a
+#' single `-`, and strips leading and trailing dashes.
+#'
+#' The collapsing is what the rest of [write_by_group()]'s filename scheme
+#' rests on: because a run of separators becomes exactly one dash, a
+#' sanitized value can contain a single `-` but never two consecutive ones.
+#' That leaves `--` free to mark the boundary between grouping columns
+#' without any possibility of colliding with content.
+#'
+#' @param x A character vector.
+#'
+#' @return A character vector of the same length.
+#'
+#' @keywords internal
 sanitize_filename <- function(x) {
     x |>
         tolower() |>

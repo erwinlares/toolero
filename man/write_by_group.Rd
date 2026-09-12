@@ -9,16 +9,16 @@ write_by_group(
   group_col,
   output_dir = NULL,
   manifest = FALSE,
-  drop_na = TRUE
+  drop_na = TRUE,
+  prefix = NULL
 )
 }
 \arguments{
 \item{data}{A data frame or tibble to split and save.}
 
 \item{group_col}{A character vector. The name(s) of the column(s) to
-group by. A single column name behaves exactly as in previous versions.
-When more than one column is supplied, groups are formed from the
-combinations of values actually present in the data (not the full
+group by. When more than one column is supplied, groups are formed from
+the combinations of values actually present in the data (not the full
 cross-product of possible values).}
 
 \item{output_dir}{A string or \code{NULL}. Path to the directory where output
@@ -34,48 +34,101 @@ in any grouping column are dropped before splitting, and a message
 reports how many rows were dropped and from which column(s). If
 \code{FALSE}, missing values are treated as their own group instead of
 being dropped.}
+
+\item{prefix}{A string or \code{NULL}. An optional namespace prepended to every
+output filename, sanitized the same way group values are and joined with
+a single \code{-}. \code{prefix = "data"} grouping on one column turns \code{a.csv} into
+\code{data-a.csv}; grouping on two turns \code{a--female.csv} into
+\code{data-a--female.csv}. Defaults to \code{NULL}, which leaves filenames
+unchanged. Placed last in the signature so that adding it does not shift
+any existing positional argument.}
 }
 \value{
 Invisibly returns \code{output_dir}.
 }
 \description{
 Splits a data frame by one or more grouping columns and writes each group
-to a separate CSV file. Optionally writes a manifest file listing the
+to a separate CSV file. Optionally writes a job manifest listing the
 output files, their group values, and row counts.
 }
 \details{
-Output filenames are derived from the group values of \code{group_col}.
-Each value is sanitized independently: converted to lowercase, spaces
-and special characters replaced with \code{-}, consecutive dashes collapsed,
-and leading/trailing dashes stripped. When \code{group_col} has more than one
-element, the sanitized values are joined with \verb{--} in the order supplied
-(e.g. \code{group_col = c("species", "sex")} on an Adelie male produces
-\code{adelie--male.csv}). Because a single sanitized value can never itself
-contain two consecutive dashes, \verb{--} is an unambiguous separator between
-columns.
+Output filenames are derived from the group values of \code{group_col}. Each
+value is sanitized independently: converted to lowercase, runs of
+non-alphanumeric characters replaced with a single \code{-}, and
+leading/trailing dashes stripped. When \code{group_col} has more than one
+element, the sanitized values are joined with \verb{--} in the order supplied,
+so \code{group_col = c("species", "sex")} on an Adelie male produces
+\code{adelie--male.csv}. A \code{prefix}, if supplied, is sanitized the same way and
+joined to the front with a single \code{-}.
+}
+\section{Why the separators differ}{
 
-If \code{manifest = TRUE}, a \code{manifest.csv} is written to \code{output_dir}. For a
-single grouping column, the manifest schema is unchanged from previous
-versions: \code{group_value}, \code{n_rows}, \code{file_path}. For multiple grouping
-columns, the manifest additionally includes one column per grouping
-variable (holding the raw, unsanitized value), inserted before
-\code{group_value}, which becomes a human-readable composite of the raw
-values joined by \code{" | "} (e.g. \code{"Adelie | male"}).
+Because a run of non-alphanumeric characters collapses to exactly one
+dash, a sanitized value can contain a single \code{-} but never two in a row.
+That is what makes \verb{--} safe between columns: it can only ever appear
+where this function put it.
+
+The alternative would lose data rather than merely look untidy. Joined
+with a single dash, the groups \verb{("a-b", "c")} and \verb{("a", "b-c")} both
+produce the key \code{a-b-c}, and since the split is performed on that key the
+two groups would be merged into one file and reported as one manifest
+row. Joined with \verb{--} they are \code{a-b--c} and \code{a--b-c}, and stay distinct.
+
+\code{prefix} is joined with a single \code{-} instead, because it is constant
+across every file in a call and so cannot create a collision: prepending
+the same string to two keys leaves them exactly as distinct as they were.
+It is a namespace for the whole split rather than another field of the
+group, and reads better as one.
+}
+
+\section{The job manifest}{
+
+If \code{manifest = TRUE}, a \code{manifest.csv} is written to \code{output_dir}. This is
+the \emph{job manifest}: a list of inputs to a computation that has not
+happened yet, and the file consumed by \code{\link[=run_by_group]{run_by_group()}} and by
+\code{submitr::htc_gen_submit()} in multiple-job mode. It is a different
+document from the \emph{project manifest} that \code{\link[=generate_manifest]{generate_manifest()}} writes,
+which records outputs from a computation that already has.
+
+The schema is one column per grouping variable, holding the raw
+unsanitized value, followed by \code{group_value}, \code{n_rows}, and \code{file_path}.
+Grouping on one column therefore produces a manifest whose first column
+repeats \code{group_value} exactly. That redundancy is deliberate: one schema
+with a varying column count is easier to read, validate and rely on than
+two schemas selected by how many columns you happened to group on.
+
+\code{group_value} is a human-readable composite of the raw values joined by
+\code{" | "}, so \code{"Adelie | male"} for two columns and simply \code{"Adelie"} for
+one.
+}
+
+\section{Row order}{
+
+Groups are written, and manifest rows recorded, in order of first
+appearance in \code{data}. This matters downstream: \code{submitr} writes its
+\code{subdatasets.csv} in manifest order, HTCondor assigns \code{ProcId} in that
+order, and log filenames are reconstructed from position, so manifest row
+order is the mapping from a job number back to a group.
+}
+
+\section{Missing values}{
+
+With \code{drop_na = TRUE} (the default), rows with a missing value in any
+grouping column are removed before splitting and a message reports how
+many.
+
+With \code{drop_na = FALSE}, missing values are coerced to the string \code{"NA"} so
+that they form their own group rather than being dropped silently by
+\code{split()}. A column that also contains a literal \code{"NA"} value -- North
+America, Not Applicable, a country code -- would then have two
+semantically different groups collapse into one file. Rather than merge
+them, \code{write_by_group()} aborts and names the column.
 
 Note: \code{output_dir} has no default value. Always supply an explicit path
 to avoid writing files to unexpected locations. Use \code{tempdir()} for
 temporary output during testing or exploration.
-
-Note on group iteration order: groups are split on the sanitized,
-character-coerced composite key, so iteration order follows the sort
-order of that key rather than the original column's native type. For
-single-column grouping this can differ from previous versions when
-\code{group_col} is numeric with values of differing digit length (e.g.
-\verb{9, 10, 11} sorts numerically in earlier versions but lexicographically
-as \verb{10, 11, 9} here) or when case affects locale-specific sort order.
-File contents and manifest row counts are unaffected -- only the order
-in which groups are written and reported.
 }
+
 \examples{
 \donttest{
 # Split a small data frame by group and write to a temp directory
@@ -85,9 +138,13 @@ data <- data.frame(
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
 
-# Same but also write a manifest
+# Same but also write a job manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
+
+# Namespace the filenames -- adelie.csv becomes penguins-adelie.csv
+write_by_group(data, group_col = "species", prefix = "penguins",
+               output_dir = tempdir())
 
 # Group by more than one column
 data2 <- data.frame(
@@ -98,4 +155,7 @@ data2 <- data.frame(
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
 }
+}
+\seealso{
+\code{\link[=run_by_group]{run_by_group()}}, the apply half of this pair.
 }
