@@ -3,7 +3,7 @@
 # -- helpers -------------------------------------------------------------------
 
 make_project <- function(root,
-                         folders  = c("data-raw", "data", "scripts",
+                         folders  = c("data-raw", "data", "R", "scripts",
                                       "output/figures", "output/tables",
                                       "reports"),
                          rproj    = TRUE,
@@ -133,7 +133,7 @@ test_that("check_project() passes every folder in the standard set", {
 
     result <- check_project(path = project)
 
-    standard <- c("data-raw/", "data/", "scripts/",
+    standard <- c("data-raw/", "data/", "R/", "scripts/",
                   "output/figures/", "output/tables/", "reports/")
 
     for (folder in standard) {
@@ -583,4 +583,300 @@ test_that(".standard_folder_message() falls back for unknown folders", {
 test_that(".cli_escape() doubles braces", {
     expect_equal(.cli_escape("output/{draft}"), "output/{{draft}}")
     expect_equal(.cli_escape("no braces here"), "no braces here")
+})
+
+
+# -- the project manifest ------------------------------------------------------
+
+make_manifest <- function(project, folders, conventions = NULL) {
+    lines <- c("schema_version: 1", "folders:", paste0("  - ", folders))
+    if (!is.null(conventions)) {
+        lines <- c(lines, "conventions:",
+                   paste0("  ", names(conventions), ": ", unlist(conventions)))
+    }
+    dest <- fs::path(project, "_toolero.yml")
+    writeLines(lines, dest)
+    dest
+}
+
+test_that("check_project() warns when no _toolero.yml is present", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "_toolero.yml"], "warn")
+})
+
+test_that("check_project() passes when _toolero.yml is present", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    make_manifest(project, c("data-raw", "data"))
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "_toolero.yml"], "pass")
+})
+
+test_that("the manifest replaces the standard folder set", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root, folders = c("models", "corpora"))
+    make_manifest(project, c("models", "corpora"))
+
+    result <- check_project(path = project)
+
+    expect_true("models/" %in% result$check)
+    expect_false("data-raw/" %in% result$check)
+})
+
+test_that("a folder declared in the manifest and missing is a failure", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root, folders = character(0))
+    make_manifest(project, "models")
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "models/"], "fail")
+})
+
+test_that("a folder missing from the standard set is only a warning", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root, folders = character(0))
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "models/"], character(0))
+    expect_equal(result$status[result$check == "data-raw/"], "warn")
+})
+
+test_that("an explicit config outranks the project's own manifest", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root, folders = "from-config")
+    make_manifest(project, "from-manifest")
+    config <- make_config(root, "from-config")
+
+    result <- check_project(path = project, config = config)
+
+    expect_true("from-config/" %in% result$check)
+    expect_false("from-manifest/" %in% result$check)
+})
+
+test_that("an unreadable manifest fails but does not abort the audit", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    writeLines(c("schema_version: 1", "other_key: value"),
+               fs::path(project, "_toolero.yml"))
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "_toolero.yml"], "fail")
+    # the audit falls back to the standard set rather than stopping
+    expect_equal(result$status[result$check == "data-raw/"], "pass")
+})
+
+test_that("the declared-folder message names where the declaration came from", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root, folders = character(0))
+    make_manifest(project, "models")
+
+    result <- check_project(path = project)
+
+    expect_true(grepl("_toolero.yml",
+                      result$message[result$check == "models/"],
+                      fixed = TRUE))
+})
+
+# -- conventions ---------------------------------------------------------------
+
+test_that("check_project() stays silent when conventions match the defaults", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    make_manifest(project, "data",
+                  conventions = list(output_dir = "output",
+                                     script_dir = "R",
+                                     split_dir  = "data/jobs"))
+
+    result <- check_project(path = project)
+
+    expect_false("conventions" %in% result$check)
+})
+
+test_that("check_project() reports conventions that differ from the defaults", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    make_manifest(project, "data", conventions = list(output_dir = "results"))
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "conventions"], "info")
+    expect_true(grepl("output_dir = results",
+                      result$message[result$check == "conventions"],
+                      fixed = TRUE))
+})
+
+test_that("a project with no manifest reports no conventions row", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    result <- check_project(path = project)
+
+    expect_false("conventions" %in% result$check)
+})
+
+# -- renv checks ---------------------------------------------------------------
+
+write_lock <- function(project, packages = NULL) {
+    pkgs <- if (is.null(packages)) {
+        "{}"
+    } else {
+        paste0(
+            "{",
+            paste0('"', packages, '": {"Package": "', packages, '"}',
+                   collapse = ", "),
+            "}"
+        )
+    }
+    writeLines(
+        paste0('{"R": {"Version": "4.4.0"}, "Packages": ', pkgs, "}"),
+        fs::path(project, "renv.lock")
+    )
+}
+
+test_that("a bare lockfile is not reported when the project has no sources", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_lock(project)
+
+    result <- check_project(path = project)
+
+    expect_false("renv.lock packages" %in% result$check)
+})
+
+test_that("a bare lockfile is reported when the project has sources", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_lock(project)
+    writeLines("library(dplyr)", fs::path(project, "analysis.qmd"))
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "renv.lock packages"], "warn")
+})
+
+test_that("a lockfile holding only renv counts as bare", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_lock(project, packages = "renv")
+    writeLines("library(dplyr)", fs::path(project, "analysis.qmd"))
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "renv.lock packages"], "warn")
+})
+
+test_that("a populated lockfile is not reported", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_lock(project, packages = c("renv", "dplyr"))
+    writeLines("library(dplyr)", fs::path(project, "analysis.qmd"))
+
+    result <- check_project(path = project)
+
+    expect_false("renv.lock packages" %in% result$check)
+})
+
+test_that("sources inside a declared folder are found", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_lock(project)
+    writeLines("1 + 1", fs::path(project, "R", "analysis.R"))
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == "renv.lock packages"], "warn")
+})
+
+test_that("an unparseable lockfile is not reported as bare", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    writeLines("not json at all", fs::path(project, "renv.lock"))
+    writeLines("library(dplyr)", fs::path(project, "analysis.qmd"))
+
+    result <- check_project(path = project)
+
+    expect_false("renv.lock packages" %in% result$check)
+})
+
+test_that("a .renvignore excluding .qmd is reported", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    writeLines("*.qmd", fs::path(project, ".renvignore"))
+
+    result <- check_project(path = project)
+
+    expect_equal(result$status[result$check == ".renvignore"], "warn")
+})
+
+test_that("a .renvignore not excluding .qmd is not reported", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    writeLines(c("# a comment", "scratch/"), fs::path(project, ".renvignore"))
+
+    result <- check_project(path = project)
+
+    expect_false(".renvignore" %in% result$check)
+})
+
+test_that("no .renvignore means no row", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    result <- check_project(path = project)
+
+    expect_false(".renvignore" %in% result$check)
+})
+
+test_that("a commented-out .qmd entry is not reported", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    writeLines("# *.qmd", fs::path(project, ".renvignore"))
+
+    result <- check_project(path = project)
+
+    expect_false(".renvignore" %in% result$check)
+})
+
+# -- internal renv helpers -----------------------------------------------------
+
+test_that(".renv_lock_is_bare() discounts renv itself", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    write_lock(project)
+    expect_true(.renv_lock_is_bare(fs::path(project, "renv.lock")))
+
+    write_lock(project, packages = "renv")
+    expect_true(.renv_lock_is_bare(fs::path(project, "renv.lock")))
+
+    write_lock(project, packages = c("renv", "dplyr"))
+    expect_false(.renv_lock_is_bare(fs::path(project, "renv.lock")))
+})
+
+test_that(".project_has_sources() ignores files outside the declared folders", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root, folders = "data")
+
+    fs::dir_create(fs::path(project, "renv", "library", "somepkg", "R"))
+    writeLines("1 + 1",
+               fs::path(project, "renv", "library", "somepkg", "R", "code.R"))
+
+    expect_false(.project_has_sources(project, "data"))
+})
+
+test_that(".project_has_sources() finds a source at the project root", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root, folders = "data")
+    writeLines("1 + 1", fs::path(project, "analysis.qmd"))
+
+    expect_true(.project_has_sources(project, "data"))
 })

@@ -105,24 +105,73 @@ The format is experimental and may gain keys before it settles. The
 understands what it is holding.
 }
 
+\section{Empty folders and git}{
+
+Each folder \code{init_project()} creates that is still empty when the call
+finishes receives a zero-byte \code{.gitkeep}.
+
+git tracks files rather than directories, so without this a scaffolded
+structure survives nothing: the opening commit contains the files at the
+project root and none of the layout, and a collaborator cloning the
+repository gets a project with no folders in it. The placeholders are
+written whether or not \code{use_git = TRUE}, since a project can be
+git-initialized at any point afterwards.
+
+Folders that already have content are left alone -- \verb{assets/} holds
+branding files by then and is tracked on the strength of those.
+}
+
+\section{The active project}{
+
+\code{init_project()} makes the new project the active \code{usethis} project for the
+duration of the call, and restores whichever project was active before when
+it returns. Nothing is left pointing somewhere the caller did not ask for.
+
+This matters more than it sounds. \code{\link[usethis:create_project]{usethis::create_project()}} sets the
+active project only for its own duration -- it uses
+\code{\link[usethis:local_project]{usethis::local_project()}} internally and restores the caller's project on
+exit when \code{open = FALSE}. Any step that resolves paths through the active
+project therefore has to set it again explicitly. In v0.5.0 and earlier
+\code{init_project()} did not, so with \code{use_git = TRUE} the \code{git} initialization
+and its opening commit ran against whatever project happened to be active
+in the calling session rather than the project just created.
+}
+
 \section{Dependency discovery and \code{renv}}{
 
-When \code{use_renv = TRUE}, \code{init_project()} calls \code{\link[renv:init]{renv::init()}} and stops
-there. Earlier versions additionally wrote a \code{.renvignore} containing
-\verb{*.qmd} and took a second snapshot. Both are gone as of v0.5.0.
+When \code{use_renv = TRUE}, \code{init_project()} calls \code{\link[renv:scaffold]{renv::scaffold()}}, which
+creates \code{renv/library}, \code{renv/activate.R}, \code{renv/.gitignore}, an
+\code{.Rprofile} that activates the project in future sessions, and an initial
+\code{renv.lock}.
 
-The \code{.renvignore} excluded \code{.qmd} files from \code{renv}'s dependency
-discovery, which meant that a project whose \code{library()} calls live in its
-Quarto source -- the arrangement this package recommends -- could snapshot
-a lockfile with none of the analysis packages in it, and
-\code{containr::generate_dockerfile()} would then build an image that could not
-run the analysis. Note that at the moment the file was written there were
-no \code{.qmd} files in the project yet, so it never affected the snapshot
-taken at creation time; its only effect was on every snapshot the user
-took afterwards.
+Three things changed here in v0.5.0, and they are worth understanding
+together.
 
-Take a snapshot yourself once the project has code in it, and before
-containerizing:
+\code{renv::scaffold()} replaces \code{\link[renv:init]{renv::init()}}. \code{init()} loads the new project
+into the \emph{calling} session, repointing \code{.libPaths()} at a library that is
+empty apart from \code{renv} itself -- so every package the caller had
+available vanishes until they restart R. Its \code{restart} argument suppresses
+the restart, not the activation. That is reasonable behavior for someone
+adopting \code{renv} in the project they are sitting in, and the wrong behavior
+for a function whose job is to scaffold a project somewhere else.
+\code{scaffold()} builds the same infrastructure and leaves the caller's
+session untouched.
+
+The \code{.renvignore} containing \verb{*.qmd} is gone. It excluded Quarto documents
+from \code{renv}'s dependency discovery, which meant that a project whose
+\code{library()} calls live in its \code{.qmd} source -- the arrangement this
+package recommends -- could snapshot a lockfile with none of the analysis
+packages in it, and \code{containr::generate_dockerfile()} would then build an
+image that could not run the analysis. At the point the file was written
+the project contained no \code{.qmd} files at all, so it never affected the
+snapshot taken at creation time; its only effect was on every snapshot the
+user took afterwards.
+
+The snapshot at creation time is gone too, for the same underlying reason
+the \code{.renvignore} was pointless there: a project that has just been
+created has no code in it, so there is nothing to discover and nothing
+worth recording. Take a snapshot yourself once the project has code, and
+before containerizing:
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{renv::snapshot()
 }\if{html}{\out{</div>}}
