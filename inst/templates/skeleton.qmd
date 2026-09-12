@@ -10,7 +10,9 @@ format:
     toc-depth: 3
     toc-title: "Contents"
     number-sections: true
-    embed-resources: false
+    # Keeps CSS, JS and images inside the .html, so the rendered file
+    # travels on its own without its _files/ sidecar directory.
+    embed-resources: true
 ---
 
 ```{r}

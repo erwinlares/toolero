@@ -11,7 +11,10 @@
 #'   created. Defaults to `"."` (the current working directory).
 #' @param yaml_data A string or `NULL`. Path to a YAML file containing
 #'   metadata to pre-populate the document header. If `NULL` (the default),
-#'   the template is copied as-is with placeholder prompts intact.
+#'   the template is copied as-is with placeholder prompts intact. Each
+#'   top-level key in the file replaces the template's key of the same
+#'   name; keys the file does not mention are left exactly as the template
+#'   wrote them.
 #' @param overwrite A logical. Whether to overwrite existing files. Defaults
 #'   to `FALSE`. Note two exceptions: `assets/logo.png` is never
 #'   overwritten, since an existing logo is assumed to be deliberate
@@ -22,14 +25,20 @@
 #'   `overwrite`, on purpose.
 #' @param use_purl Logical. Defaults to `FALSE`. When `TRUE`:
 #'   - Stamps the document's own YAML header with `purl: true`.
+#'   - Ensures the header declares a `params` block with an `input_file`
+#'     entry, adding `params: input_file: "data-raw/data.csv"` as a
+#'     placeholder when the template does not already declare one. See
+#'     the note below on why this is tied to `use_purl`.
 #'   - Ensures `R/purl.R` exists in `path` (subject to `overwrite`, like
-#'     any other scaffolded file).
+#'     any other scaffolded file -- an existing `R/purl.R` is left in
+#'     place unless `overwrite = TRUE`).
 #'   - Ensures `path/_quarto.yml` has a `project: post-render:` entry
 #'     pointing at `R/purl.R` -- *unless* `_quarto.yml` already exists
 #'     and declares `project: type:` as `website`, `book`, or
 #'     `manuscript`, in which case the hook is deliberately **not**
-#'     wired automatically. A `cli_warn()` explains why and shows the
-#'     `project:` snippet needed to add it by hand. This guard exists
+#'     wired automatically. A `cli_warn()` explains why, reports whether
+#'     `R/purl.R` was created or was already present, and names the
+#'     `post-render:` entry to add by hand. This guard exists
 #'     because `R/purl.R` purls each document to a path mirroring its
 #'     source location under `R/` -- safe within a single project, but
 #'     the interesting failure mode it's protecting against is deciding
@@ -49,7 +58,8 @@
 #'   When `use_purl = FALSE`, the document's header is still stamped,
 #'   with `purl: false`, so `R/purl.R` (in a project where some other
 #'   document has `use_purl = TRUE`) can positively confirm this document
-#'   should be skipped rather than merely lacking an opinion.
+#'   should be skipped rather than merely lacking an opinion. The `params`
+#'   block is not stamped in that case.
 #'
 #'   `R/purl.R` itself only purls documents whose own header carries
 #'   `purl: true`, so turning this on for one document inside a larger
@@ -59,6 +69,19 @@
 #'   relative to the project root, so two documents that happen to share
 #'   a filename in different directories (e.g. a directory-per-post
 #'   convention using `index.qmd`) do not overwrite each other's output.
+#'
+#'   On the `params` stamp: the input-resolution pattern recommended
+#'   throughout this family of packages -- see [detect_execution_context()]
+#'   and `submitr::htc_gen_submit()` -- reads `params$input_file` in its
+#'   `quarto` branch, which requires the document to declare `params:`.
+#'   The example template does; the skeleton deliberately does not, since
+#'   `include_examples = FALSE` asks for a bare document and padding it to
+#'   serve a cluster workflow the user may never reach would be the wrong
+#'   trade. `use_purl = TRUE` is the user saying this document is destined
+#'   to become a script, and a script is exactly the artifact that runs
+#'   under `Rscript` on an execute node. So the skeleton stays bare for
+#'   the local case and acquires what it needs at the moment it announces
+#'   where it is going. An existing `input_file` is never overwritten.
 #' @param include_examples Logical. If `TRUE` (the default), copies a sample
 #'   dataset (`sample.csv`) into `data-raw/`, a placeholder logo
 #'   (`generic-logo.png`, copied as `logo.png`) into `assets/`, and uses a
@@ -108,11 +131,12 @@
 #'    `styles.css`, `header.html`, and `footer.html` by name and injects
 #'    whichever are present into the YAML header.
 #' 5. Stamps `purl: true` or `purl: false` into the document's own YAML
-#'    header, reflecting `use_purl`.
+#'    header, reflecting `use_purl`, and when `use_purl = TRUE` also
+#'    ensures a `params: input_file:` entry is present.
 #' 6. If `yaml_data` is provided, reads the YAML file and substitutes
 #'    values into the document header. This runs after style injection
 #'    and the purl stamp, so `yaml_data` can override any auto-generated
-#'    YAML key, including `purl` itself.
+#'    YAML key, including `purl` and `params` themselves.
 #' 7. If `use_purl = TRUE`, ensures `R/purl.R` exists. Then, unless
 #'    `_quarto.yml` already exists and declares `project: type:` as
 #'    `website`, `book`, or `manuscript` (in which case wiring is
@@ -124,6 +148,12 @@
 #'    Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB (2020).
 #'    palmerpenguins: Palmer Archipelago (Antarctica) Penguin Data. R package
 #'    version 0.1.0. \doi{10.5281/zenodo.3960218}
+#'
+#' Every edit to the document's YAML header is made line by line rather
+#' than by parsing the header and writing it back out. Keys the edit does
+#' not touch keep the template's own quoting, indentation, comments, and
+#' ordering, so the document a reader opens is the template we shipped
+#' plus the keys they asked for.
 #'
 #' Note: `filename` has no default value and must always be supplied
 #' explicitly. Use `tempdir()` for temporary output during testing or
@@ -141,9 +171,9 @@
 #' create_qmd(path = tempdir(), filename = "analysis.qmd",
 #'            overwrite = TRUE)
 #'
-#' # Opt this document into purl: stamps purl: true and wires up
-#' # R/purl.R + the _quarto.yml post-render hook (merged if the file
-#' # already exists, e.g. inside a larger Quarto website project)
+#' # Opt this document into purl: stamps purl: true and a params block,
+#' # and wires up R/purl.R + the _quarto.yml post-render hook (merged if
+#' # the file already exists, e.g. inside a larger Quarto website project)
 #' create_qmd(path = tempdir(), filename = "analysis.qmd",
 #'            overwrite = TRUE, use_purl = TRUE)
 #'
@@ -199,11 +229,7 @@ create_qmd <- function(
         data_dir <- fs::path(path, "data-raw")
         fs::dir_create(data_dir)
 
-        sample_src <- system.file(
-            "templates", "sample.csv",
-            package = "toolero",
-            mustWork = TRUE
-        )
+        sample_src <- .package_template("sample.csv")
         sample_dst <- fs::path(data_dir, "sample.csv")
 
         if (!fs::file_exists(sample_dst) || overwrite) {
@@ -246,11 +272,7 @@ create_qmd <- function(
         template_name <- "skeleton.qmd"
     }
 
-    qmd_src <- system.file(
-        "templates", template_name,
-        package = "toolero",
-        mustWork = TRUE
-    )
+    qmd_src <- .package_template(template_name)
     qmd_dst <- fs::path(path, filename)
 
     if (fs::file_exists(qmd_dst) && !overwrite) {
@@ -328,10 +350,22 @@ create_qmd <- function(
     # candidates.
     qmd_content <- .inject_purl_yaml(qmd_content, purl = use_purl)
 
+    # A document opted into purl is a document destined to become an .R
+    # script, and a script is what runs under Rscript on an execute node
+    # with its input path arriving on the command line. That is precisely
+    # the document whose header needs a params: block, since the quarto
+    # branch of detect_execution_context() reads params$input_file. The
+    # example template already declares one pointing at the sample data,
+    # and that is a better value than anything guessed here, so an
+    # existing entry is left alone.
+    if (use_purl) {
+        qmd_content <- .stamp_params_yaml(qmd_content)
+    }
+
     # -- 7. Substitute YAML if yaml_data is provided -----------------------------
     # Runs after style injection and the purl stamp, so a user's own
-    # config can still override either -- including purl itself, if they
-    # really want to hand-author that key.
+    # config can still override either -- including purl and params, if
+    # they really want to hand-author those keys.
     if (!is.null(yaml_data)) {
         if (!fs::file_exists(yaml_data)) {
             cli::cli_abort(
@@ -349,19 +383,21 @@ create_qmd <- function(
     # -- 8. Ensure the post-render hook and R/purl.R exist if use_purl = TRUE ----
     if (use_purl) {
 
-        # purl.R goes into R/, not the project root. Copied unconditionally
-        # whenever use_purl = TRUE, regardless of whether _quarto.yml
-        # wiring below is skipped by the multi-document-project guard --
-        # the script being present is what lets someone wire the hook up
-        # by hand after reading the warning.
-        purl_src <- system.file(
-            "templates", "purl.R",
-            package = "toolero",
-            mustWork = TRUE
-        )
+        # purl.R goes into R/, not the project root. Scaffolded whenever
+        # use_purl = TRUE and subject to overwrite like any other file, so
+        # an existing copy is left in place unless overwrite = TRUE. This
+        # happens regardless of whether the _quarto.yml wiring below is
+        # skipped by the multi-document-project guard -- the script being
+        # in place is what lets someone wire the hook up by hand after
+        # reading the warning, which is why the warning reports whether
+        # the copy is fresh or pre-existing.
+        purl_src <- .package_template("purl.R")
         fs::dir_create(fs::path(path, "R"))
         purl_dst <- fs::path(path, "R", "purl.R")
-        if (!fs::file_exists(purl_dst) || overwrite) {
+
+        purl_copied <- !fs::file_exists(purl_dst) || overwrite
+
+        if (purl_copied) {
             fs::file_copy(purl_src, purl_dst, overwrite = overwrite)
             cli::cli_alert_success("Created {.path {purl_dst}}")
         } else {
@@ -386,11 +422,7 @@ create_qmd <- function(
             # nothing to overwrite. Nothing to guard against either -- a
             # brand-new _quarto.yml has no project: type: yet, so it
             # cannot be a multi-document project by definition.
-            quarto_yml_src <- system.file(
-                "templates", "_quarto.yml",
-                package = "toolero",
-                mustWork = TRUE
-            )
+            quarto_yml_src <- .package_template("_quarto.yml")
             fs::file_copy(quarto_yml_src, quarto_yml_dst)
             .merge_post_render_hook(
                 quarto_yml_path = quarto_yml_dst,
@@ -402,6 +434,25 @@ create_qmd <- function(
             # documents on every full build, and the person scaffolding
             # this one .qmd may not be thinking about the others. Skip
             # automatic wiring and explain how to add it deliberately.
+            #
+            # The status line matters: whoever reads this warning is
+            # about to point a post-render hook at R/purl.R by hand, and
+            # they need to know whether the script sitting there is the
+            # one this version of toolero ships or one left over from an
+            # earlier run.
+            # Passed to cli as a format string in its own right, not
+            # interpolated into one: cli does not process inline markup
+            # inside a substituted value, so {.code} written into a
+            # variable and dropped in with {purl_note} would print its
+            # own braces.
+            purl_note <- if (purl_copied) {
+                "{.path R/purl.R} was created just now."
+            } else {
+                "{.path R/purl.R} was already there and has been left as
+                 it is. Re-run with {.code overwrite = TRUE} if you want
+                 the copy this version of toolero ships."
+            }
+
             cli::cli_warn(c(
                 "!" = "{.path {quarto_yml_dst}} is a {.val {project_type}} project -- skipping automatic post-render wiring.",
                 "i" = "This project likely renders many documents at once,
@@ -409,10 +460,10 @@ create_qmd <- function(
                        mirroring its own location under {.path R/}. Wiring
                        the hook automatically would opt the whole project
                        in without anyone deciding that on purpose.",
-                "i" = "{.path R/purl.R} was still created. To enable it
-                       yourself, add this to {.path {quarto_yml_dst}}:
-                       project:
-                         post-render: R/purl.R"
+                "i" = purl_note,
+                "i" = "To enable it yourself, add
+                       {.code post-render: R/purl.R} under the
+                       {.code project:} key in {.path {quarto_yml_dst}}."
             ))
         } else {
             # Any other existing _quarto.yml -- merge the hook into its
@@ -447,99 +498,75 @@ create_qmd <- function(
 
 
 # -- Helper: inject css and header/footer includes into YAML -----------------
+#
+# Each asset is one key under format: html:, so each is one call to the
+# line-oriented setter in R/utils-yaml.R. Nothing else in the header is
+# read, rewritten, or reordered.
 
 .inject_style_yaml <- function(qmd_content,
                                css_file = NULL,
                                header_file = NULL,
                                footer_file = NULL) {
 
-    # Normalize line endings
-    qmd_content <- gsub("\r\n", "\n", qmd_content, fixed = TRUE)
-
-    yaml_pattern <- "(?s)^---\\n(.+?)\\n---"
-    yaml_match <- regmatches(
-        qmd_content,
-        regexpr(yaml_pattern, qmd_content, perl = TRUE)
-    )
-
-    if (length(yaml_match) == 0) {
-        cli::cli_warn(
-            "No YAML header found in template. Skipping style injection."
-        )
-        return(qmd_content)
-    }
-
-    template_yaml <- yaml::yaml.load(yaml_match)
-
-    # Ensure format$html exists
-    if (is.null(template_yaml[["format"]])) {
-        template_yaml[["format"]] <- list()
-    }
-    if (is.null(template_yaml[["format"]][["html"]])) {
-        template_yaml[["format"]][["html"]] <- list()
-    }
+    keys <- list()
 
     if (!is.null(css_file)) {
-        template_yaml[["format"]][["html"]][["css"]] <- as.character(css_file)
+        keys <- c(keys, list(list(
+            path  = c("format", "html", "css"),
+            value = as.character(css_file)
+        )))
     }
 
     # header.html holds visible banner markup, so it belongs before the
     # body -- include-in-header would place it inside <head>.
     if (!is.null(header_file)) {
-        template_yaml[["format"]][["html"]][["include-before-body"]] <-
-            as.character(header_file)
+        keys <- c(keys, list(list(
+            path  = c("format", "html", "include-before-body"),
+            value = as.character(header_file)
+        )))
     }
 
     if (!is.null(footer_file)) {
-        template_yaml[["format"]][["html"]][["include-after-body"]] <-
-            as.character(footer_file)
+        keys <- c(keys, list(list(
+            path  = c("format", "html", "include-after-body"),
+            value = as.character(footer_file)
+        )))
     }
 
-    merged_yaml_str <- yaml::as.yaml(
-        template_yaml,
-        handlers = list(
-            logical = function(x) {
-                structure(ifelse(x, "true", "false"), class = "verbatim")
-            }
-        )
-    )
-    new_header <- paste0("---\n", merged_yaml_str, "---")
-
-    sub(yaml_pattern, new_header, qmd_content, perl = TRUE)
+    .set_yaml_keys(qmd_content, keys, what = "style injection")
 }
 
 
 # -- Helper: stamp purl: true/false into a document's YAML header ------------
 
 .inject_purl_yaml <- function(qmd_content, purl = TRUE) {
-
-    qmd_content <- gsub("\r\n", "\n", qmd_content, fixed = TRUE)
-
-    yaml_pattern <- "(?s)^---\\n(.+?)\\n---"
-    yaml_match <- regmatches(
+    .set_yaml_keys(
         qmd_content,
-        regexpr(yaml_pattern, qmd_content, perl = TRUE)
+        list(list(path = "purl", value = isTRUE(purl))),
+        what = "the purl flag"
     )
+}
 
-    if (length(yaml_match) == 0) {
-        cli::cli_warn("No YAML header found in template. Skipping purl flag.")
-        return(qmd_content)
-    }
 
-    template_yaml <- yaml::yaml.load(yaml_match)
-    template_yaml[["purl"]] <- purl
+# -- Helper: stamp params: input_file: into a document's YAML header ---------
+#
+# Written only when the header does not already declare input_file, so a
+# template that ships one (example.qmd points at the sample data) keeps
+# it. Setting the leaf rather than the whole params block means a
+# document declaring other parameters gains input_file alongside them
+# instead of losing them.
 
-    merged_yaml_str <- yaml::as.yaml(
-        template_yaml,
-        handlers = list(
-            logical = function(x) {
-                structure(ifelse(x, "true", "false"), class = "verbatim")
-            }
-        )
+.stamp_params_yaml <- function(qmd_content,
+                               input_file = "data-raw/data.csv") {
+    .set_yaml_keys(
+        qmd_content,
+        list(list(
+            path      = c("params", "input_file"),
+            value     = input_file,
+            overwrite = FALSE
+        )),
+        what = "the params block"
     )
-    new_header <- paste0("---\n", merged_yaml_str, "---")
-
-    sub(yaml_pattern, new_header, qmd_content, perl = TRUE)
 }
 
 
@@ -581,41 +608,18 @@ create_qmd <- function(
 
 
 # -- Helper: substitute YAML values into template ----------------------------
+#
+# Each top-level key the user supplies replaces the template's key of the
+# same name, which is the precedence the previous implementation had. The
+# difference is that keys the user does not mention are no longer
+# reserialized on the way past: they stay exactly as the template wrote
+# them, comments, quoting and all.
 
 .substitute_yaml <- function(qmd_content, user_yaml) {
 
-    # Normalize line endings to \n regardless of platform
-    qmd_content <- gsub("\r\n", "\n", qmd_content, fixed = TRUE)
+    keys <- lapply(names(user_yaml), function(key) {
+        list(path = key, value = user_yaml[[key]])
+    })
 
-    yaml_pattern <- "(?s)^---\\n(.+?)\\n---"
-    yaml_match <- regmatches(
-        qmd_content,
-        regexpr(yaml_pattern, qmd_content, perl = TRUE)
-    )
-
-    if (length(yaml_match) == 0) {
-        cli::cli_warn("No YAML header found in template. Skipping substitution.")
-        return(qmd_content)
-    }
-
-    # Parse template YAML
-    template_yaml <- yaml::yaml.load(yaml_match)
-
-    # Directly overwrite keys present in user_yaml
-    for (key in names(user_yaml)) {
-        template_yaml[[key]] <- user_yaml[[key]]
-    }
-
-    # Serialize and reconstruct, forcing true/false instead of yes/no
-    merged_yaml_str <- yaml::as.yaml(
-        template_yaml,
-        handlers = list(
-            logical = function(x) {
-                structure(ifelse(x, "true", "false"), class = "verbatim")
-            }
-        )
-    )
-    new_header <- paste0("---\n", merged_yaml_str, "---")
-
-    sub(yaml_pattern, new_header, qmd_content, perl = TRUE)
+    .set_yaml_keys(qmd_content, keys, what = "substitution")
 }

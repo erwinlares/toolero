@@ -23,7 +23,10 @@ created. Defaults to \code{"."} (the current working directory).}
 
 \item{yaml_data}{A string or \code{NULL}. Path to a YAML file containing
 metadata to pre-populate the document header. If \code{NULL} (the default),
-the template is copied as-is with placeholder prompts intact.}
+the template is copied as-is with placeholder prompts intact. Each
+top-level key in the file replaces the template's key of the same
+name; keys the file does not mention are left exactly as the template
+wrote them.}
 
 \item{overwrite}{A logical. Whether to overwrite existing files. Defaults
 to \code{FALSE}. Note two exceptions: \code{assets/logo.png} is never
@@ -37,14 +40,20 @@ is touched, it is merged rather than replaced, and in some cases
 \item{use_purl}{Logical. Defaults to \code{FALSE}. When \code{TRUE}:
 \itemize{
 \item Stamps the document's own YAML header with \code{purl: true}.
+\item Ensures the header declares a \code{params} block with an \code{input_file}
+entry, adding \code{params: input_file: "data-raw/data.csv"} as a
+placeholder when the template does not already declare one. See
+the note below on why this is tied to \code{use_purl}.
 \item Ensures \code{R/purl.R} exists in \code{path} (subject to \code{overwrite}, like
-any other scaffolded file).
+any other scaffolded file -- an existing \code{R/purl.R} is left in
+place unless \code{overwrite = TRUE}).
 \item Ensures \verb{path/_quarto.yml} has a \verb{project: post-render:} entry
 pointing at \code{R/purl.R} -- \emph{unless} \verb{_quarto.yml} already exists
 and declares \verb{project: type:} as \code{website}, \code{book}, or
 \code{manuscript}, in which case the hook is deliberately \strong{not}
-wired automatically. A \code{cli_warn()} explains why and shows the
-\verb{project:} snippet needed to add it by hand. This guard exists
+wired automatically. A \code{cli_warn()} explains why, reports whether
+\code{R/purl.R} was created or was already present, and names the
+\verb{post-render:} entry to add by hand. This guard exists
 because \code{R/purl.R} purls each document to a path mirroring its
 source location under \verb{R/} -- safe within a single project, but
 the interesting failure mode it's protecting against is deciding
@@ -65,7 +74,8 @@ to \code{post-render} is non-destructive.
 When \code{use_purl = FALSE}, the document's header is still stamped,
 with \code{purl: false}, so \code{R/purl.R} (in a project where some other
 document has \code{use_purl = TRUE}) can positively confirm this document
-should be skipped rather than merely lacking an opinion.
+should be skipped rather than merely lacking an opinion. The \code{params}
+block is not stamped in that case.
 
 \code{R/purl.R} itself only purls documents whose own header carries
 \code{purl: true}, so turning this on for one document inside a larger
@@ -74,7 +84,20 @@ project -- a Quarto website, a book -- does not cause every other
 full. Output paths under \verb{R/} mirror each source document's path
 relative to the project root, so two documents that happen to share
 a filename in different directories (e.g. a directory-per-post
-convention using \code{index.qmd}) do not overwrite each other's output.}
+convention using \code{index.qmd}) do not overwrite each other's output.
+
+On the \code{params} stamp: the input-resolution pattern recommended
+throughout this family of packages -- see \code{\link[=detect_execution_context]{detect_execution_context()}}
+and \code{submitr::htc_gen_submit()} -- reads \code{params$input_file} in its
+\code{quarto} branch, which requires the document to declare \verb{params:}.
+The example template does; the skeleton deliberately does not, since
+\code{include_examples = FALSE} asks for a bare document and padding it to
+serve a cluster workflow the user may never reach would be the wrong
+trade. \code{use_purl = TRUE} is the user saying this document is destined
+to become a script, and a script is exactly the artifact that runs
+under \code{Rscript} on an execute node. So the skeleton stays bare for
+the local case and acquires what it needs at the moment it announces
+where it is going. An existing \code{input_file} is never overwritten.}
 
 \item{include_examples}{Logical. If \code{TRUE} (the default), copies a sample
 dataset (\code{sample.csv}) into \verb{data-raw/}, a placeholder logo
@@ -135,11 +158,12 @@ exists there. Uses the example template for the \code{.qmd}.
 \code{styles.css}, \code{header.html}, and \code{footer.html} by name and injects
 whichever are present into the YAML header.
 \item Stamps \code{purl: true} or \code{purl: false} into the document's own YAML
-header, reflecting \code{use_purl}.
+header, reflecting \code{use_purl}, and when \code{use_purl = TRUE} also
+ensures a \verb{params: input_file:} entry is present.
 \item If \code{yaml_data} is provided, reads the YAML file and substitutes
 values into the document header. This runs after style injection
 and the purl stamp, so \code{yaml_data} can override any auto-generated
-YAML key, including \code{purl} itself.
+YAML key, including \code{purl} and \code{params} themselves.
 \item If \code{use_purl = TRUE}, ensures \code{R/purl.R} exists. Then, unless
 \verb{_quarto.yml} already exists and declares \verb{project: type:} as
 \code{website}, \code{book}, or \code{manuscript} (in which case wiring is
@@ -152,6 +176,12 @@ Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB (2020).
 palmerpenguins: Palmer Archipelago (Antarctica) Penguin Data. R package
 version 0.1.0. \doi{10.5281/zenodo.3960218}
 }
+
+Every edit to the document's YAML header is made line by line rather
+than by parsing the header and writing it back out. Keys the edit does
+not touch keep the template's own quoting, indentation, comments, and
+ordering, so the document a reader opens is the template we shipped
+plus the keys they asked for.
 
 Note: \code{filename} has no default value and must always be supplied
 explicitly. Use \code{tempdir()} for temporary output during testing or
@@ -167,9 +197,9 @@ create_qmd(path = tempdir(), filename = "analysis.qmd",
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
 
-# Opt this document into purl: stamps purl: true and wires up
-# R/purl.R + the _quarto.yml post-render hook (merged if the file
-# already exists, e.g. inside a larger Quarto website project)
+# Opt this document into purl: stamps purl: true and a params block,
+# and wires up R/purl.R + the _quarto.yml post-render hook (merged if
+# the file already exists, e.g. inside a larger Quarto website project)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE, use_purl = TRUE)
 

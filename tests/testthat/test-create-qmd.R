@@ -1000,3 +1000,214 @@ test_that("merge_post_render_hook() normalizes a list post-render entry without 
   hooks <- as.character(parsed[["project"]][["post-render"]])
   expect_setequal(hooks, c("compress.ts", "fix-links.py", "R/purl.R"))
 })
+
+# -- T15: R/purl.R is scaffolded subject to overwrite, and the guard says so ----
+
+test_that("an existing R/purl.R is left in place when overwrite = FALSE", {
+  tmp <- withr::local_tempdir()
+  fs::dir_create(fs::path(tmp, "R"))
+  readr::write_file("# stale copy\n", fs::path(tmp, "R", "purl.R"))
+
+  create_qmd(path = tmp, filename = "analysis.qmd", use_purl = TRUE)
+
+  expect_equal(
+    readr::read_file(fs::path(tmp, "R", "purl.R")),
+    "# stale copy\n"
+  )
+})
+
+test_that("an existing R/purl.R is replaced when overwrite = TRUE", {
+  tmp <- withr::local_tempdir()
+  fs::dir_create(fs::path(tmp, "R"))
+  readr::write_file("# stale copy\n", fs::path(tmp, "R", "purl.R"))
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    use_purl = TRUE, overwrite = TRUE
+  )
+
+  expect_false(
+    grepl("stale copy", readr::read_file(fs::path(tmp, "R", "purl.R")),
+          fixed = TRUE)
+  )
+})
+
+test_that("the guard's warning says R/purl.R was created when it was", {
+  tmp <- withr::local_tempdir()
+  make_quarto_yml(tmp, "project:\n  type: website\n")
+
+  expect_warning(
+    create_qmd(path = tmp, filename = "analysis.qmd", use_purl = TRUE),
+    "created"
+  )
+})
+
+test_that("the guard's warning says R/purl.R was already there when it was", {
+  tmp <- withr::local_tempdir()
+  make_quarto_yml(tmp, "project:\n  type: website\n")
+  fs::dir_create(fs::path(tmp, "R"))
+  readr::write_file("# stale copy\n", fs::path(tmp, "R", "purl.R"))
+
+  expect_warning(
+    create_qmd(path = tmp, filename = "analysis.qmd", use_purl = TRUE),
+    "already"
+  )
+})
+
+# -- T16: the header is edited in place, not parsed and rewritten --------------
+
+test_that("the example template's quoting and block scalar survive scaffolding", {
+  tmp <- withr::local_tempdir()
+  make_style_dir(tmp)
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = TRUE, use_style = TRUE, use_purl = TRUE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+
+  expect_true(grepl('title: "Your Document Title"', qmd_content, fixed = TRUE))
+  expect_true(grepl("abstract: |", qmd_content, fixed = TRUE))
+  expect_true(grepl('  - "add"', qmd_content, fixed = TRUE))
+})
+
+test_that("YAML comments in the template survive scaffolding", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(path = tmp, filename = "analysis.qmd", include_examples = FALSE)
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("# Keeps CSS, JS and images", qmd_content, fixed = TRUE))
+})
+
+test_that("the generated document's YAML header still parses", {
+  tmp <- withr::local_tempdir()
+  make_style_dir(tmp)
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = TRUE, use_style = TRUE, use_purl = TRUE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  header <- .split_yaml_header(qmd_content)$header
+  parsed <- yaml::yaml.load(paste(header, collapse = "\n"))
+
+  expect_true(parsed[["purl"]])
+  expect_equal(parsed[["title"]], "Your Document Title")
+  expect_equal(parsed[["format"]][["html"]][["css"]], "assets/styles.css")
+  expect_true(parsed[["format"]][["html"]][["embed-resources"]])
+})
+
+# -- T17: params is stamped when the document says it is headed for a cluster --
+
+test_that("use_purl = TRUE stamps params: input_file: into a bare skeleton", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_purl = TRUE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("params:", qmd_content, fixed = TRUE))
+  expect_true(grepl("input_file", qmd_content, fixed = TRUE))
+  expect_true(grepl("data-raw/data.csv", qmd_content, fixed = TRUE))
+})
+
+test_that("use_purl = FALSE leaves a bare skeleton without params", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_purl = FALSE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_false(grepl("params", qmd_content, fixed = TRUE))
+})
+
+test_that("the stamp does not disturb the example template's own input_file", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = TRUE, use_purl = TRUE
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("data-raw/sample.csv", qmd_content, fixed = TRUE))
+  expect_false(grepl("data-raw/data.csv", qmd_content, fixed = TRUE))
+})
+
+test_that("yaml_data still overrides the stamped params block", {
+  tmp <- withr::local_tempdir()
+  yaml_file <- withr::local_tempfile(fileext = ".yml")
+  readr::write_file("params:\n  input_file: my/own.csv\n", yaml_file)
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_purl = TRUE, yaml_data = yaml_file
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("my/own.csv", qmd_content, fixed = TRUE))
+  expect_false(grepl("data-raw/data.csv", qmd_content, fixed = TRUE))
+})
+
+test_that("the stamped params block parses as a Quarto params declaration", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_purl = TRUE
+  )
+
+  header <- .split_yaml_header(
+    readr::read_file(fs::path(tmp, "analysis.qmd"))
+  )$header
+  parsed <- yaml::yaml.load(paste(header, collapse = "\n"))
+
+  expect_equal(parsed[["params"]][["input_file"]], "data-raw/data.csv")
+})
+
+# -- T27: rendered documents travel without a _files/ sidecar ------------------
+
+test_that("the skeleton template sets embed-resources: true", {
+  tmp <- withr::local_tempdir()
+  create_qmd(path = tmp, filename = "analysis.qmd", include_examples = FALSE)
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("embed-resources: true", qmd_content, fixed = TRUE))
+  expect_false(grepl("embed-resources: false", qmd_content, fixed = TRUE))
+})
+
+test_that("the example template sets embed-resources: true", {
+  tmp <- withr::local_tempdir()
+  create_qmd(path = tmp, filename = "analysis.qmd", include_examples = TRUE)
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("embed-resources: true", qmd_content, fixed = TRUE))
+  expect_false(grepl("embed-resources: false", qmd_content, fixed = TRUE))
+})
+
+# -- Logical values supplied through yaml_data ---------------------------------
+# The older .substitute_yaml() test covering this passes trivially now that
+# untouched keys are never reserialized, so this exercises the handler on a
+# value the user actually supplies.
+
+test_that("a logical supplied through yaml_data is written as true, not yes", {
+  tmp <- withr::local_tempdir()
+  yaml_file <- withr::local_tempfile(fileext = ".yml")
+  readr::write_file("draft: true\n", yaml_file)
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, yaml_data = yaml_file
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("draft: true", qmd_content, fixed = TRUE))
+  expect_false(grepl("draft: yes", qmd_content, fixed = TRUE))
+})
