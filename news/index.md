@@ -4,6 +4,34 @@
 
 #### Breaking changes
 
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  both bundled templates now set `format: html: embed-resources: true`
+  rather than stating the Quarto default of `false`. A
+  non-self-contained HTML depends on the `_files/` sidecar directory
+  rendered beside it, and nothing that moves these documents around
+  knows about sidecars: `submitr::htc_gen_executable()` archives a
+  folder, an emailed report is one file, and a rendered document
+  committed next to its analysis quietly depends on a directory nobody
+  thinks to copy. The cost of `true` is a larger file; the cost of
+  `false` is an artifact that works only on the machine that made it.
+  Set it back in your own header if you would rather have the sidecar.
+
+- `create_qmd(use_purl = TRUE)`: the generated document’s header now
+  declares a `params` block with an `input_file` entry, added as
+  `params: input_file: "data-raw/data.csv"` when the template does not
+  already declare one. The input-resolution pattern this family of
+  packages recommends – see
+  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
+  and `submitr::htc_gen_submit()` – reads `params$input_file` in its
+  `quarto` branch, which requires the document to declare `params:`. The
+  example template does; the skeleton deliberately does not, since
+  `include_examples = FALSE` asks for a bare document. `use_purl = TRUE`
+  is the user saying this document is destined to become a script, and a
+  script is exactly the artifact that runs under `Rscript` on an execute
+  node, so that is where the block is earned. An `input_file` the
+  template or `yaml_data` supplies is never overwritten, and the
+  placeholder is meant to be edited.
+
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
   uses
   [`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html)
@@ -326,6 +354,26 @@
 
 #### Bug fixes
 
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  the YAML header was matched with a regular expression whose match
+  included both `---` fences, and that whole string, trailing fence and
+  all, was handed to
+  [`yaml::yaml.load()`](https://yaml.r-lib.org/reference/yaml.load.html),
+  where the closing fence reads as the start of a second, empty YAML
+  document. The parser tolerated it, so nothing visibly broke; the
+  fences are now stripped before anything parses the header.
+
+- `create_qmd(use_purl = TRUE)`: the warning issued when automatic
+  post-render wiring is skipped for a `website`, `book`, or `manuscript`
+  project asserted that `R/purl.R` “was still created”. It may not have
+  been: the script is scaffolded subject to `overwrite`, so an existing
+  copy is left in place. The warning now reports which of the two
+  happened, since whoever reads it is about to point a post-render hook
+  at that script by hand and needs to know whether it is the copy this
+  version ships. The manual instructions in the same warning are now
+  phrased inline rather than as a two-line YAML snippet, which `cli`
+  collapsed onto one line anyway.
+
 - `init_project(use_git = TRUE)` initialized the git repository, staged
   files and made the opening commit in **the caller’s project rather
   than the project it had just created**.
@@ -351,6 +399,28 @@
   why this went unnoticed; the git path is now covered.
 
 #### Internal changes
+
+- New `R/utils-yaml.R` holds the line-oriented header helpers:
+  `.split_yaml_header()`, `.join_yaml_header()`, `.set_yaml_key()` and
+  `.set_yaml_keys()`, with `.yaml_indent()`, `.yaml_line_key()`,
+  `.find_yaml_key()`, `.yaml_entry_extent()`, `.first_child_indent()`,
+  `.splice()` and `.render_yaml_entry()` beneath them. Only the value
+  being written passes through
+  [`yaml::as.yaml()`](https://yaml.r-lib.org/reference/as.yaml.html).
+
+- `.inject_style_yaml()`, `.inject_purl_yaml()` and `.substitute_yaml()`
+  were three near-identical copies of the same parse-mutate-serialize
+  block, differing only in the mutation between the two. They are now
+  three thin callers of `.set_yaml_keys()`, and `.stamp_params_yaml()`
+  joins them as a fourth.
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+  resolves `sample.csv`, the `.qmd` templates, `purl.R` and
+  `_quarto.yml` through
+  [`.package_template()`](https://erwinlares.github.io/toolero/reference/dot-package_template.md)
+  rather than calling `system.file(mustWork = TRUE)` directly, so a
+  missing or misnamed template reports which file it wanted instead of
+  `pkgload`’s bare `Can't find package file.`
 
 - [`.standard_folder_message()`](https://erwinlares.github.io/toolero/reference/dot-standard_folder_message.md)
   and
@@ -513,6 +583,23 @@
 
 #### Improvements
 
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  every edit to a document’s YAML header is now made line by line rather
+  than by parsing the header and writing it back out. Keys the edit does
+  not touch keep the template’s own quoting, indentation, comments and
+  ordering, so the document a reader opens is the template we shipped
+  plus the keys they asked for. Previously a header was parsed and
+  re-serialized once per edit – up to three times in a single call with
+  `use_style`, `use_purl` and `yaml_data` together – and each pass
+  stripped quoting from scalars, moved sequence indentation, and would
+  have deleted any comment the header carried. Both templates now carry
+  a YAML comment explaining `embed-resources`, which the old
+  implementation could not have preserved.
+
+- `create_qmd(yaml_data = )`: a key the supplied file does not mention
+  is now left exactly as the template wrote it. Top-level keys the file
+  does mention are replaced wholesale, as before.
+
 - [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md):
   README detection is now case-insensitive and extension-agnostic. Any
   file whose stem matches `readme` (in any capitalization) is
@@ -521,6 +608,7 @@
   case-sensitively, missing common variants like `readme.md` or a plain
   `README` on Linux (issue
   [\#11](https://github.com/erwinlares/toolero/issues/11)).
+
 - [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md):
   the standard folder set now matches
   [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
@@ -529,6 +617,7 @@
   (`data-raw/`, `data/`, `docs/`) was stale relative to the v0.4.0
   breaking change to
   [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md).
+
 - [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md):
   new `config` argument accepts a path to a YAML file produced by
   [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md).

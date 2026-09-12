@@ -35,7 +35,10 @@ create_qmd(
 
   A string or `NULL`. Path to a YAML file containing metadata to
   pre-populate the document header. If `NULL` (the default), the
-  template is copied as-is with placeholder prompts intact.
+  template is copied as-is with placeholder prompts intact. Each
+  top-level key in the file replaces the template's key of the same
+  name; keys the file does not mention are left exactly as the template
+  wrote them.
 
 - overwrite:
 
@@ -53,34 +56,42 @@ create_qmd(
 
   - Stamps the document's own YAML header with `purl: true`.
 
+  - Ensures the header declares a `params` block with an `input_file`
+    entry, adding `params: input_file: "data-raw/data.csv"` as a
+    placeholder when the template does not already declare one. See the
+    note below on why this is tied to `use_purl`.
+
   - Ensures `R/purl.R` exists in `path` (subject to `overwrite`, like
-    any other scaffolded file).
+    any other scaffolded file – an existing `R/purl.R` is left in place
+    unless `overwrite = TRUE`).
 
   - Ensures `path/_quarto.yml` has a `project: post-render:` entry
     pointing at `R/purl.R` – *unless* `_quarto.yml` already exists and
     declares `project: type:` as `website`, `book`, or `manuscript`, in
     which case the hook is deliberately **not** wired automatically. A
-    `cli_warn()` explains why and shows the `project:` snippet needed to
-    add it by hand. This guard exists because `R/purl.R` purls each
-    document to a path mirroring its source location under `R/` – safe
-    within a single project, but the interesting failure mode it's
-    protecting against is deciding *whether* to opt a multi-document
-    project in at all, since a website or book renders many documents on
-    every full build and the person scaffolding one `.qmd` may not be
-    thinking about the other twenty. If `_quarto.yml` does not yet exist
-    at all, the package template is copied in as usual (nothing to guard
-    against yet – a fresh `_quarto.yml` with no `type:` is not a multi-
-    document project). Outside the guarded types, an existing
-    `_quarto.yml` gets the hook merged into its existing `project:`
-    block rather than overwritten, so `type`, `website`, and any other
-    project options are left untouched. This merge (when it happens) is
-    unaffected by `overwrite`, since appending one line to `post-render`
-    is non-destructive.
+    `cli_warn()` explains why, reports whether `R/purl.R` was created or
+    was already present, and names the `post-render:` entry to add by
+    hand. This guard exists because `R/purl.R` purls each document to a
+    path mirroring its source location under `R/` – safe within a single
+    project, but the interesting failure mode it's protecting against is
+    deciding *whether* to opt a multi-document project in at all, since
+    a website or book renders many documents on every full build and the
+    person scaffolding one `.qmd` may not be thinking about the other
+    twenty. If `_quarto.yml` does not yet exist at all, the package
+    template is copied in as usual (nothing to guard against yet – a
+    fresh `_quarto.yml` with no `type:` is not a multi- document
+    project). Outside the guarded types, an existing `_quarto.yml` gets
+    the hook merged into its existing `project:` block rather than
+    overwritten, so `type`, `website`, and any other project options are
+    left untouched. This merge (when it happens) is unaffected by
+    `overwrite`, since appending one line to `post-render` is
+    non-destructive.
 
   When `use_purl = FALSE`, the document's header is still stamped, with
   `purl: false`, so `R/purl.R` (in a project where some other document
   has `use_purl = TRUE`) can positively confirm this document should be
-  skipped rather than merely lacking an opinion.
+  skipped rather than merely lacking an opinion. The `params` block is
+  not stamped in that case.
 
   `R/purl.R` itself only purls documents whose own header carries
   `purl: true`, so turning this on for one document inside a larger
@@ -90,6 +101,20 @@ create_qmd(
   the project root, so two documents that happen to share a filename in
   different directories (e.g. a directory-per-post convention using
   `index.qmd`) do not overwrite each other's output.
+
+  On the `params` stamp: the input-resolution pattern recommended
+  throughout this family of packages – see
+  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
+  and `submitr::htc_gen_submit()` – reads `params$input_file` in its
+  `quarto` branch, which requires the document to declare `params:`. The
+  example template does; the skeleton deliberately does not, since
+  `include_examples = FALSE` asks for a bare document and padding it to
+  serve a cluster workflow the user may never reach would be the wrong
+  trade. `use_purl = TRUE` is the user saying this document is destined
+  to become a script, and a script is exactly the artifact that runs
+  under `Rscript` on an execute node. So the skeleton stays bare for the
+  local case and acquires what it needs at the moment it announces where
+  it is going. An existing `input_file` is never overwritten.
 
 - include_examples:
 
@@ -156,12 +181,13 @@ Invisibly returns `path`.
     whichever are present into the YAML header.
 
 5.  Stamps `purl: true` or `purl: false` into the document's own YAML
-    header, reflecting `use_purl`.
+    header, reflecting `use_purl`, and when `use_purl = TRUE` also
+    ensures a `params: input_file:` entry is present.
 
 6.  If `yaml_data` is provided, reads the YAML file and substitutes
     values into the document header. This runs after style injection and
     the purl stamp, so `yaml_data` can override any auto-generated YAML
-    key, including `purl` itself.
+    key, including `purl` and `params` themselves.
 
 7.  If `use_purl = TRUE`, ensures `R/purl.R` exists. Then, unless
     `_quarto.yml` already exists and declares `project: type:` as
@@ -177,6 +203,12 @@ Invisibly returns `path`.
     Data. R package version 0.1.0.
     [doi:10.5281/zenodo.3960218](https://doi.org/10.5281/zenodo.3960218)
 
+Every edit to the document's YAML header is made line by line rather
+than by parsing the header and writing it back out. Keys the edit does
+not touch keep the template's own quoting, indentation, comments, and
+ordering, so the document a reader opens is the template we shipped plus
+the keys they asked for.
+
 Note: `filename` has no default value and must always be supplied
 explicitly. Use [`tempdir()`](https://rdrr.io/r/base/tempfile.html) for
 temporary output during testing or exploration.
@@ -188,34 +220,34 @@ temporary output during testing or exploration.
 # Minimal blank document -- no examples, no styling, no purl
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
-#> ✔ Created /tmp/RtmplOz4EO/analysis.qmd
+#> ✔ Created /tmp/RtmpAyNNfD/analysis.qmd
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
-#> ✔ Created /tmp/RtmplOz4EO/data-raw/sample.csv
-#> ✔ Created /tmp/RtmplOz4EO/assets/logo.png
-#> ✔ Created /tmp/RtmplOz4EO/analysis.qmd
+#> ✔ Created /tmp/RtmpAyNNfD/data-raw/sample.csv
+#> ✔ Created /tmp/RtmpAyNNfD/assets/logo.png
+#> ✔ Created /tmp/RtmpAyNNfD/analysis.qmd
 
-# Opt this document into purl: stamps purl: true and wires up
-# R/purl.R + the _quarto.yml post-render hook (merged if the file
-# already exists, e.g. inside a larger Quarto website project)
+# Opt this document into purl: stamps purl: true and a params block,
+# and wires up R/purl.R + the _quarto.yml post-render hook (merged if
+# the file already exists, e.g. inside a larger Quarto website project)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE, use_purl = TRUE)
-#> ✔ Created /tmp/RtmplOz4EO/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmplOz4EO/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmplOz4EO/analysis.qmd
-#> ✔ Created /tmp/RtmplOz4EO/R/purl.R
-#> ✔ Created /tmp/RtmplOz4EO/_quarto.yml
+#> ✔ Created /tmp/RtmpAyNNfD/data-raw/sample.csv
+#> ℹ Skipping /tmp/RtmpAyNNfD/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/RtmpAyNNfD/analysis.qmd
+#> ✔ Created /tmp/RtmpAyNNfD/R/purl.R
+#> ✔ Created /tmp/RtmpAyNNfD/_quarto.yml
 
 # Blank document wired to branding assets (assumes assets/ exists,
 # e.g. from init_project(branding = "uw-madison"))
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)
-#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmplOz4EO/assets.
+#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmpAyNNfD/assets.
 #> Skipping style injection.
-#> ✔ Created /tmp/RtmplOz4EO/report.qmd
+#> ✔ Created /tmp/RtmpAyNNfD/report.qmd
 
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
@@ -224,15 +256,15 @@ create_qmd(path = tempdir(), filename = "report.qmd",
 #> Warning: Style directory /home/runner/work/toolero/toolero/docs/reference/my-branding
 #> does not exist. Skipping style injection. Create the directory and add your
 #> branding assets, or set `use_style = FALSE`.
-#> ✔ Created /tmp/RtmplOz4EO/report.qmd
+#> ✔ Created /tmp/RtmpAyNNfD/report.qmd
 
 # Pre-populated YAML overrides
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmplOz4EO/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmplOz4EO/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmplOz4EO/analysis.qmd
+#> ✔ Created /tmp/RtmpAyNNfD/data-raw/sample.csv
+#> ℹ Skipping /tmp/RtmpAyNNfD/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/RtmpAyNNfD/analysis.qmd
 # }
 ```
