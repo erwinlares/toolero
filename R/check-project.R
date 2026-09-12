@@ -12,10 +12,10 @@
 #' @param config Character or `NULL`. Path to a YAML configuration file
 #'   produced by [generate_project_config()]. When supplied, the `folders:`
 #'   list in the file replaces the standard toolero folder set for the folder
-#'   checks. Non-folder hygiene checks (`.Rproj`, `renv.lock`, git,
-#'   `.gitignore`, README, `.RData`, `.Rhistory`, `.Rprofile`, `.Renviron`)
-#'   always run regardless of the config. Defaults to `NULL` (standard
-#'   toolero folders).
+#'   checks. When `NULL` (the default) and the project carries a
+#'   `_toolero.yml`, that file is used instead -- there is no need to hand
+#'   `check_project()` the same config on every call. Non-folder hygiene
+#'   checks always run regardless.
 #' @param error `r lifecycle::badge("deprecated")` Logical. Previously
 #'   controlled whether the function printed a cli report (`TRUE`) or
 #'   returned a tibble visibly without printing (`FALSE`). Deprecated in
@@ -33,18 +33,53 @@
 #' found), or `"info"` (a file was found that warrants attention but is
 #' not necessarily a problem).
 #'
-#' When `config` is `NULL`, folder checks use the standard toolero set:
-#' `data-raw/`, `data/`, `scripts/`, `output/figures/`, `output/tables/`,
-#' and `reports/`. Missing standard folders are reported as `"warn"`.
-#'
-#' When `config` is supplied, folder checks use the `folders:` list from
-#' the YAML file instead. Missing config-declared folders are reported as
-#' `"fail"` rather than `"warn"`, since the user explicitly declared the
-#' expected structure.
-#'
 #' README detection is case-insensitive and extension-agnostic: any file
 #' whose stem matches `readme` (in any capitalization) counts, regardless
-#' of extension or the absence of one.
+#' of extension or the absence of one. [init_project()] uses the same
+#' detection when deciding whether it would overwrite an existing README.
+#'
+#' @section Where the folder set comes from:
+#' Three sources, in order of precedence.
+#'
+#' An explicit `config` argument wins. Folders it declares and the project
+#' lacks are reported as `"fail"`: the caller named a file and that file
+#' states what the project should look like.
+#'
+#' Failing that, a `_toolero.yml` at the project root is used. [init_project()]
+#' writes one recording the structure it actually created, so a folder listed
+#' there and missing from disk means something removed it. That is also a
+#' `"fail"`.
+#'
+#' Failing both, the built-in standard set is used -- `data-raw/`, `data/`,
+#' `R/`, `scripts/`, `output/figures/`, `output/tables/`, and `reports/`.
+#' Missing folders here are `"warn"`, not `"fail"`: nobody declared anything,
+#' so the standard set is a suggestion rather than a contract.
+#'
+#' A `_toolero.yml` that exists but cannot be parsed is reported as a failing
+#' check and the audit continues against the built-in set. A `config` that
+#' cannot be parsed is an error, since the caller asked for that file
+#' specifically.
+#'
+#' @section The renv checks:
+#' Beyond the presence of `renv.lock`, two checks guard the failure mode that
+#' costs the most to discover late: a lockfile that does not describe the
+#' analysis, which produces a container image that builds cleanly and then
+#' cannot run.
+#'
+#' A `.renvignore` excluding `.qmd` files is reported, and the advice is to
+#' remove the entry. It stops `renv` from seeing the `library()` calls in a
+#' project whose Quarto document is the source of truth. That the document
+#' will eventually be purled to a `.R` file does not make up for it: the
+#' snapshot you containerize from may be taken before the purl, and the
+#' `.qmd` is the file being maintained either way. Versions of
+#' `init_project()` before v0.5.0 wrote one; projects created by those
+#' versions still carry it.
+#'
+#' A `renv.lock` recording no packages is reported only when the project also
+#' has `.R` or `.qmd` source files. A newly scaffolded project legitimately
+#' has an empty lockfile -- [renv::scaffold()] does no dependency discovery,
+#' because there is nothing yet to discover -- so the pairing is what makes
+#' the observation worth printing.
 #'
 #' @seealso [init_project()], [generate_project_config()]
 #'
@@ -97,71 +132,105 @@ check_project <- function(path   = ".",
     }
     results <- list()
 
-    # -- 2. Resolve folder set ---------------------------------------------
+    manifest_name <- .project_yml_name()
+    manifest_path <- fs::path(path, manifest_name)
+    has_manifest  <- fs::file_exists(manifest_path)
+
+    # -- 2. Resolve the folder set and conventions -------------------------
+    # Precedence: explicit config > the project's own manifest > built-in
+    # default. The source decides how a missing folder is reported: a
+    # declaration that is not met is a failure, an unmet suggestion is not.
+    manifest_error <- NULL
+
     if (!is.null(config)) {
-        if (!rlang::is_string(config)) {
-            cli::cli_abort(c(
-                "{.arg config} must be a single character string.",
-                "x" = "Received {.obj_type_friendly {config}} of length {length(config)}."
-            ))
-        }
-        if (!fs::file_exists(config)) {
-            cli::cli_abort(c(
-                "Config file not found at {.file {config}}.",
-                "i" = "Generate one with {.fn generate_project_config}."
-            ))
-        }
+        # An explicit config is the caller naming a file, so a malformed one
+        # is an error rather than a finding.
+        resolved      <- .read_config_file(config, arg = "config")
+        folder_source <- "config"
 
-        config_data <- yaml::read_yaml(config)
-        declared    <- config_data[["folders"]]
-
-        if (is.null(declared) || length(declared) == 0L) {
-            cli::cli_abort(c(
-                "The config file at {.file {config}} has no {.field folders} entry.",
-                "i" = "The file should contain a {.field folders:} list with one folder per line."
-            ))
-        }
-
-        if (!is.atomic(declared)) {
-            cli::cli_abort(c(
-                "The {.field folders} entry in {.file {config}} must be a flat list of folder names.",
-                "i" = "List one folder per line, without nested keys or values."
-            ))
-        }
-
-        folder_list <- as.character(declared)
-
-        if (anyNA(folder_list) || any(!nzchar(trimws(folder_list)))) {
-            cli::cli_abort(c(
-                "The {.field folders} entry in {.file {config}} contains an empty or missing folder name.",
-                "i" = "Remove blank entries and re-run."
-            ))
-        }
-
-        folder_list <- trimws(folder_list)
-
-        if (anyDuplicated(folder_list) > 0L) {
-            duplicated_folders <- unique(folder_list[duplicated(folder_list)])
-            cli::cli_inform(c(
-                "i" = "Ignoring {length(duplicated_folders)} duplicate folder name{?s} in the config: {.val {duplicated_folders}}."
-            ))
-            folder_list <- unique(folder_list)
-        }
-
-        folders_are_declared <- TRUE
-    } else {
-        folder_list <- c(
-            "data-raw",
-            "data",
-            "scripts",
-            "output/figures",
-            "output/tables",
-            "reports"
+    } else if (has_manifest) {
+        # The project's own manifest is something check_project() went
+        # looking for. Reporting that it is broken is more useful than
+        # aborting the audit over it, so the failure becomes a row and the
+        # folder checks fall back to the built-in set.
+        resolved <- tryCatch(
+            .read_config_file(manifest_path, arg = "path"),
+            error = function(cnd) {
+                manifest_error <<- conditionMessage(cnd)
+                NULL
+            }
         )
-        folders_are_declared <- FALSE
+
+        folder_source <- if (is.null(resolved)) "default" else "manifest"
+
+    } else {
+        resolved      <- NULL
+        folder_source <- "default"
     }
 
-    # -- 3. Check for .Rproj file ------------------------------------------
+    if (is.null(resolved)) {
+        resolved <- list(
+            folders     = .default_folders(),
+            conventions = .default_conventions()
+        )
+    }
+
+    folder_list <- resolved$folders
+    conventions <- resolved$conventions
+
+    # -- 3. Check for the project manifest ---------------------------------
+    if (!is.null(manifest_error)) {
+        results[["toolero_yml"]] <- .check_result(
+            check   = manifest_name,
+            status  = "fail",
+            message = .cli_escape(paste0(
+                "Found ", manifest_name, " but could not read it: ",
+                manifest_error,
+                " -- auditing against the standard folder set instead"
+            ))
+        )
+    } else if (has_manifest) {
+        results[["toolero_yml"]] <- .check_result(
+            check   = manifest_name,
+            status  = "pass",
+            message = .cli_escape(paste0("Found ", manifest_name))
+        )
+    } else {
+        results[["toolero_yml"]] <- .check_result(
+            check   = manifest_name,
+            status  = "warn",
+            message = paste0(
+                "No ", manifest_name, " found -- create one with ",
+                "{.code generate_project_config(\"", manifest_name,
+                "\")} and edit it to match this project"
+            )
+        )
+    }
+
+    # -- 4. Report conventions only when they differ from the defaults -----
+    # Silence when they match. A reader who sees a conventions row knows
+    # something in this project resolves differently from every other one.
+    default_conventions <- .default_conventions()
+
+    changed <- names(default_conventions)[vapply(
+        names(default_conventions),
+        function(key) !identical(conventions[[key]], default_conventions[[key]]),
+        logical(1L)
+    )]
+
+    if (length(changed) > 0L) {
+        results[["conventions"]] <- .check_result(
+            check   = "conventions",
+            status  = "info",
+            message = .cli_escape(paste0(
+                "Non-default conventions: ",
+                paste0(changed, " = ", unlist(conventions[changed]),
+                       collapse = ", ")
+            ))
+        )
+    }
+
+    # -- 5. Check for .Rproj file ------------------------------------------
     rproj_files <- fs::dir_ls(path, glob = "*.Rproj", all = FALSE, type = "file")
     if (length(rproj_files) > 0L) {
         results[["rproj"]] <- .check_result(
@@ -177,8 +246,11 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 4. Check for renv.lock --------------------------------------------
-    if (fs::file_exists(fs::path(path, "renv.lock"))) {
+    # -- 6. Check for renv.lock --------------------------------------------
+    lockfile <- fs::path(path, "renv.lock")
+    has_lock <- fs::file_exists(lockfile)
+
+    if (has_lock) {
         results[["renv"]] <- .check_result(
             check   = "renv.lock",
             status  = "pass",
@@ -192,7 +264,40 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 5. Check for git --------------------------------------------------
+    # -- 7. Check that the lockfile describes the analysis -----------------
+    # Only meaningful once the project has code in it. A freshly scaffolded
+    # project has an empty lockfile by design.
+    if (has_lock && .renv_lock_is_bare(lockfile) &&
+        .project_has_sources(path, folder_list)) {
+        results[["renv_packages"]] <- .check_result(
+            check   = "renv.lock packages",
+            status  = "warn",
+            message = paste0(
+                "renv.lock records no packages, but this project has R or ",
+                "Quarto source files -- run {.fn renv::snapshot} before ",
+                "sharing or containerizing, or the environment will not ",
+                "reproduce"
+            )
+        )
+    }
+
+    # -- 8. Check for a .renvignore that hides Quarto documents ------------
+    if (.renvignore_excludes_qmd(path)) {
+        results[["renvignore"]] <- .check_result(
+            check   = ".renvignore",
+            status  = "warn",
+            message = paste0(
+                ".renvignore excludes .qmd files -- renv cannot see the ",
+                "{.code library()} calls in your Quarto source, so packages ",
+                "used only there are missing from renv.lock. Remove the .qmd ",
+                "entry; purling to .R later is not a substitute, since the ",
+                "snapshot you containerize from may be taken before that ",
+                "happens. Written by {.fn init_project} before v0.5.0"
+            )
+        )
+    }
+
+    # -- 9. Check for git --------------------------------------------------
     if (fs::dir_exists(fs::path(path, ".git"))) {
         results[["git"]] <- .check_result(
             check   = "git repository",
@@ -207,7 +312,7 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 6. Check for .gitignore -------------------------------------------
+    # -- 10. Check for .gitignore ------------------------------------------
     if (fs::file_exists(fs::path(path, ".gitignore"))) {
         results[["gitignore"]] <- .check_result(
             check   = ".gitignore",
@@ -222,8 +327,20 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 7. Check folders --------------------------------------------------
-    missing_status <- if (folders_are_declared) "fail" else "warn"
+    # -- 11. Check folders -------------------------------------------------
+    # A declared folder that is absent is a conformance failure, whether the
+    # declaration came from a config the caller named or from the manifest
+    # the project carries. The built-in set is a convention, so its absences
+    # are advisory.
+    folders_are_declared <- folder_source %in% c("config", "manifest")
+    missing_status       <- if (folders_are_declared) "fail" else "warn"
+
+    declared_by <- switch(
+        folder_source,
+        config   = "your config",
+        manifest = manifest_name,
+        "the standard set"
+    )
 
     for (folder in folder_list) {
         key <- gsub("/", "_", folder, fixed = TRUE)
@@ -237,8 +354,8 @@ check_project <- function(path   = ".",
         } else {
             msg <- if (folders_are_declared) {
                 .cli_escape(paste0(
-                    "Declared folder ", folder,
-                    "/ not found -- create it or update your config"
+                    "Folder ", folder, "/ is declared in ", declared_by,
+                    " but not found -- create it or update the declaration"
                 ))
             } else {
                 .standard_folder_message(folder)
@@ -252,20 +369,14 @@ check_project <- function(path   = ".",
         }
     }
 
-    # -- 8. Check for README -----------------------------------------------
-    all_files   <- fs::dir_ls(path, all = TRUE, type = "file")
-    readme_hits <- grepl(
-        "^readme(\\.[^.]*)?$",
-        fs::path_file(all_files),
-        ignore.case = TRUE
-    )
+    # -- 12. Check for README ----------------------------------------------
+    readme <- .find_readme(path)
 
-    if (any(readme_hits)) {
-        found_name <- fs::path_file(all_files[which(readme_hits)[1L]])
+    if (!is.null(readme)) {
         results[["readme"]] <- .check_result(
             check   = "README",
             status  = "pass",
-            message = .cli_escape(paste0("Found ", found_name))
+            message = .cli_escape(paste0("Found ", fs::path_file(readme)))
         )
     } else {
         results[["readme"]] <- .check_result(
@@ -275,7 +386,7 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 9. Check for .RData -----------------------------------------------
+    # -- 13. Check for .RData ----------------------------------------------
     if (fs::file_exists(fs::path(path, ".RData"))) {
         results[[".rdata"]] <- .check_result(
             check   = ".RData",
@@ -284,7 +395,7 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 10. Check for .Rhistory -------------------------------------------
+    # -- 14. Check for .Rhistory -------------------------------------------
     if (fs::file_exists(fs::path(path, ".Rhistory"))) {
         results[[".rhistory"]] <- .check_result(
             check   = ".Rhistory",
@@ -293,7 +404,7 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 11. Check for .Rprofile -------------------------------------------
+    # -- 15. Check for .Rprofile -------------------------------------------
     if (fs::file_exists(fs::path(path, ".Rprofile"))) {
         results[[".rprofile"]] <- .check_result(
             check   = ".Rprofile",
@@ -302,7 +413,7 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 12. Check for .Renviron -------------------------------------------
+    # -- 16. Check for .Renviron -------------------------------------------
     if (fs::file_exists(fs::path(path, ".Renviron"))) {
         results[[".renviron"]] <- .check_result(
             check   = ".Renviron",
@@ -311,14 +422,14 @@ check_project <- function(path   = ".",
         )
     }
 
-    # -- 13. Assemble tibble -----------------------------------------------
+    # -- 17. Assemble tibble -----------------------------------------------
     out <- tibble::tibble(
         check   = unname(vapply(results, `[[`, character(1L), "check")),
         status  = unname(vapply(results, `[[`, character(1L), "status")),
         message = unname(vapply(results, `[[`, character(1L), "message"))
     )
 
-    # -- 14. Print and return ----------------------------------------------
+    # -- 18. Print and return ----------------------------------------------
     .print_check_project(out)
     invisible(out)
 }
@@ -334,55 +445,114 @@ check_project <- function(path   = ".",
     )
 }
 
-#' Escape cli markup in a data-derived string
+#' Does a lockfile record no packages?
 #'
-#' Internal helper. Messages assembled from user data -- folder names read
-#' from a config file, filenames found on disk -- are passed to `cli` as
-#' message templates, where braces are interpreted as inline markup. A
-#' folder literally named `output/{draft}` would otherwise be evaluated as
-#' an R expression and abort the report. Doubling the braces escapes them.
+#' Internal helper used by [check_project()]. Returns `TRUE` only when the
+#' lockfile parses and records no packages other than `renv` itself.
 #'
-#' Static messages containing intentional markup such as
-#' `{.fn usethis::create_project}` must not pass through this helper.
+#' `renv` is discounted because [renv::scaffold()] installs it into the
+#' project library and records it, so the lockfile of a freshly scaffolded
+#' project is not literally empty. What matters is whether anything the
+#' *analysis* depends on is in there.
 #'
-#' @param x A character string.
+#' An unparseable lockfile returns `FALSE`: that is a different problem and
+#' this helper should not report it as this one.
 #'
-#' @return The string with braces escaped for cli.
+#' @param lockfile Character. Path to a `renv.lock` file.
 #'
-#' @keywords internal
-.cli_escape <- function(x) {
-    x <- gsub("{", "{{", x, fixed = TRUE)
-    gsub("}", "}}", x, fixed = TRUE)
-}
-
-#' Guidance for a missing standard folder
-#'
-#' Internal helper returning the advisory message for a folder in the
-#' standard toolero set, falling back to a generic message for any folder
-#' not in the lookup table.
-#'
-#' @param folder Character. A single folder name.
-#'
-#' @return A single character string.
+#' @return A single logical.
 #'
 #' @keywords internal
-.standard_folder_message <- function(folder) {
-    known <- c(
-        "data-raw"       = "No data-raw/ folder found -- consider adding one for raw input data",
-        "data"           = "No data/ folder found -- consider adding one for cleaned data",
-        "scripts"        = "No scripts/ folder found -- consider adding one for analysis scripts",
-        "output/figures" = "No output/figures/ folder found -- consider adding one for figures",
-        "output/tables"  = "No output/tables/ folder found -- consider adding one for tables",
-        "reports"        = "No reports/ folder found -- consider adding one for reports"
+.renv_lock_is_bare <- function(lockfile) {
+    parsed <- tryCatch(
+        jsonlite::read_json(lockfile),
+        error = function(cnd) NULL
     )
 
-    idx <- match(folder, names(known))
-
-    if (is.na(idx)) {
-        .cli_escape(paste0("No ", folder, "/ folder found -- consider adding one"))
-    } else {
-        unname(known[idx])
+    if (is.null(parsed)) {
+        return(FALSE)
     }
+
+    packages <- parsed[["Packages"]]
+
+    if (is.null(packages) || length(packages) == 0L) {
+        return(TRUE)
+    }
+
+    length(setdiff(names(packages), "renv")) == 0L
+}
+
+#' Does the project contain R or Quarto source files?
+#'
+#' Internal helper used by [check_project()] to decide whether an empty
+#' lockfile is worth reporting.
+#'
+#' Searches the project root without recursing, plus each declared folder
+#' with recursion. Deliberately not a recursive sweep of the whole project:
+#' `renv/library` holds the sources of every installed package, which would
+#' be both slow to walk and wrong to count as the project's own code.
+#'
+#' @param path Character. Path to a project directory.
+#' @param folders Character vector. Folders declared for this project.
+#'
+#' @return A single logical.
+#'
+#' @keywords internal
+.project_has_sources <- function(path, folders) {
+    pattern <- "[.](R|r|[Qq]md|[Rr]md)$"
+
+    root  <- as.character(fs::path(path))
+    nests <- as.character(fs::path(path, folders))
+
+    if (length(nests) > 0L) {
+        nests <- nests[fs::dir_exists(nests)]
+    }
+
+    found_in <- function(dir, recurse) {
+        hits <- fs::dir_ls(
+            dir,
+            type    = "file",
+            recurse = recurse,
+            regexp  = pattern,
+            fail    = FALSE
+        )
+        length(hits) > 0L
+    }
+
+    if (found_in(root, recurse = FALSE)) {
+        return(TRUE)
+    }
+
+    for (dir in nests) {
+        if (found_in(dir, recurse = TRUE)) {
+            return(TRUE)
+        }
+    }
+
+    FALSE
+}
+
+#' Does a .renvignore exclude Quarto documents?
+#'
+#' Internal helper used by [check_project()]. Matches any entry ending in
+#' `.qmd`, which covers `*.qmd`, `**/*.qmd`, and a bare `analysis.qmd`.
+#'
+#' @param path Character. Path to a project directory.
+#'
+#' @return A single logical.
+#'
+#' @keywords internal
+.renvignore_excludes_qmd <- function(path) {
+    renvignore <- fs::path(path, ".renvignore")
+
+    if (!fs::file_exists(renvignore)) {
+        return(FALSE)
+    }
+
+    entries <- trimws(readLines(renvignore, warn = FALSE))
+    entries <- entries[nzchar(entries) & !startsWith(entries, "#")]
+
+    any(grepl("[.]qmd$", entries, ignore.case = TRUE))
 }
 
 #' @keywords internal

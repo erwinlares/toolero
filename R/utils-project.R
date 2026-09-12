@@ -450,3 +450,64 @@
 
     as.character(files[which(hits)[1L]])
 }
+
+
+#' Escape cli markup in a data-derived string
+#'
+#' Internal helper. Messages assembled from user data -- folder names read
+#' from a config file, filenames found on disk -- are passed to `cli` as
+#' message templates, where braces are interpreted as inline markup. A
+#' folder literally named `output/{draft}` would otherwise be evaluated as
+#' an R expression and abort the report. Doubling the braces escapes them.
+#'
+#' Static messages containing intentional markup such as
+#' `{.fn usethis::create_project}` must not pass through this helper.
+#'
+#' @param x A character string.
+#'
+#' @return The string with braces escaped for cli.
+#'
+#' @keywords internal
+.cli_escape <- function(x) {
+    x <- gsub("{", "{{", x, fixed = TRUE)
+    gsub("}", "}}", x, fixed = TRUE)
+}
+
+
+#' Guidance for a missing standard folder
+#'
+#' Internal helper returning the advisory message for a folder in the
+#' standard toolero set, falling back to a generic message for any folder
+#' not in the lookup table.
+#'
+#' Lives beside [.default_folders()] on purpose: the set and the advice for
+#' each member of it are one fact, and keeping them in separate files is how
+#' they drift. A folder added to `.default_folders()` without an entry here
+#' still works -- it gets the generic message -- but the pairing is what
+#' makes the omission obvious.
+#'
+#' @param folder Character. A single folder name.
+#'
+#' @return A single character string.
+#'
+#' @keywords internal
+.standard_folder_message <- function(folder) {
+    known <- c(
+        "data-raw"       = "No data-raw/ folder found -- consider adding one for raw input data",
+        "data"           = "No data/ folder found -- consider adding one for cleaned data",
+        "R"              = "No R/ folder found -- consider adding one for the .R script derived from your .qmd",
+        "scripts"        = "No scripts/ folder found -- consider adding one for hand-written scripts",
+        "output/figures" = "No output/figures/ folder found -- consider adding one for figures",
+        "output/tables"  = "No output/tables/ folder found -- consider adding one for tables",
+        "reports"        = "No reports/ folder found -- consider adding one for reports",
+        "assets"         = "No assets/ folder found -- consider adding one for branding files"
+    )
+
+    idx <- match(folder, names(known))
+
+    if (is.na(idx)) {
+        .cli_escape(paste0("No ", folder, "/ folder found -- consider adding one"))
+    } else {
+        unname(known[idx])
+    }
+}

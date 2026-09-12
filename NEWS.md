@@ -30,6 +30,10 @@
   it, and before containerizing. Projects created by earlier versions still
   carry the file and should have it removed by hand.
 
+* `check_project()`: the standard folder set now comes from
+  `.default_folders()` and therefore includes `R/`. A project without an `R/`
+  folder gains a `"warn"` row it did not have before.
+
 * `init_project()`: `R/` is now part of the standard folder set. The derived
   `.R` script belongs there, whether it comes from `qmd_to_r()` or from the
   post-render hook `create_qmd(use_purl = TRUE)` scaffolds, and `R/purl.R`
@@ -90,6 +94,44 @@
   out and preserve the old behavior.
 
 ### New features
+
+* `check_project()`: reads the project's own `_toolero.yml` when no `config`
+  argument is supplied, so a customized project no longer has to be handed
+  the same config on every call. Precedence is explicit `config`, then the
+  project's manifest, then the built-in standard set. A folder declared in
+  either of the first two and missing from disk is reported as `"fail"`
+  rather than `"warn"`: a declaration that is not met is a conformance
+  failure, whereas the standard set is a suggestion nobody signed up for. A
+  `_toolero.yml` that exists but cannot be parsed is reported as a failing
+  check and the audit continues against the standard set, since aborting the
+  audit is less useful than reporting the problem (issue #12).
+
+* `check_project()`: new `_toolero.yml` check, reporting whether the project
+  carries a manifest. Absence is a `"warn"` -- a project predating v0.5.0
+  legitimately has none -- and the message says how to create one.
+
+* `check_project()`: reports naming conventions only when they differ from
+  the defaults, as a single `"info"` row naming what changed. Silence when
+  they match, so a conventions row always means something in this project
+  resolves differently from every other one.
+
+* `check_project()`: new `renv.lock packages` check, reporting a lockfile
+  that records no packages other than `renv` itself **when the project also
+  has `.R` or `.qmd` source files**. The pairing is what makes it worth
+  printing: a freshly scaffolded project legitimately has an empty lockfile,
+  since `renv::scaffold()` does no dependency discovery, but a project with
+  code in it and nothing in its lockfile is the state that produces a
+  container image which builds cleanly and then cannot run. The source scan
+  covers the project root and the declared folders rather than recursing
+  through everything, so `renv/library` is neither walked nor mistaken for
+  the project's own code.
+
+* `check_project()`: new `.renvignore` check, reporting an entry that
+  excludes `.qmd` files. The advice is to remove it. Purling to `.R` later is
+  not a substitute, since the snapshot you containerize from may be taken
+  before the purl and the `.qmd` is the file being maintained either way.
+  Versions of `init_project()` before v0.5.0 wrote such a file, so projects
+  created by those versions still carry one.
 
 * `init_project()`: writes a project manifest, `_toolero.yml`, to the project
   root, recording the folder set it resolved and the naming conventions in
@@ -189,6 +231,18 @@
   git path is now covered.
 
 ### Internal changes
+
+* `.standard_folder_message()` and `.cli_escape()` moved from
+  `R/check-project.R` to `R/utils-project.R`. The folder set and the advice
+  for each member of it are one fact, and keeping them in separate files is
+  how they drift; `.standard_folder_message()` gained entries for `R/` and
+  `assets/` in the move. `check_project()`'s inline config parsing and README
+  detection were replaced by calls to the shared `.read_config_file()` and
+  `.find_readme()`.
+
+* Added `.renv_lock_is_bare()`, `.project_has_sources()` and
+  `.renvignore_excludes_qmd()` to `R/check-project.R`, backing the two new
+  renv checks.
 
 * Added `R/utils-project.R`, holding the facts about a toolero project that
   more than one function needs: `.default_folders()`, `.default_conventions()`,

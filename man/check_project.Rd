@@ -13,10 +13,10 @@ check_project(path = ".", config = NULL, error = TRUE)
 \item{config}{Character or \code{NULL}. Path to a YAML configuration file
 produced by \code{\link[=generate_project_config]{generate_project_config()}}. When supplied, the \verb{folders:}
 list in the file replaces the standard toolero folder set for the folder
-checks. Non-folder hygiene checks (\code{.Rproj}, \code{renv.lock}, git,
-\code{.gitignore}, README, \code{.RData}, \code{.Rhistory}, \code{.Rprofile}, \code{.Renviron})
-always run regardless of the config. Defaults to \code{NULL} (standard
-toolero folders).}
+checks. When \code{NULL} (the default) and the project carries a
+\verb{_toolero.yml}, that file is used instead -- there is no need to hand
+\code{check_project()} the same config on every call. Non-folder hygiene
+checks always run regardless.}
 
 \item{error}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} Logical. Previously
 controlled whether the function printed a cli report (\code{TRUE}) or
@@ -42,19 +42,58 @@ artifact was found), \code{"fail"} (a required artifact is missing),
 found), or \code{"info"} (a file was found that warrants attention but is
 not necessarily a problem).
 
-When \code{config} is \code{NULL}, folder checks use the standard toolero set:
-\verb{data-raw/}, \verb{data/}, \verb{scripts/}, \verb{output/figures/}, \verb{output/tables/},
-and \verb{reports/}. Missing standard folders are reported as \code{"warn"}.
-
-When \code{config} is supplied, folder checks use the \verb{folders:} list from
-the YAML file instead. Missing config-declared folders are reported as
-\code{"fail"} rather than \code{"warn"}, since the user explicitly declared the
-expected structure.
-
 README detection is case-insensitive and extension-agnostic: any file
 whose stem matches \code{readme} (in any capitalization) counts, regardless
-of extension or the absence of one.
+of extension or the absence of one. \code{\link[=init_project]{init_project()}} uses the same
+detection when deciding whether it would overwrite an existing README.
 }
+\section{Where the folder set comes from}{
+
+Three sources, in order of precedence.
+
+An explicit \code{config} argument wins. Folders it declares and the project
+lacks are reported as \code{"fail"}: the caller named a file and that file
+states what the project should look like.
+
+Failing that, a \verb{_toolero.yml} at the project root is used. \code{\link[=init_project]{init_project()}}
+writes one recording the structure it actually created, so a folder listed
+there and missing from disk means something removed it. That is also a
+\code{"fail"}.
+
+Failing both, the built-in standard set is used -- \verb{data-raw/}, \verb{data/},
+\verb{R/}, \verb{scripts/}, \verb{output/figures/}, \verb{output/tables/}, and \verb{reports/}.
+Missing folders here are \code{"warn"}, not \code{"fail"}: nobody declared anything,
+so the standard set is a suggestion rather than a contract.
+
+A \verb{_toolero.yml} that exists but cannot be parsed is reported as a failing
+check and the audit continues against the built-in set. A \code{config} that
+cannot be parsed is an error, since the caller asked for that file
+specifically.
+}
+
+\section{The renv checks}{
+
+Beyond the presence of \code{renv.lock}, two checks guard the failure mode that
+costs the most to discover late: a lockfile that does not describe the
+analysis, which produces a container image that builds cleanly and then
+cannot run.
+
+A \code{.renvignore} excluding \code{.qmd} files is reported, and the advice is to
+remove the entry. It stops \code{renv} from seeing the \code{library()} calls in a
+project whose Quarto document is the source of truth. That the document
+will eventually be purled to a \code{.R} file does not make up for it: the
+snapshot you containerize from may be taken before the purl, and the
+\code{.qmd} is the file being maintained either way. Versions of
+\code{init_project()} before v0.5.0 wrote one; projects created by those
+versions still carry it.
+
+A \code{renv.lock} recording no packages is reported only when the project also
+has \code{.R} or \code{.qmd} source files. A newly scaffolded project legitimately
+has an empty lockfile -- \code{\link[renv:scaffold]{renv::scaffold()}} does no dependency discovery,
+because there is nothing yet to discover -- so the pairing is what makes
+the observation worth printing.
+}
+
 \examples{
 # Audit the current working directory
 \donttest{
