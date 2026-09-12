@@ -15,6 +15,7 @@
 <url><loc>https://erwinlares.github.io/toolero/reference/create_qmd.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/detect_execution_context.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-accumulator_columns.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-add_gitkeep.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-append_accumulator_row.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-branding_asset_names.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-build_arborize_qmd.html</loc></url>
@@ -26,11 +27,15 @@
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-ensure_directory.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-find_readme.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-flatten_field.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-package_template.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-project_has_sources.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-project_yml_name.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-project_yml_schema_version.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-read_accumulator.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-read_config_file.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-read_project_yml.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-renv_lock_is_bare.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-renvignore_excludes_qmd.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-resolve_custom_folders.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-standard_folder_message.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-substitute_block.html</loc></url>

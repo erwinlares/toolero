@@ -172,23 +172,69 @@ machine it was created on.</p>
 understands what it is holding.</p>
     </div>
     <div class="section level2">
+    <h2 id="empty-folders-and-git">Empty folders and git<a class="anchor" aria-label="anchor" href="#empty-folders-and-git"></a></h2>
+
+
+<p>Each folder <code>init_project()</code> creates that is still empty when the call
+finishes receives a zero-byte <code>.gitkeep</code>.</p>
+<p>git tracks files rather than directories, so without this a scaffolded
+structure survives nothing: the opening commit contains the files at the
+project root and none of the layout, and a collaborator cloning the
+repository gets a project with no folders in it. The placeholders are
+written whether or not <code>use_git = TRUE</code>, since a project can be
+git-initialized at any point afterwards.</p>
+<p>Folders that already have content are left alone – <code>assets/</code> holds
+branding files by then and is tracked on the strength of those.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="the-active-project">The active project<a class="anchor" aria-label="anchor" href="#the-active-project"></a></h2>
+
+
+<p><code>init_project()</code> makes the new project the active <code>usethis</code> project for the
+duration of the call, and restores whichever project was active before when
+it returns. Nothing is left pointing somewhere the caller did not ask for.</p>
+<p>This matters more than it sounds. <code><a href="https://usethis.r-lib.org/reference/create_package.html" class="external-link">usethis::create_project()</a></code> sets the
+active project only for its own duration – it uses
+<code><a href="https://usethis.r-lib.org/reference/proj_utils.html" class="external-link">usethis::local_project()</a></code> internally and restores the caller's project on
+exit when <code>open = FALSE</code>. Any step that resolves paths through the active
+project therefore has to set it again explicitly. In v0.5.0 and earlier
+<code>init_project()</code> did not, so with <code>use_git = TRUE</code> the <code>git</code> initialization
+and its opening commit ran against whatever project happened to be active
+in the calling session rather than the project just created.</p>
+    </div>
+    <div class="section level2">
     <h2 id="dependency-discovery-and-renv">Dependency discovery and <code>renv</code><a class="anchor" aria-label="anchor" href="#dependency-discovery-and-renv"></a></h2>
 
 
-<p>When <code>use_renv = TRUE</code>, <code>init_project()</code> calls <code><a href="https://rstudio.github.io/renv/reference/init.html" class="external-link">renv::init()</a></code> and stops
-there. Earlier versions additionally wrote a <code>.renvignore</code> containing
-<code>*.qmd</code> and took a second snapshot. Both are gone as of v0.5.0.</p>
-<p>The <code>.renvignore</code> excluded <code>.qmd</code> files from <code>renv</code>'s dependency
-discovery, which meant that a project whose <code><a href="https://rdrr.io/r/base/library.html" class="external-link">library()</a></code> calls live in its
-Quarto source – the arrangement this package recommends – could snapshot
-a lockfile with none of the analysis packages in it, and
-<code>containr::generate_dockerfile()</code> would then build an image that could not
-run the analysis. Note that at the moment the file was written there were
-no <code>.qmd</code> files in the project yet, so it never affected the snapshot
-taken at creation time; its only effect was on every snapshot the user
-took afterwards.</p>
-<p>Take a snapshot yourself once the project has code in it, and before
-containerizing:</p>
+<p>When <code>use_renv = TRUE</code>, <code>init_project()</code> calls <code><a href="https://rstudio.github.io/renv/reference/scaffold.html" class="external-link">renv::scaffold()</a></code>, which
+creates <code>renv/library</code>, <code>renv/activate.R</code>, <code>renv/.gitignore</code>, an
+<code>.Rprofile</code> that activates the project in future sessions, and an initial
+<code>renv.lock</code>.</p>
+<p>Three things changed here in v0.5.0, and they are worth understanding
+together.</p>
+<p><code><a href="https://rstudio.github.io/renv/reference/scaffold.html" class="external-link">renv::scaffold()</a></code> replaces <code><a href="https://rstudio.github.io/renv/reference/init.html" class="external-link">renv::init()</a></code>. <code>init()</code> loads the new project
+into the <em>calling</em> session, repointing <code><a href="https://rdrr.io/r/base/libPaths.html" class="external-link">.libPaths()</a></code> at a library that is
+empty apart from <code>renv</code> itself – so every package the caller had
+available vanishes until they restart R. Its <code>restart</code> argument suppresses
+the restart, not the activation. That is reasonable behavior for someone
+adopting <code>renv</code> in the project they are sitting in, and the wrong behavior
+for a function whose job is to scaffold a project somewhere else.
+<code>scaffold()</code> builds the same infrastructure and leaves the caller's
+session untouched.</p>
+<p>The <code>.renvignore</code> containing <code>*.qmd</code> is gone. It excluded Quarto documents
+from <code>renv</code>'s dependency discovery, which meant that a project whose
+<code><a href="https://rdrr.io/r/base/library.html" class="external-link">library()</a></code> calls live in its <code>.qmd</code> source – the arrangement this
+package recommends – could snapshot a lockfile with none of the analysis
+packages in it, and <code>containr::generate_dockerfile()</code> would then build an
+image that could not run the analysis. At the point the file was written
+the project contained no <code>.qmd</code> files at all, so it never affected the
+snapshot taken at creation time; its only effect was on every snapshot the
+user took afterwards.</p>
+<p>The snapshot at creation time is gone too, for the same underlying reason
+the <code>.renvignore</code> was pointless there: a project that has just been
+created has no code in it, so there is nothing to discover and nothing
+worth recording. Take a snapshot yourself once the project has code, and
+before containerizing:</p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/snapshot.html" class="external-link">snapshot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre><p></p></div>
     </div>
     <div class="section level2">

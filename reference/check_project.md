@@ -25,10 +25,10 @@ check_project(path = ".", config = NULL, error = TRUE)
   Character or `NULL`. Path to a YAML configuration file produced by
   [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md).
   When supplied, the `folders:` list in the file replaces the standard
-  toolero folder set for the folder checks. Non-folder hygiene checks
-  (`.Rproj`, `renv.lock`, git, `.gitignore`, README, `.RData`,
-  `.Rhistory`, `.Rprofile`, `.Renviron`) always run regardless of the
-  config. Defaults to `NULL` (standard toolero folders).
+  toolero folder set for the folder checks. When `NULL` (the default)
+  and the project carries a `_toolero.yml`, that file is used instead –
+  there is no need to hand `check_project()` the same config on every
+  call. Non-folder hygiene checks always run regardless.
 
 - error:
 
@@ -51,18 +51,61 @@ artifact was found), `"fail"` (a required artifact is missing), `"warn"`
 `"info"` (a file was found that warrants attention but is not
 necessarily a problem).
 
-When `config` is `NULL`, folder checks use the standard toolero set:
-`data-raw/`, `data/`, `scripts/`, `output/figures/`, `output/tables/`,
-and `reports/`. Missing standard folders are reported as `"warn"`.
-
-When `config` is supplied, folder checks use the `folders:` list from
-the YAML file instead. Missing config-declared folders are reported as
-`"fail"` rather than `"warn"`, since the user explicitly declared the
-expected structure.
-
 README detection is case-insensitive and extension-agnostic: any file
 whose stem matches `readme` (in any capitalization) counts, regardless
 of extension or the absence of one.
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+uses the same detection when deciding whether it would overwrite an
+existing README.
+
+## Where the folder set comes from
+
+Three sources, in order of precedence.
+
+An explicit `config` argument wins. Folders it declares and the project
+lacks are reported as `"fail"`: the caller named a file and that file
+states what the project should look like.
+
+Failing that, a `_toolero.yml` at the project root is used.
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+writes one recording the structure it actually created, so a folder
+listed there and missing from disk means something removed it. That is
+also a `"fail"`.
+
+Failing both, the built-in standard set is used – `data-raw/`, `data/`,
+`R/`, `scripts/`, `output/figures/`, `output/tables/`, and `reports/`.
+Missing folders here are `"warn"`, not `"fail"`: nobody declared
+anything, so the standard set is a suggestion rather than a contract.
+
+A `_toolero.yml` that exists but cannot be parsed is reported as a
+failing check and the audit continues against the built-in set. A
+`config` that cannot be parsed is an error, since the caller asked for
+that file specifically.
+
+## The renv checks
+
+Beyond the presence of `renv.lock`, two checks guard the failure mode
+that costs the most to discover late: a lockfile that does not describe
+the analysis, which produces a container image that builds cleanly and
+then cannot run.
+
+A `.renvignore` excluding `.qmd` files is reported, and the advice is to
+remove the entry. It stops `renv` from seeing the
+[`library()`](https://rdrr.io/r/base/library.html) calls in a project
+whose Quarto document is the source of truth. That the document will
+eventually be purled to a `.R` file does not make up for it: the
+snapshot you containerize from may be taken before the purl, and the
+`.qmd` is the file being maintained either way. Versions of
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+before v0.5.0 wrote one; projects created by those versions still carry
+it.
+
+A `renv.lock` recording no packages is reported only when the project
+also has `.R` or `.qmd` source files. A newly scaffolded project
+legitimately has an empty lockfile –
+[`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html)
+does no dependency discovery, because there is nothing yet to discover –
+so the pairing is what makes the observation worth printing.
 
 ## See also
 
@@ -77,13 +120,15 @@ of extension or the absence of one.
 check_project()
 #> 
 #> ── Project check ───────────────────────────────────────────────────────────────
+#> ! No _toolero.yml found -- create one with `generate_project_config("_toolero.yml")` and edit it to match this project
 #> ✖ No .Rproj file found -- use `usethis::create_project()` to initialize one
 #> ✖ No renv.lock found -- use `renv::init()` to get started
 #> ✖ No git repository found -- use `usethis::use_git()` to initialize one
 #> ! No .gitignore found -- consider adding one to avoid committing unwanted files
 #> ! No data-raw/ folder found -- consider adding one for raw input data
 #> ! No data/ folder found -- consider adding one for cleaned data
-#> ! No scripts/ folder found -- consider adding one for analysis scripts
+#> ! No R/ folder found -- consider adding one for the .R script derived from your .qmd
+#> ! No scripts/ folder found -- consider adding one for hand-written scripts
 #> ! No output/figures/ folder found -- consider adding one for figures
 #> ! No output/tables/ folder found -- consider adding one for tables
 #> ! No reports/ folder found -- consider adding one for reports
@@ -94,7 +139,7 @@ check_project()
 # \donttest{
 project_dir <- withr::local_tempdir()
 check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/RtmpVVyFzf/file4e4516be4631 does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/RtmpMeZi4l/file4ea375ab10b0 does not exist.
 # }
 
 # Audit against a custom folder structure
@@ -102,19 +147,19 @@ check_project(path = project_dir)
 project_dir <- withr::local_tempdir()
 config_path <- file.path(tempdir(), "my-config.yml")
 generate_project_config("my-config.yml", path = tempdir())
-#> ✔ Created /tmp/RtmpVVyFzf/my-config.yml
-#> ℹ Edit /tmp/RtmpVVyFzf/my-config.yml to define your custom folder structure,
+#> ✔ Created /tmp/RtmpMeZi4l/my-config.yml
+#> ℹ Edit /tmp/RtmpMeZi4l/my-config.yml to define your custom folder structure,
 #>   then pass it to `init_project()` via `config =
-#>   "/tmp/RtmpVVyFzf/my-config.yml"`.
+#>   "/tmp/RtmpMeZi4l/my-config.yml"`.
 #> ℹ For easy reuse across projects, consider moving this file to /home/runner.
 check_project(path = project_dir, config = config_path)
-#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/RtmpVVyFzf/file4e45657225ae does not exist.
+#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/RtmpMeZi4l/file4ea36d00ac95 does not exist.
 # }
 
 # Access results programmatically
 # \donttest{
 project_dir <- withr::local_tempdir()
 out <- check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/RtmpVVyFzf/file4e4560044f7f does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/RtmpMeZi4l/file4ea31ef9ed52 does not exist.
 # }
 ```

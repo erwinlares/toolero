@@ -106,5 +106,5 @@ save_output(
   note = "Unmodified example data.",
   output_dir = output_dir
 )
-#> ℹ Created the directory /tmp/RtmpVVyFzf/file4e454a302de2 to hold mtcars.rds.
+#> ℹ Created the directory /tmp/RtmpMeZi4l/file4ea347611225 to hold mtcars.rds.
 ```

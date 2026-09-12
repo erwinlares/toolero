@@ -125,27 +125,80 @@ The format is experimental and may gain keys before it settles. The
 `schema_version` field exists so that a reader can tell whether it
 understands what it is holding.
 
+## Empty folders and git
+
+Each folder `init_project()` creates that is still empty when the call
+finishes receives a zero-byte `.gitkeep`.
+
+git tracks files rather than directories, so without this a scaffolded
+structure survives nothing: the opening commit contains the files at the
+project root and none of the layout, and a collaborator cloning the
+repository gets a project with no folders in it. The placeholders are
+written whether or not `use_git = TRUE`, since a project can be
+git-initialized at any point afterwards.
+
+Folders that already have content are left alone – `assets/` holds
+branding files by then and is tracked on the strength of those.
+
+## The active project
+
+`init_project()` makes the new project the active `usethis` project for
+the duration of the call, and restores whichever project was active
+before when it returns. Nothing is left pointing somewhere the caller
+did not ask for.
+
+This matters more than it sounds.
+[`usethis::create_project()`](https://usethis.r-lib.org/reference/create_package.html)
+sets the active project only for its own duration – it uses
+[`usethis::local_project()`](https://usethis.r-lib.org/reference/proj_utils.html)
+internally and restores the caller's project on exit when
+`open = FALSE`. Any step that resolves paths through the active project
+therefore has to set it again explicitly. In v0.5.0 and earlier
+`init_project()` did not, so with `use_git = TRUE` the `git`
+initialization and its opening commit ran against whatever project
+happened to be active in the calling session rather than the project
+just created.
+
 ## Dependency discovery and `renv`
 
 When `use_renv = TRUE`, `init_project()` calls
-[`renv::init()`](https://rstudio.github.io/renv/reference/init.html) and
-stops there. Earlier versions additionally wrote a `.renvignore`
-containing `*.qmd` and took a second snapshot. Both are gone as of
-v0.5.0.
+[`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html),
+which creates `renv/library`, `renv/activate.R`, `renv/.gitignore`, an
+`.Rprofile` that activates the project in future sessions, and an
+initial `renv.lock`.
 
-The `.renvignore` excluded `.qmd` files from `renv`'s dependency
-discovery, which meant that a project whose
-[`library()`](https://rdrr.io/r/base/library.html) calls live in its
-Quarto source – the arrangement this package recommends – could snapshot
-a lockfile with none of the analysis packages in it, and
+Three things changed here in v0.5.0, and they are worth understanding
+together.
+
+[`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html)
+replaces
+[`renv::init()`](https://rstudio.github.io/renv/reference/init.html).
+`init()` loads the new project into the *calling* session, repointing
+[`.libPaths()`](https://rdrr.io/r/base/libPaths.html) at a library that
+is empty apart from `renv` itself – so every package the caller had
+available vanishes until they restart R. Its `restart` argument
+suppresses the restart, not the activation. That is reasonable behavior
+for someone adopting `renv` in the project they are sitting in, and the
+wrong behavior for a function whose job is to scaffold a project
+somewhere else. `scaffold()` builds the same infrastructure and leaves
+the caller's session untouched.
+
+The `.renvignore` containing `*.qmd` is gone. It excluded Quarto
+documents from `renv`'s dependency discovery, which meant that a project
+whose [`library()`](https://rdrr.io/r/base/library.html) calls live in
+its `.qmd` source – the arrangement this package recommends – could
+snapshot a lockfile with none of the analysis packages in it, and
 `containr::generate_dockerfile()` would then build an image that could
-not run the analysis. Note that at the moment the file was written there
-were no `.qmd` files in the project yet, so it never affected the
-snapshot taken at creation time; its only effect was on every snapshot
-the user took afterwards.
+not run the analysis. At the point the file was written the project
+contained no `.qmd` files at all, so it never affected the snapshot
+taken at creation time; its only effect was on every snapshot the user
+took afterwards.
 
-Take a snapshot yourself once the project has code in it, and before
-containerizing:
+The snapshot at creation time is gone too, for the same underlying
+reason the `.renvignore` was pointless there: a project that has just
+been created has no code in it, so there is nothing to discover and
+nothing worth recording. Take a snapshot yourself once the project has
+code, and before containerizing:
 
     renv::snapshot()
 
