@@ -1,6 +1,5 @@
 # toolero 0.5.0
 
-
 ### Breaking changes
 
 * `create_qmd()`: both bundled templates now set
@@ -283,6 +282,34 @@
 
 ### Bug fixes
 
+* `save_output()` and `generate_manifest()`: the guard that reports an
+  accumulator whose columns do not match the expected schema could not
+  format its own message. The expected columns reached `cli` as
+  `{.val {.accumulator_columns()}}`, and `cli` 3.4.0 and later read a `{}`
+  expression beginning with a dot as an inline style name rather than as R
+  code, so formatting failed and the explanation was replaced by a `cli`
+  parse error. The failure only ever surfaced in the one branch whose
+  purpose is to explain what went wrong. Both sites now bind the schema to
+  a local first. The existing tests asserted only that something was
+  thrown, which is why this went unnoticed; they now check that the message
+  names a column.
+
+* `run_by_group(workers = NULL)`: `NULL` skipped the validation block
+  entirely and then reached `if (workers > 1L)` about a hundred and sixty
+  lines later, where `NULL > 1L` is `logical(0)` and `if` raises "argument
+  is of length zero". `NULL` is now documented and accepted as a way of
+  saying "do not parallelize" and is coerced to `1L`. The block also now
+  rejects a `workers` of any length other than one, so that everything
+  after it can rely on `workers` being a single integer of at least one
+  rather than on a reader noticing the gap.
+
+* `qmd_to_r()`: creates the parent directory of `output` if it does not
+  already exist. `knitr::purl()` writes through a connection and does not,
+  so an explicit output path into a folder that is not there failed with a
+  connection error naming the file rather than the missing directory. `R/`
+  is the documented home for derived scripts, which makes this the ordinary
+  case for any project not created by `init_project()`.
+
 * `create_qmd()`: the YAML header was matched with a regular expression
   whose match included both `---` fences, and that whole string, trailing
   fence and all, was handed to `yaml::yaml.load()`, where the closing
@@ -319,6 +346,11 @@
   git path is now covered.
 
 ### Internal changes
+
+* `.ensure_directory()` moved from `R/save-output.R` to
+  `R/utils-project.R`, since `qmd_to_r()` now uses it too and it is no
+  longer specific to the accumulator. Its tests moved with it into the new
+  `tests/testthat/test-utils-project.R`.
 
 * New `R/utils-yaml.R` holds the line-oriented header helpers:
   `.split_yaml_header()`, `.join_yaml_header()`, `.set_yaml_key()` and
@@ -448,6 +480,25 @@
   empty manifest with a warning.
 
 ### Improvements
+
+* The README was brought up to date with the 0.5.0 changes. The opening
+  workflow now runs end to end against the bundled sample data, with the
+  analysis function defined inline: it previously read an `input.csv` that
+  nothing created, called an undefined `my_analysis`, and wrote the derived
+  script into `scripts/` rather than `R/`. Two claims that had gone stale
+  are corrected: `R/purl.R` is scaffolded subject to `overwrite` rather
+  than "unconditionally", and the job manifest has one schema rather than a
+  separate three-column shape for single-column splits. New material covers
+  `_toolero.yml` and what downstream packages read from it, `R/` in the
+  standard folder set and why it cannot be suppressed, `.gitkeep`,
+  `renv::scaffold()` and the absent creation-time snapshot, the two `renv`
+  checks in `check_project()`, `prefix` and first-appearance ordering in
+  `write_by_group()`, `resolve_input_path()`, `embed-resources: true`, the
+  accumulator schema as the thing that holds still, and what running
+  `toolero` inside a container commits you to. The dependency list now
+  distinguishes required packages from suggested ones and names which
+  function needs each, `knitr` for `qmd_to_r()` above all, which was absent
+  from the list while being required by step 4 of the first workflow.
 
 * `create_qmd()`: every edit to a document's YAML header is now made line
   by line rather than by parsing the header and writing it back out. Keys

@@ -23,7 +23,7 @@ to a larger computing system.
 
 A project that starts with a flat folder, no dependency tracking, and scripts
 that mix data loading, cleaning, modeling, and reporting is not impossible to
-rescue later — but it is genuinely hard. Collaborators cannot reproduce
+rescue later, but it is genuinely hard. Collaborators cannot reproduce
 results because the package versions are unknown. The analysis breaks when
 moved to a different machine. The manuscript references outputs that no longer
 exist in the file system.
@@ -55,6 +55,9 @@ Use `toolero` when you are:
 - preparing an analysis that may later need to run outside your laptop;
 - using Quarto as the source of truth for an analysis;
 - reading and cleaning tabular data files at the start of a workflow;
+- writing one analysis that has to find its input data whether you are
+  running chunks by hand, rendering the document, or running it as a script
+  on a cluster;
 - splitting data into independent pieces and applying an analysis function to each;
 - preparing split data for parallel or high-throughput workflows;
 - standardizing setup across multiple projects;
@@ -82,9 +85,9 @@ toolero     organize, scaffold, split, apply, record
 ```
 
 The organizing idea behind the family is that good practices at each stage
-make the next stage easier. A project structured with `toolero` — with
+make the next stage easier. A project structured with `toolero`, with
 dependency tracking, a clean folder layout, and data split into independent
-pieces — is already most of the way to being containerizable. A containerized
+pieces, is already most of the way to being containerizable. A containerized
 project is already most of the way to being submittable to a high-throughput
 computing cluster. The family does not require you to commit to the full arc
 upfront. Each package is useful on its own, and you can adopt them one at a
@@ -93,6 +96,13 @@ time as your project's needs grow.
 `toolero` does not require `containr`, and `containr` does not require
 `submitr`. The dependencies run in one direction only: each package prepares
 cleanly for the next, but none reaches backward.
+
+What the later packages read, rather than guess, is recorded in the project
+manifest. `init_project()` writes `_toolero.yml` at the project root
+describing the folder set it resolved and the naming conventions in force.
+Commit that file. It describes the project, not the machine it was created
+on, and it is how a customized project stays legible to `check_project()`,
+`containr`, and `submitr` without being handed the same configuration again.
 
 ---
 
@@ -116,55 +126,78 @@ pak::pak("erwinlares/toolero")
 ## A first workflow
 
 The functions below cover a common path from project creation to recorded
-outputs. This example uses a temporary directory so you can try the workflow
-without writing to your Documents folder.
+outputs. It runs end to end against the sample data `create_qmd()` copies in,
+and uses a temporary directory so you can try it without writing to your
+Documents folder. The only extra requirement is `dplyr`, for the analysis
+function in step 8.
 
 ```r
 library(toolero)
 
 project_dir <- file.path(tempdir(), "my-analysis")
 
-# 1. Create a project with sensible defaults
-init_project(path = project_dir)
+# 1. Create a project with sensible defaults.
+#    renv and git are on by default and are what you want in a real
+#    project. They are off here so the example runs quickly and without
+#    prompting.
+init_project(path = project_dir, use_renv = FALSE, use_git = FALSE)
 
 # 2. Audit the project structure
 check_project(path = project_dir)
 
-# 3. Scaffold a reproducible Quarto analysis document
+# 3. Scaffold a reproducible Quarto analysis document. This also copies
+#    the bundled sample data into data-raw/.
 create_qmd(path = project_dir, filename = "analysis.qmd")
 
-# 4. Extract the R code from the document into a standalone script
+# 4. Extract the R code from the document into a standalone script.
+#    R/ is where toolero expects derived scripts to live.
 qmd_to_r(
   input  = file.path(project_dir, "analysis.qmd"),
-  output = file.path(project_dir, "scripts", "analysis.R")
+  output = file.path(project_dir, "R", "analysis.R")
 )
 
-# 5. Read and clean a CSV file
-data <- read_clean_csv(
-  file.path(project_dir, "data-raw", "input.csv"),
+# 5. Read and clean the sample data
+penguins <- read_clean_csv(
+  file.path(project_dir, "data-raw", "sample.csv"),
   na      = c("", "NA", "N/A", "."),
   summary = TRUE
 )
 
 # 6. Write the cleaned data
-write_clean_csv(data, file.path(project_dir, "data", "clean.csv"))
+write_clean_csv(penguins, file.path(project_dir, "data", "clean.csv"))
 
-# 7. Split data into per-group subsets
+# 7. Split the data into per-group subsets, one file per species
 write_by_group(
-  data,
+  penguins,
   group_col  = "species",
   output_dir = file.path(project_dir, "data", "jobs"),
   manifest   = TRUE
 )
 
-# 8. Apply an analysis function to each subset and collect the results
+# 8. Define an analysis function and apply it to each subset
+summarise_species <- function(data) {
+  dplyr::summarise(
+    data,
+    n            = dplyr::n(),
+    mean_mass    = mean(body_mass_g, na.rm = TRUE),
+    mean_flipper = mean(flipper_length_mm, na.rm = TRUE)
+  )
+}
+
 results <- run_by_group(
   manifest = file.path(project_dir, "data", "jobs", "manifest.csv"),
-  .f       = my_analysis
+  .f       = summarise_species
 )
 
-# 9. Save outputs and record each write in the project accumulator
-save_output(results, file.path(project_dir, "output", "results.rds"), .f = saveRDS)
+# 9. Save outputs and record each write in the project accumulator.
+#    output_dir is where the accumulator goes; it defaults to "output"
+#    relative to the working directory, so it is given explicitly here.
+save_output(
+  results,
+  file.path(project_dir, "output", "results.rds"),
+  .f         = saveRDS,
+  output_dir = file.path(project_dir, "output")
+)
 
 # 10. Write a project manifest summarizing what was produced
 generate_manifest(output_dir = file.path(project_dir, "output"))
@@ -181,18 +214,19 @@ and scalable computing when needed.
 
 | Function | What it does |
 |---|---|
-| `init_project()` | Creates a new R project with a standard research-oriented folder structure. Can initialize `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding), and creates a README at the project root via `use_readme` (`README.md` by default, `"plain"` for `README.txt`, or `FALSE` to skip it). |
-| `generate_project_config()` | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure. Edit to define a custom layout and pass to `init_project()` via `config`. |
-| `check_project()` | Audits an existing project for common reproducibility scaffolding, including expected folders, an `.Rproj` file, `renv.lock`, git, README, `.gitignore`, and hidden files such as `.RData` or `.Rhistory`. Accepts a config YAML for project-specific folder auditing. |
-| `create_qmd()` | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling from a standardized `assets/` folder, and (opt-in via `use_purl`, `FALSE` by default) stamp `purl: true`/`false` into the document's header and set up a post-render purl hook -- merged into an existing `_quarto.yml` where possible, skipped with a warning for website/book/manuscript projects. |
-| `qmd_to_r()` | Extracts R code chunks from a Quarto document into a standalone `.R` script. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
+| `init_project()` | Creates a new R project with a standard research-oriented folder structure and records that structure in `_toolero.yml` at the project root. Can set up `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding), and create a README via `use_readme` (`README.md` by default, `"plain"` for `README.txt`, or `FALSE` to skip it). |
+| `generate_project_config()` | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure and conventions. Edit to define a custom layout and pass to `init_project()` via `config`. Same schema, template and writer as the `_toolero.yml` a project carries. |
+| `check_project()` | Audits an existing project for common reproducibility scaffolding: the expected folders, an `.Rproj` file, `renv.lock` and whether it actually records anything, `.renvignore` entries that would hide your source from `renv`, git, README, `.gitignore`, the project manifest, and hidden files such as `.RData` or `.Rhistory`. Audits against the project's own `_toolero.yml` when it has one. |
+| `create_qmd()` | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling from a standardized `assets/` folder, and (opt-in via `use_purl`, `FALSE` by default) stamp `purl: true`/`false` into the document's header and set up a post-render purl hook, merged into an existing `_quarto.yml` where possible and skipped with a warning for website, book and manuscript projects. |
+| `qmd_to_r()` | Extracts R code chunks from a Quarto document into a standalone `.R` script, creating the output directory if it does not exist. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
 | `read_clean_csv()` | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
 | `write_clean_csv()` | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
-| `write_by_group()` | Splits a data frame by one or more grouping columns and writes one CSV per group. Can also create a manifest for parallel or high-throughput workflows. |
-| `run_by_group()` | Applies a function to each group subset and collects the results. Accepts a manifest from `write_by_group()` or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns. |
+| `write_by_group()` | Splits a data frame by one or more grouping columns and writes one CSV per group, optionally prefixed via `prefix`. Can also create a job manifest for parallel or high-throughput workflows. |
+| `run_by_group()` | Applies a function to each group subset and collects the results. Accepts a job manifest from `write_by_group()` or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns. |
 | `save_output()` | Writes an object to disk via a user-supplied function and appends a row to the project accumulator recording the path, class, function used, and whether the write succeeded. |
 | `generate_manifest()` | Reads the project accumulator, deduplicates by path, and writes `project-manifest.json` describing every artifact the analysis produced. |
 | `detect_execution_context()` | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
+| `resolve_input_path()` | Resolves where the input data lives for the current execution context, and says what to fix when it cannot. The companion to `detect_execution_context()` for the specific case of finding your data. |
 | `generate_kb_xml()` | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
 | `arborize()` | Renders syntactic trees as PNG images using Quarto's Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later. |
 
@@ -203,15 +237,21 @@ and scalable computing when needed.
 ### `init_project()`
 
 Creates a new R project with a standard folder structure suited for research
-workflows. Optionally initializes `renv` for dependency management and `git`
-for version control — both on by default, because both matter.
+workflows. Optionally sets up `renv` for dependency management and `git` for
+version control, both on by default, because both matter.
 
 The default structure follows conventions established by The Carpentries and
-UW-Madison Libraries workshops: `data-raw/`, `data/`, `scripts/`,
-`output/figures/`, `output/tables/`, and `reports/`. The `custom_folders`
-argument lets you add folders or suppress defaults without changing the
-standard set for other projects. A `"-"` prefix removes a folder from the
-set that will be created; bare names add new ones.
+UW-Madison Libraries workshops: `data-raw/`, `data/`, `R/`, `scripts/`,
+`output/figures/`, `output/tables/`, and `reports/`. `R/` holds the `.R`
+script derived from your `.qmd` source, whether that derivation comes from
+`qmd_to_r()` or from the post-render hook `create_qmd(use_purl = TRUE)`
+scaffolds. `scripts/` holds hand-written scripts you maintain yourself. The
+distinction matters because downstream packages resolve the derived script by
+convention.
+
+The `custom_folders` argument lets you add folders or suppress defaults
+without changing the standard set for other projects. A `"-"` prefix removes
+a folder from the set that will be created; bare names add new ones.
 
 ```r
 # Standard project
@@ -230,14 +270,43 @@ init_project(
 )
 ```
 
-For projects where the standard structure doesn't fit, `generate_project_config()`
-writes a skeleton YAML config pre-filled with the standard folders. Edit the
-file to define your own layout and store it in your home directory so it's
-easy to reuse across projects.
+One folder cannot be suppressed, by a config or by `custom_folders`: `R/`.
+`usethis::create_project()` creates it unconditionally, so it is present in
+every project `init_project()` makes. A structure that leaves it out is
+honored everywhere else, so `R/` is absent from `_toolero.yml`, gets no
+placeholder file, and is not audited by `check_project()`. Only the directory
+itself is unavoidable.
+
+For projects where the standard structure does not fit,
+`generate_project_config()` writes a skeleton YAML config pre-filled with the
+standard folders and conventions. Edit the file to define your own layout and
+store it in your home directory so it is easy to reuse across projects.
 
 ```r
 # Write a config skeleton to your home directory
 generate_project_config("linguistics-project.yml", path = "~")
+```
+
+Every project `init_project()` creates carries a `_toolero.yml` at its root
+recording the folder set it resolved and the naming conventions in force.
+It records the *resolved* structure, never the inputs that produced it, so a
+project built from a `config`, one built with `custom_folders`, and one built
+from the defaults all produce the same shape of file and nobody has to replay
+anything to learn what the project looks like. Commit it.
+
+Every folder `init_project()` creates that is still empty when the call
+finishes also receives a zero-byte `.gitkeep`. git tracks files rather than
+directories, so without this a scaffolded structure survives nothing: the
+opening commit carries the files at the project root and none of the layout,
+and a collaborator cloning the repository gets a project with no folders in
+it.
+
+```r
+# Generic placeholder branding
+init_project(path = "~/Documents/my-project", branding = TRUE)
+
+# UW-Madison RCI branding
+init_project(path = "~/Documents/my-project", branding = "uw-madison")
 ```
 
 The `branding` argument controls whether an `assets/` folder is created and
@@ -249,39 +318,46 @@ standardized names. Both modes produce identically named files, so
 branding mode was used. `branding = "none"` (the default) creates no
 `assets/` folder.
 
-```r
-# Generic placeholder branding
-init_project(path = "~/Documents/my-project", branding = TRUE)
-
-# UW-Madison RCI branding
-init_project(path = "~/Documents/my-project", branding = "uw-madison")
-```
-
 The `use_readme` argument controls whether a README file is created at the
 project root. `use_readme = TRUE` (the default) creates `README.md` from
-toolero's generalist README template -- a short guide covering what a
-README is, general best practices, and a recommended section structure for
+toolero's generalist README template, a short guide covering what a README
+is, general best practices, and a recommended section structure for
 documenting software, data, or both, with pointers to the Cornell Data
 Services guides for further detail. `use_readme = "plain"` creates
 `README.txt` with identical content; only the extension differs.
 `use_readme = FALSE` skips the README entirely. If a README already exists
-at the destination, `init_project()` stops with an informative error rather
-than overwriting it.
+at the destination, in any capitalization and with any extension,
+`init_project()` stops with an informative error rather than overwriting it.
 
 ```r
 # Skip the README
 init_project(path = "~/Documents/my-project", use_readme = FALSE)
 
-# Plain-text README instead of Markdown -- same content, different extension
+# Plain-text README instead of Markdown, same content, different extension
 init_project(path = "~/Documents/my-project", use_readme = "plain")
 ```
 
-The `renv` lockfile that `init_project()` creates is also what
-`containr::generate_dockerfile()` reads to containerize the project later.
-Starting with `init_project()` means that step is already prepared, even if
-you never need it. If the project uses branding assets and is later
-containerized, pass `misc_file = "assets/"` to `containr::generate_dockerfile()`
-so the styling files are copied into the image alongside the `.qmd`.
+When `use_renv = TRUE`, `init_project()` calls `renv::scaffold()` rather than
+`renv::init()`. `init()` loads the newly created project into the *calling* R
+session, repointing `.libPaths()` at a library that is empty apart from
+`renv` itself, so every package you had available disappears until you
+restart R. `scaffold()` builds the same infrastructure and leaves your
+session alone.
+
+Nothing is snapshotted at creation time, because a project that has just been
+created has no code in it and there is nothing to discover. Take a snapshot
+yourself once the analysis exists, and before containerizing:
+
+```r
+renv::snapshot()
+```
+
+The `renv` lockfile is what `containr::generate_dockerfile()` reads to
+containerize the project later. Starting with `init_project()` means that step
+is already prepared, even if you never need it. If the project uses branding
+assets and is later containerized, pass `misc_file = "assets/"` to
+`containr::generate_dockerfile()` so the styling files are copied into the
+image alongside the `.qmd`.
 
 ---
 
@@ -296,23 +372,39 @@ The report checks for the expected folder structure, an `.Rproj` file,
 the presence of hidden files like `.RData` and `.Rhistory` that are common
 sources of reproducibility problems.
 
+Two of the checks are about `renv` specifically, and they are paired for a
+reason. A lockfile that records nothing but `renv` itself is reported only
+when the project also has `.R` or `.qmd` source files: a freshly scaffolded
+project legitimately has an empty lockfile, but a project with code in it and
+nothing in its lockfile is the state that produces a container image which
+builds cleanly and then cannot run the analysis. Separately, a `.renvignore`
+that excludes `.qmd` files is reported, because in a project whose
+`library()` calls live in its Quarto source, which is the arrangement this
+package recommends, that entry hides the dependencies from the snapshot.
+Versions of `init_project()` before v0.5.0 wrote such a file, so projects
+created by those versions still carry one.
+
+Which folders are audited depends on what the project declares. Precedence
+is an explicit `config` argument first, then the project's own
+`_toolero.yml`, then the built-in standard set. A folder declared by either
+of the first two and missing from disk is reported as a failure rather than
+a warning: a declaration that is not met is a conformance failure, whereas
+the standard set is a suggestion nobody signed up for.
+
+Naming conventions are reported only when they differ from the defaults, so
+a conventions row in the output always means something in this project
+resolves differently from every other one.
+
 README detection is case-insensitive and extension-agnostic: any file whose
 stem matches `readme`, in any capitalization, counts regardless of extension
 or the absence of one. `README.md`, `readme`, `Readme.pdf`, and `README.tex`
 all pass.
 
-By default the folder check uses the standard toolero set. Pass a config
-file produced by `generate_project_config()` to audit against a
-project-specific structure instead. Folders declared in the config but
-missing from the project are reported as failures rather than warnings —
-you declared them explicitly, so their absence is a conformance failure
-rather than a suggestion.
-
 ```r
-# Audit the current project
+# Audit the current project, against its own _toolero.yml if it has one
 check_project()
 
-# Audit against a custom folder structure
+# Audit against a specific config instead
 check_project(config = "~/linguistics-project.yml")
 
 # Access results programmatically
@@ -324,8 +416,8 @@ out <- check_project()
 ### `create_qmd()`
 
 Scaffolds a new Quarto document from a reproducible template with optional
-sample data, custom styling, YAML pre-population, and -- opt-in, via
-`use_purl` -- a post-render hook that extracts R code from the rendered
+sample data, custom styling, YAML pre-population, and, opt-in via
+`use_purl`, a post-render hook that extracts R code from the rendered
 document into a companion `.R` file automatically.
 
 The function has two main motivations. First, it reduces repetitive setup
@@ -342,40 +434,52 @@ document automatically, so you do not have to maintain a separate script by
 hand. This pattern is discussed in more detail in the post
 [From the Notebook to the Cluster. Part 1: Start with the Document](https://connect.doit.wisc.edu/nb2cl-p1-the-document/).
 
+Every edit `create_qmd()` makes to a document's YAML header is made line by
+line rather than by parsing the header and writing it back out. Keys the edit
+does not touch keep the template's own quoting, indentation, comments and
+ordering, so the document you open is the template as shipped plus the keys
+you asked for.
+
 **Arguments:**
 
 - `filename` -- name of the `.qmd` file. Must be supplied explicitly.
 - `path` -- directory where the document is created. Defaults to `"."`.
-- `yaml_data` -- path to a YAML file for pre-populating the header.
+- `yaml_data` -- path to a YAML file for pre-populating the header. Each
+  top-level key in the file replaces the template's key of the same name;
+  keys the file does not mention are left exactly as the template wrote them.
 - `overwrite` -- whether to overwrite existing files. Defaults to `FALSE`.
-  Note two exceptions: `assets/logo.png` is always exempt from overwrite --
-  an existing logo is assumed to be deliberate branding and is never
-  replaced by the generic placeholder; and `_quarto.yml` is never governed
-  by `overwrite` at all -- when it's touched it's merged, not replaced, and
-  in some cases (see `use_purl` below) it's deliberately left untouched
-  regardless of `overwrite`.
+  Note two exceptions: `assets/logo.png` is always exempt from overwrite, so
+  an existing logo is assumed to be deliberate branding and is never replaced
+  by the generic placeholder; and `_quarto.yml` is never governed by
+  `overwrite` at all, since when it is touched it is merged rather than
+  replaced, and in some cases (see `use_purl` below) it is deliberately left
+  untouched regardless of `overwrite`.
 - `use_purl` -- defaults to `FALSE`. When `TRUE`:
   - Stamps the document's own YAML header with `purl: true` (or `purl:
     false` when `use_purl = FALSE`, so a document can positively confirm it
     should be skipped rather than merely lacking an opinion).
-  - Creates `R/purl.R` in `path` unconditionally.
-  - Wires `R/purl.R` into `_quarto.yml`'s `project: post-render:` --
-    creating `_quarto.yml` from the package template if it doesn't exist
-    yet, or merging the hook into an existing file's `project:` block
-    (preserving every other key) if it does -- **unless** that existing
-    `_quarto.yml` declares `project: type:` as `website`, `book`, or
-    `manuscript`. Those three project types render many documents on every
-    full build, and the person scaffolding one `.qmd` may not be thinking
-    about the others, so automatic wiring is skipped with a warning
-    explaining how to add it by hand.
+  - Ensures `R/purl.R` exists in `path`, subject to `overwrite` like any
+    other scaffolded file. An existing `R/purl.R` is left in place unless
+    `overwrite = TRUE`.
+  - Wires `R/purl.R` into `_quarto.yml`'s `project: post-render:`, creating
+    `_quarto.yml` from the package template if it does not exist yet, or
+    merging the hook into an existing file's `project:` block (preserving
+    every other key) if it does, **unless** that existing `_quarto.yml`
+    declares `project: type:` as `website`, `book`, or `manuscript`. Those
+    three project types render many documents on every full build, and the
+    person scaffolding one `.qmd` may not be thinking about the others, so
+    automatic wiring is skipped with a warning explaining how to add it by
+    hand. The warning also reports whether `R/purl.R` was created just then
+    or was already present, since whoever reads it is about to point a hook
+    at that script and needs to know which copy is sitting there.
   - `R/purl.R` itself only purls documents whose own header carries `purl:
     true`, and mirrors each document's path under `R/` (so
     `posts/2026-08-04-giscus/index.qmd` purls to
-    `R/posts/2026-08-04-giscus/index.R`, not a flattened `R/index.R`) --
-    together, this means turning `use_purl` on for one document inside a
-    larger project doesn't purl every other `.qmd` in it, and two documents
-    that happen to share a filename in different directories (a
-    directory-per-post convention, for instance) don't overwrite each
+    `R/posts/2026-08-04-giscus/index.R`, not a flattened `R/index.R`).
+    Together, this means turning `use_purl` on for one document inside a
+    larger project does not purl every other `.qmd` in it, and two documents
+    that happen to share a filename in different directories, a
+    directory-per-post convention for instance, do not overwrite each
     other's output.
 - `include_examples` -- if `TRUE` (default), copies a sample dataset into
   `data-raw/`, a placeholder logo into `assets/` (skipped if a logo already
@@ -385,21 +489,21 @@ hand. This pattern is discussed in more detail in the post
   Quarto output. `TRUE` scans `assets/` for `styles.css`, `header.html`,
   and `footer.html` by name and wires up whichever are present: `styles.css`
   as `css:`, `header.html` as `include-before-body:`, `footer.html` as
-  `include-after-body:`. A directory path scans that directory instead --
+  `include-after-body:`. A directory path scans that directory instead, and
   the caller is responsible for populating it with files under those exact
   standardized names.
 
 ```r
-# Blank skeleton -- no examples, no styling (use_purl = FALSE is the default)
+# Blank skeleton, no examples, no styling (use_purl = FALSE is the default)
 create_qmd(path = "my-project", filename = "analysis.qmd",
            include_examples = FALSE)
 
 # Full worked example with sample data and placeholder logo (default)
 create_qmd(path = "my-project", filename = "analysis.qmd")
 
-# Opt this document into purl: stamps purl: true, creates R/purl.R, and
+# Opt this document into purl: stamps purl: true, scaffolds R/purl.R, and
 # wires up the _quarto.yml post-render hook (merged if the file already
-# exists and isn't a website/book/manuscript project)
+# exists and is not a website, book or manuscript project)
 create_qmd(path = "my-project", filename = "analysis.qmd", use_purl = TRUE)
 
 # Blank document wired to branding assets in assets/
@@ -415,41 +519,48 @@ create_qmd(path = "my-project", filename = "analysis.qmd",
            yaml_data = "my-config.yml")
 ```
 
-If `use_purl = TRUE` is used inside an existing website, book, or
-manuscript project, `_quarto.yml` is left untouched and a warning shows the
-snippet needed to wire the hook up by hand:
+If `use_purl = TRUE` is used inside an existing website, book, or manuscript
+project, `_quarto.yml` is left untouched and a warning names what to add by
+hand: a `post-render: R/purl.R` entry under the `project:` key. The document's
+`purl: true` header stamp is written either way, and `R/purl.R` is scaffolded
+either way. Only the automatic `_quarto.yml` edit is skipped.
 
-```yaml
-project:
-  post-render: R/purl.R
-```
-
-`R/purl.R` and the document's `purl: true` header stamp are created either
-way -- only the automatic `_quarto.yml` edit is skipped.
+Both bundled templates set `embed-resources: true`. A non-self-contained HTML
+depends on the `_files/` sidecar directory rendered beside it, and nothing
+that moves these documents around knows about sidecars: an archived cluster
+run brings back a folder, an emailed report is one file, and a rendered
+document committed next to its analysis quietly depends on a directory nobody
+thinks to copy. The cost of `true` is a larger file; the cost of `false` is an
+artifact that works only on the machine that made it.
 
 ---
 
 ### `qmd_to_r()`
 
 Extracts R code chunks from any `.qmd` file into a standalone `.R` script.
-This is the direct counterpart to the purl hook in `create_qmd()` — it works
-on any Quarto document regardless of how it was created.
+This is the direct counterpart to the purl hook in `create_qmd()`, and it
+works on any Quarto document regardless of how it was created.
 
 The output path defaults to the same directory as the input with the `.qmd`
-extension replaced by `.R`. The `documentation` argument controls how much
-context is preserved in the extracted script: chunk labels only (`1`, the
-default), full roxygen blocks (`2`), or pure code with no comments (`0`).
+extension replaced by `.R`. Its parent directory is created if it does not
+already exist, so writing into `R/` works whether or not the project was
+scaffolded by `init_project()`. The `documentation` argument controls how
+much context is preserved in the extracted script: chunk labels only (`1`,
+the default), full roxygen blocks (`2`), or pure code with no comments (`0`).
 
 ```r
 # Default output: same directory, .R extension
 qmd_to_r(input = "analysis.qmd")
 
-# Explicit output path
+# Explicit output path. R/ is the documented home for derived scripts.
 qmd_to_r(
   input  = "analysis.qmd",
-  output = "scripts/analysis.R"
+  output = "R/analysis.R"
 )
 ```
+
+`qmd_to_r()` needs the `knitr` package, which is a suggested rather than a
+required dependency. Install it if you have not already.
 
 ---
 
@@ -513,17 +624,23 @@ function without re-splitting the data each time.
 
 `write_by_group()` handles the split. It partitions a data frame by one or
 more grouping columns, writes one CSV per group with sanitized filenames,
-and optionally produces a `manifest.csv` that records each group's value,
-file path, and row count. That manifest is the input to `run_by_group()`.
+and optionally produces a `manifest.csv` recording each group's value, file
+path, and row count. That job manifest is the input to `run_by_group()`.
 Rows with a missing value in any grouping column are dropped by default
 (`drop_na = TRUE`), with a message reporting how many were dropped; set
 `drop_na = FALSE` to instead treat missing values as their own group.
+
+Groups are written, and manifest rows recorded, in order of first appearance
+in the data rather than in sort order. This is more than cosmetic: `submitr`
+writes its `subdatasets.csv` in manifest order, HTCondor assigns `ProcId` in
+that order, and log filenames are reconstructed from position, so manifest
+row order is the mapping from a job number back to a group.
 
 `run_by_group()` handles the apply. It reads each subset from the manifest,
 calls your function on each one, and assembles the results into a single
 tibble. If your function returns a data frame, the output is automatically
 unnested into a flat tibble with a group ID column prepended. If it returns
-anything else — a model, a plot, a file path — the results come back as a
+anything else, a model, a plot, a file path, the results come back as a
 nested tibble with a list-column.
 
 ```r
@@ -547,13 +664,13 @@ summarise_species <- function(data) {
   )
 }
 
-# Apply from disk via manifest -- returns a flat tibble
+# Apply from disk via manifest, returning a flat tibble
 results <- run_by_group(
   manifest = "data/jobs/manifest.csv",
   .f       = summarise_species
 )
 
-# Apply from memory via named list -- same result, no disk reads
+# Apply from memory via named list, same result, no disk reads
 subsets <- split(penguins, penguins$species)
 
 results <- run_by_group(
@@ -564,11 +681,21 @@ results <- run_by_group(
 
 `group_col` also accepts more than one column name. Grouping by
 `c("species", "sex")` writes one file per combination that actually appears
-in the data -- `adelie--female.csv`, `adelie--male.csv`, and so on -- rather
-than the full cross-product of possible values. The manifest gains one
-column per grouping variable, in addition to a composite `group_value`
-column (e.g. `"Adelie | female"`); single-column calls keep the original
-three-column manifest schema unchanged.
+in the data, `adelie--female.csv`, `adelie--male.csv`, and so on, rather
+than the full cross-product of possible values. The `--` separator is load
+bearing: because sanitizing collapses any run of non-alphanumeric characters
+to exactly one dash, a sanitized value can contain a single `-` but never
+two consecutive ones, which is what leaves `--` free to mark a column
+boundary unambiguously.
+
+The job manifest has one schema regardless of how many grouping columns were
+supplied: one column per grouping variable holding the raw value, then
+`group_value` (the raw values joined with `" | "`), `n_rows`, and
+`file_path`. Grouping on a single column produces the same shape, with the
+grouping column's value repeating `group_value` exactly. That redundancy is
+deliberate, since one schema with a varying column count is easier to read,
+validate and rely on than two schemas selected by how many columns you
+happened to group on.
 
 ```r
 write_by_group(
@@ -579,11 +706,29 @@ write_by_group(
 )
 ```
 
+The `prefix` argument prepends a namespace to every output filename, so
+`a.csv` becomes `data-a.csv` and `a--female.csv` becomes
+`data-a--female.csv`. It is worth using before a high-throughput run:
+`submitr::htc_gen_submit()` reduces the manifest to `basename()`, so subsets
+from two datasets split on the same short column would otherwise land in one
+flat directory on the access point and overwrite each other.
+
+```r
+write_by_group(
+  penguins,
+  group_col  = "species",
+  output_dir = "data/jobs",
+  prefix     = "penguins",
+  manifest   = TRUE
+)
+```
+
 For analyses that are slow or computationally independent across groups,
 `run_by_group()` supports parallel execution via `furrr`. The `workers`
 argument controls how many R sessions to use. The ceiling is
 `max(1L, parallelly::availableCores() - 1L)`, which is environment-aware
-and reserves one core for the main session.
+and reserves one core for the main session. `workers = 1L` (the default) or
+`workers = NULL` runs sequentially.
 
 ```r
 # Parallel execution using available cores
@@ -596,7 +741,7 @@ results <- run_by_group(
 )
 ```
 
-The manifest produced by `write_by_group()` is also the input to
+The job manifest produced by `write_by_group()` is also the input to
 `submitr::htc_gen_submit()` in multiple-job mode, making this split-apply
 pattern the natural on-ramp to high-throughput computing when local
 parallelism is not enough.
@@ -611,6 +756,12 @@ disk and appends a row to a project-level accumulator tracking what was
 saved, how, and whether the write succeeded. `generate_manifest()` reads
 that accumulator at the end of the analysis and writes a
 `project-manifest.json` describing every artifact the project produced.
+
+This is the *project manifest*, a record of outputs from a computation that
+has already happened. It is a different document from the *job manifest*
+`write_by_group()` produces, which lists inputs to a computation about to
+happen. The two share a word and nothing else, which is why this one is
+named `project-manifest.json` rather than `manifest.json`.
 
 `save_output()` wraps any write function behind a narrowly-scoped
 `tryCatch()`. A failed write is recorded with `status = "failure"` and the
@@ -648,7 +799,7 @@ followed by an `artifacts` array with one entry per output file. When an
 analysis re-runs within a session and overwrites an earlier output, the
 manifest keeps only the most recent write per path.
 
-A missing accumulator at manifest time is an error — no `save_output()`
+A missing accumulator at manifest time is an error, since no `save_output()`
 calls were ever recorded. An accumulator with no rows produces an empty
 manifest with a warning, since that is a truthful result rather than a
 setup mistake.
@@ -667,28 +818,76 @@ tryCatch(
 ```
 
 The `try()` inside `finally` ensures that a crash before the first
-`save_output()` call — which leaves no accumulator on disk — does not
-replace the original error with a manifest-not-found error in the job log.
+`save_output()` call, which leaves no accumulator on disk, does not replace
+the original error with a manifest-not-found error in the job log.
+
+**What holds still.** The accumulator's column set is the contract between
+these two functions and anything downstream that reads what an analysis
+produced, `encapsulr::describe()` included. Those columns are `file_path`,
+`r_class`, `timestamp`, `function_used`, `status`, `error_message` and
+`note`, and a change to them gets a `NEWS.md` entry and a deprecation cycle
+rather than a straight swap. `save_output()` checks the header of an existing
+accumulator against that schema before appending and aborts on a mismatch
+rather than writing misaligned rows. The functions themselves are newer and
+may still move; the schema is what to build against.
 
 ---
 
-### `detect_execution_context()`
+### `detect_execution_context()` and `resolve_input_path()`
 
-Identifies which of three environments the code is currently running in —
-an interactive R session, a `quarto render` call, or a plain `Rscript`
-invocation — and returns `"interactive"`, `"quarto"`, or `"rscript"`. Useful
-for writing code that resolves input file paths correctly across all three
-contexts without maintaining separate versions.
+An analysis written in a `.qmd` runs in three places over its life: in your
+console while you develop it, under `quarto render` when you produce the
+document, and under `Rscript` when a cluster runs the derived script. Each
+one finds its input data somewhere different.
+
+`detect_execution_context()` identifies which of the three you are in and
+returns `"interactive"`, `"quarto"`, or `"rscript"`. Use it directly for
+anything that varies by context but is not about data.
 
 ```r
-context <- detect_execution_context()
+# Progress output is useful at a console and only clutters a job log
+if (detect_execution_context() == "rscript") {
+  options(cli.progress_show_after = Inf)
+}
+```
 
-input_file <- switch(context,
-  interactive = "data/sample.csv",
+For the data path specifically, use `resolve_input_path()`. It picks the
+branch, checks that the result is usable, and says what to fix when it is
+not.
+
+```r
+input_file <- resolve_input_path(
+  interactive = "data-raw/sample.csv",
   quarto      = params$input_file,
   rscript     = commandArgs(trailingOnly = TRUE)[1]
 )
 ```
+
+Only the branch matching the current context is evaluated, so the `params`
+reference is safe under `Rscript`, where `params` does not exist at all.
+
+The checking is the point. Each of those branches can quietly produce
+something that is not a path. `commandArgs(trailingOnly = TRUE)[1]` is
+`NA_character_` when no argument was passed, which is what you get from a
+`submitr` single-mode job with no `data_files` set. `params` exists only if
+the YAML header declares it, and `params$input_file` is `NULL` if the block
+exists without that key. Without the check, all of these surface one call
+later as a message about `NA` or `NULL` from whatever tried to read the file,
+naming neither the context nor the fix, from a job log on a machine you are
+not sitting at.
+
+You can also leave the arguments off. The `rscript` branch defaults to the
+first command line argument, and the other two fall back to the document's
+own `params$input_file`, which makes the YAML header the single place the
+path is written rather than one place in the header and another in a chunk
+that has to be kept in step with it.
+
+```r
+input_file <- resolve_input_path()
+```
+
+Set `must_exist = FALSE` when the resolved value is a URL or anything else
+that is not a local file.
 
 ---
 
@@ -737,6 +936,28 @@ Quarto 1.4+ with Typst support and the `pdftools` package.
 
 ---
 
+## toolero inside a container
+
+An analysis scaffolded by `create_qmd()` loads `toolero` in its setup chunk,
+and the script purled out of it inherits that call. So a containerized
+`toolero` analysis needs `toolero` inside the image. That is the design, and
+the alternative is worse: researchers hand-rolling context detection and
+output recording on an execute node. But it has two consequences worth
+stating rather than discovering.
+
+First, `toolero` has to be in `renv.lock`, which is the concrete reason
+`check_project()` reports a lockfile that records nothing. Take a snapshot
+after the analysis exists and before containerizing.
+
+Second, it puts `toolero` on the critical path of every job. Four functions
+run on the execute node, `detect_execution_context()`,
+`resolve_input_path()`, `save_output()` and `generate_manifest()`, and a
+change to their return values or file schemas changes the behaviour of
+analyses inside images built against an older version. They are treated as a
+stability surface accordingly.
+
+---
+
 ## Dependencies
 
 `toolero` builds on a focused set of R packages for project setup, file
@@ -747,6 +968,17 @@ cli, fs, glue, janitor, jsonlite, lifecycle, parallelly, purrr, quarto,
 readr, renv, rlang, rvest, tibble, tidyr, usethis, utils, withr, xml2, yaml
 ```
 
+Some functions need a package that is suggested rather than required, so
+that installing `toolero` does not drag in more than most users need:
+
+```text
+knitr      required by qmd_to_r()
+furrr      required by run_by_group() when workers > 1
+future     required by run_by_group() when workers > 1
+pdftools   required by arborize()
+dplyr      used in the examples throughout this README
+```
+
 ---
 
 ## Related packages
@@ -754,9 +986,9 @@ readr, renv, rlang, rvest, tibble, tidyr, usethis, utils, withr, xml2, yaml
 `toolero` is the first step in a family of packages for reproducible research
 workflows:
 
-- **toolero** — organize and scaffold research projects
-- [containr](https://github.com/erwinlares/containr) — containerize an R project
-- [submitr](https://github.com/erwinlares/submitr) — submit containerized R jobs to CHTC and retrieve results
+- **toolero** -- organize and scaffold research projects
+- [containr](https://github.com/erwinlares/containr) -- containerize an R project
+- [submitr](https://github.com/erwinlares/submitr) -- submit containerized R jobs to CHTC and retrieve results
 
 Each package can be used independently. The shared design goal is to make
 good research-computing practices easier to adopt before a project becomes
