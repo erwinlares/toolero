@@ -25,10 +25,6 @@
 #'   `overwrite`, on purpose.
 #' @param use_purl Logical. Defaults to `FALSE`. When `TRUE`:
 #'   - Stamps the document's own YAML header with `purl: true`.
-#'   - Ensures the header declares a `params` block with an `input_file`
-#'     entry, adding `params: input_file: "data-raw/data.csv"` as a
-#'     placeholder when the template does not already declare one. See
-#'     the note below on why this is tied to `use_purl`.
 #'   - Ensures `R/purl.R` exists in `path` (subject to `overwrite`, like
 #'     any other scaffolded file -- an existing `R/purl.R` is left in
 #'     place unless `overwrite = TRUE`).
@@ -58,8 +54,7 @@
 #'   When `use_purl = FALSE`, the document's header is still stamped,
 #'   with `purl: false`, so `R/purl.R` (in a project where some other
 #'   document has `use_purl = TRUE`) can positively confirm this document
-#'   should be skipped rather than merely lacking an opinion. The `params`
-#'   block is not stamped in that case.
+#'   should be skipped rather than merely lacking an opinion.
 #'
 #'   `R/purl.R` itself only purls documents whose own header carries
 #'   `purl: true`, so turning this on for one document inside a larger
@@ -70,18 +65,6 @@
 #'   a filename in different directories (e.g. a directory-per-post
 #'   convention using `index.qmd`) do not overwrite each other's output.
 #'
-#'   On the `params` stamp: the input-resolution pattern recommended
-#'   throughout this family of packages -- see [detect_execution_context()]
-#'   and `submitr::htc_gen_submit()` -- reads `params$input_file` in its
-#'   `quarto` branch, which requires the document to declare `params:`.
-#'   The example template does; the skeleton deliberately does not, since
-#'   `include_examples = FALSE` asks for a bare document and padding it to
-#'   serve a cluster workflow the user may never reach would be the wrong
-#'   trade. `use_purl = TRUE` is the user saying this document is destined
-#'   to become a script, and a script is exactly the artifact that runs
-#'   under `Rscript` on an execute node. So the skeleton stays bare for
-#'   the local case and acquires what it needs at the moment it announces
-#'   where it is going. An existing `input_file` is never overwritten.
 #' @param include_examples Logical. If `TRUE` (the default), copies a sample
 #'   dataset (`sample.csv`) into `data-raw/`, a placeholder logo
 #'   (`generic-logo.png`, copied as `logo.png`) into `assets/`, and uses a
@@ -131,12 +114,11 @@
 #'    `styles.css`, `header.html`, and `footer.html` by name and injects
 #'    whichever are present into the YAML header.
 #' 5. Stamps `purl: true` or `purl: false` into the document's own YAML
-#'    header, reflecting `use_purl`, and when `use_purl = TRUE` also
-#'    ensures a `params: input_file:` entry is present.
+#'    header, reflecting `use_purl`.
 #' 6. If `yaml_data` is provided, reads the YAML file and substitutes
 #'    values into the document header. This runs after style injection
 #'    and the purl stamp, so `yaml_data` can override any auto-generated
-#'    YAML key, including `purl` and `params` themselves.
+#'    YAML key, including `purl` itself.
 #' 7. If `use_purl = TRUE`, ensures `R/purl.R` exists. Then, unless
 #'    `_quarto.yml` already exists and declares `project: type:` as
 #'    `website`, `book`, or `manuscript` (in which case wiring is
@@ -144,10 +126,30 @@
 #'    the post-render hook -- creating `_quarto.yml` from the package
 #'    template if absent, or merging the hook into the existing file's
 #'    `project:` block if present.
-#' 8. The sample dataset bundled with the template is a subset of the Palmer
-#'    Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB (2020).
-#'    palmerpenguins: Palmer Archipelago (Antarctica) Penguin Data. R package
-#'    version 0.1.0. \doi{10.5281/zenodo.3960218}
+#' 8. The sample dataset bundled with the template, `data-raw/sample.csv`,
+#'    is a subset of the Palmer Archipelago penguin data, taken from an
+#'    earlier version of the `palmerpenguins` package than the one on CRAN
+#'    today. Treat it as teaching material rather than as a citable copy of
+#'    the data.
+#'
+#'    Since R 4.5.0 the same data ships with base R, so `?datasets::penguins`
+#'    is the most convenient reference, with `datasets::penguins_raw`
+#'    carrying the uncleaned form. One difference matters when reading the
+#'    two side by side: base R shortened four of the column names, so
+#'    `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm` and
+#'    `body_mass_g` here are `bill_len`, `bill_dep`, `flipper_len` and
+#'    `body_mass` there. `species`, `island`, `sex` and `year` are spelled
+#'    the same in both. This template keeps the longer names, which carry
+#'    their units.
+#'
+#'    Original data: Gorman KB, Williams TD, Fraser WR (2014). Ecological
+#'    sexual dimorphism and environmental variability within a community of
+#'    Antarctic penguins (genus Pygoscelis). PLoS ONE 9(3): e90081.
+#'    \doi{10.1371/journal.pone.0090081}. R package: Horst AM, Hill AP,
+#'    Gorman KB (2020). palmerpenguins: Palmer Archipelago (Antarctica)
+#'    Penguin Data. \doi{10.5281/zenodo.3960218}. Collected by Palmer
+#'    Station Antarctica LTER, a member of the Long Term Ecological
+#'    Research Network.
 #'
 #' Every edit to the document's YAML header is made line by line rather
 #' than by parsing the header and writing it back out. Keys the edit does
@@ -171,9 +173,9 @@
 #' create_qmd(path = tempdir(), filename = "analysis.qmd",
 #'            overwrite = TRUE)
 #'
-#' # Opt this document into purl: stamps purl: true and a params block,
-#' # and wires up R/purl.R + the _quarto.yml post-render hook (merged if
-#' # the file already exists, e.g. inside a larger Quarto website project)
+#' # Opt this document into purl: stamps purl: true and wires up
+#' # R/purl.R + the _quarto.yml post-render hook (merged if the file
+#' # already exists, e.g. inside a larger Quarto website project)
 #' create_qmd(path = tempdir(), filename = "analysis.qmd",
 #'            overwrite = TRUE, use_purl = TRUE)
 #'
@@ -350,22 +352,10 @@ create_qmd <- function(
     # candidates.
     qmd_content <- .inject_purl_yaml(qmd_content, purl = use_purl)
 
-    # A document opted into purl is a document destined to become an .R
-    # script, and a script is what runs under Rscript on an execute node
-    # with its input path arriving on the command line. That is precisely
-    # the document whose header needs a params: block, since the quarto
-    # branch of detect_execution_context() reads params$input_file. The
-    # example template already declares one pointing at the sample data,
-    # and that is a better value than anything guessed here, so an
-    # existing entry is left alone.
-    if (use_purl) {
-        qmd_content <- .stamp_params_yaml(qmd_content)
-    }
-
     # -- 7. Substitute YAML if yaml_data is provided -----------------------------
     # Runs after style injection and the purl stamp, so a user's own
-    # config can still override either -- including purl and params, if
-    # they really want to hand-author those keys.
+    # config can still override either -- including purl itself, if they
+    # really want to hand-author that key.
     if (!is.null(yaml_data)) {
         if (!fs::file_exists(yaml_data)) {
             cli::cli_abort(
@@ -544,28 +534,6 @@ create_qmd <- function(
         qmd_content,
         list(list(path = "purl", value = isTRUE(purl))),
         what = "the purl flag"
-    )
-}
-
-
-# -- Helper: stamp params: input_file: into a document's YAML header ---------
-#
-# Written only when the header does not already declare input_file, so a
-# template that ships one (example.qmd points at the sample data) keeps
-# it. Setting the leaf rather than the whole params block means a
-# document declaring other parameters gains input_file alongside them
-# instead of losing them.
-
-.stamp_params_yaml <- function(qmd_content,
-                               input_file = "data-raw/data.csv") {
-    .set_yaml_keys(
-        qmd_content,
-        list(list(
-            path      = c("params", "input_file"),
-            value     = input_file,
-            overwrite = FALSE
-        )),
-        what = "the params block"
     )
 }
 

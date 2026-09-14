@@ -93,6 +93,7 @@ test_that("uses the example template when include_examples = TRUE", {
 
   qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
   expect_true(grepl("sample.csv", qmd_content, fixed = TRUE))
+  expect_true(grepl("resolve_input_path(", qmd_content, fixed = TRUE))
 })
 
 test_that("YAML includes params block when include_examples = TRUE", {
@@ -1100,9 +1101,13 @@ test_that("the generated document's YAML header still parses", {
   expect_true(parsed[["format"]][["html"]][["embed-resources"]])
 })
 
-# -- T17: params is stamped when the document says it is headed for a cluster --
+# -- T17 reverted: the skeleton stays bare -------------------------------------
+# The params stamp was removed in favour of resolve_input_path(), which
+# handles an undeclared params: block wherever it occurs, including in
+# documents that never went through create_qmd(). Stamping a key that
+# nothing in a bare skeleton reads was scaffolding for its own sake.
 
-test_that("use_purl = TRUE stamps params: input_file: into a bare skeleton", {
+test_that("use_purl = TRUE does not add params to a bare skeleton", {
   tmp <- withr::local_tempdir()
 
   create_qmd(
@@ -1111,24 +1116,11 @@ test_that("use_purl = TRUE stamps params: input_file: into a bare skeleton", {
   )
 
   qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
-  expect_true(grepl("params:", qmd_content, fixed = TRUE))
-  expect_true(grepl("input_file", qmd_content, fixed = TRUE))
-  expect_true(grepl("data-raw/data.csv", qmd_content, fixed = TRUE))
-})
-
-test_that("use_purl = FALSE leaves a bare skeleton without params", {
-  tmp <- withr::local_tempdir()
-
-  create_qmd(
-    path = tmp, filename = "analysis.qmd",
-    include_examples = FALSE, use_purl = FALSE
-  )
-
-  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
   expect_false(grepl("params", qmd_content, fixed = TRUE))
+  expect_true(grepl("purl: true", qmd_content, fixed = TRUE))
 })
 
-test_that("the stamp does not disturb the example template's own input_file", {
+test_that("use_purl = TRUE leaves the example template's params block alone", {
   tmp <- withr::local_tempdir()
 
   create_qmd(
@@ -1136,40 +1128,12 @@ test_that("the stamp does not disturb the example template's own input_file", {
     include_examples = TRUE, use_purl = TRUE
   )
 
-  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
-  expect_true(grepl("data-raw/sample.csv", qmd_content, fixed = TRUE))
-  expect_false(grepl("data-raw/data.csv", qmd_content, fixed = TRUE))
-})
-
-test_that("yaml_data still overrides the stamped params block", {
-  tmp <- withr::local_tempdir()
-  yaml_file <- withr::local_tempfile(fileext = ".yml")
-  readr::write_file("params:\n  input_file: my/own.csv\n", yaml_file)
-
-  create_qmd(
-    path = tmp, filename = "analysis.qmd",
-    include_examples = FALSE, use_purl = TRUE, yaml_data = yaml_file
-  )
-
-  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
-  expect_true(grepl("my/own.csv", qmd_content, fixed = TRUE))
-  expect_false(grepl("data-raw/data.csv", qmd_content, fixed = TRUE))
-})
-
-test_that("the stamped params block parses as a Quarto params declaration", {
-  tmp <- withr::local_tempdir()
-
-  create_qmd(
-    path = tmp, filename = "analysis.qmd",
-    include_examples = FALSE, use_purl = TRUE
-  )
-
   header <- .split_yaml_header(
     readr::read_file(fs::path(tmp, "analysis.qmd"))
   )$header
   parsed <- yaml::yaml.load(paste(header, collapse = "\n"))
 
-  expect_equal(parsed[["params"]][["input_file"]], "data-raw/data.csv")
+  expect_equal(parsed[["params"]][["input_file"]], "data-raw/sample.csv")
 })
 
 # -- T27: rendered documents travel without a _files/ sidecar ------------------

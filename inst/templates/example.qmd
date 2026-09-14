@@ -71,24 +71,33 @@ library(toolero)
 ```{r}
 #| label: input-resolution
 
-# detect_execution_context() identifies which of three environments this
-# code is running in: interactive RStudio, quarto render, or Rscript.
-# Each context resolves the input file path differently.
+# resolve_input_path() works out where the data lives, which depends on
+# where this code is running. Three environments, three answers:
 #
-#   interactive : you are running chunks in RStudio -- path is hardcoded
-#                 to the local data file for development convenience
-#   quarto      : document is being rendered -- path comes from params
-#                 defined in the YAML header above
-#   rscript     : document is running on a remote cluster -- path comes
-#                 from the first command line argument
+#   interactive : you are running chunks in RStudio -- the local copy of
+#                 the data, for development convenience
+#   quarto      : the document is being rendered -- the path comes from
+#                 the params block in the YAML header above
+#   rscript     : the document is running on a remote cluster -- the path
+#                 arrives as the first command line argument
+#
+# Only the branch matching the current context is evaluated, so the
+# params reference below is safe under Rscript, where params does not
+# exist at all.
 
-context <- detect_execution_context()
-
-input_file <- switch(context,
+input_file <- resolve_input_path(
   interactive = "data-raw/sample.csv",
   quarto      = params$input_file,
   rscript     = commandArgs(trailingOnly = TRUE)[1]
 )
+
+# The three arguments are spelled out here because seeing them is the
+# point of this template. In your own document you can leave them off:
+# the rscript branch defaults to the first command line argument, and the
+# other two fall back to params$input_file, which makes the YAML header
+# the single place the path is written.
+#
+#   input_file <- resolve_input_path()
 ```
 
 ## Load Data
@@ -130,8 +139,12 @@ p_stats
 # Relationship between flipper length and body mass by species.
 # Replace this block with your own plot.
 #
-# Data: Palmer Penguins (Horst, Hill & Gorman, 2020)
-# https://doi.org/10.5281/zenodo.3960218
+# Data: a subset of the Palmer Archipelago penguin data, from an earlier
+# version of the palmerpenguins package. Since R 4.5.0 the same data is
+# in base R as datasets::penguins, with four columns renamed there:
+# bill_len, bill_dep, flipper_len, body_mass. See ?create_qmd for the
+# full citation.
+# https://doi.org/10.1371/journal.pone.0090081
 
 p_plot <- penguins |>
   ggplot(aes(x = flipper_length_mm, y = body_mass_g, color = species)) +
