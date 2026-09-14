@@ -355,34 +355,65 @@
 #### Bug fixes
 
 - [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md):
-  arguments in … are now forwarded to `.f`  
-  unevaluated rather than captured with `list(...)` first. The old  
-  behaviour forced every argument in
+  when running sequentially, arguments in `...` are now forwarded to
+  `.f` unevaluated rather than captured with `list(...)` first. Most
+  arguments are unaffected either way: a number, a string, a logical, a
+  file path are ordinary values, and they reached `.f` correctly before
+  and still do. The case that was broken is the one argument that is not
+  an ordinary value, a bare column name. The old behavior forced every
+  argument in
   [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)’s
-  own frame, which meant a bare column name intended for `.f` to capture
-  with `{{ }}` was evaluated where it means nothing and failed with
-  `object '...' not found` before `.f` was entered. Tidy-eval arguments
-  now work:
+  own frame, where a symbol like `flipper_length_mm` means nothing, so a
+  function written to capture it with `{{ }}` failed with object
+  `'flipper_length_mm'` not found before it was ever entered. Such
+  functions now work:
 
 ``` r
 
-  plot_group <- function(data, x, y) {
+
+plot_group <- function(data, x, y) {
     ggplot2::ggplot(data, ggplot2::aes(x = {{ x }}, y = {{ y }})) +
       ggplot2::geom_point()
-  }
+}
 
-  run_by_group(groups = subsets, .f = plot_group,
-               x = flipper_length_mm, y = body_mass_g)
+run_by_group(groups = subsets, .f = plot_group,
+             x = flipper_length_mm, y = body_mass_g)
 ```
 
-Plain value arguments are unaffected. Two smaller consequences follow
-from forwarding rather than forcing, both of which match what a direct
-call to .f would do: an argument with a side effect is evaluated at most
-once for the whole call rather than once per group, as before, and an
-argument .f never touches is now never evaluated at all, where
-previously it was. The lambda workaround, .f = (d) plot_group(d, x =
-flipper_length_mm), continues to work and remains the right answer on
-older versions.
+To be clear about what this does not ask of you:
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+places no requirement on how `.f` is written. `{{ }}` is what any
+function accepting a bare column name needs, called directly or not; a
+function taking only ordinary values needs nothing. If you would rather
+avoid tidy evaluation altogether, pass the column name as a string and
+index with `.data[[x]]` inside `.f`, which works in both modes.
+
+Two smaller consequences follow, both matching what a direct call to
+`.f` does: an argument with a side effect is evaluated at most once for
+the whole call rather than once per group, as before, and an argument
+`.f` never touches is now never evaluated at all, where previously it
+was.
+
+Bare column names do not survive `workers > 1`. Parallel execution sends
+the work to separate R sessions, so every argument has to be
+materialized and serialized first, and an argument whose value exists
+only inside the data mask `.f` builds has nothing to serialize.
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+now reports that directly, naming the two ways forward, rather than
+letting it surface from inside future’s globals inspection as an
+unattributed `object 'x' not found`. Ordinary values, strings included,
+are unaffected. The portable form for a bare column name moves it inside
+`.f`, and works in both modes:
+
+``` r
+
+
+  run_by_group(
+    groups  = subsets,
+    .f      = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g),
+    workers = 4
+  )
+```
 
 - [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
   and

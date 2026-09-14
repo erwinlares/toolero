@@ -159,21 +159,21 @@ data <- data.frame(
   mass    = c(3750, 3800, 5000)
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpBaQ2VO/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpBaQ2VO/gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpLTsR81/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpLTsR81/gentoo.csv
 
 # Same but also write a job manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpBaQ2VO/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpBaQ2VO/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmpBaQ2VO/manifest.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpLTsR81/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpLTsR81/gentoo.csv
+#> ✔ Manifest written to /tmp/RtmpLTsR81/manifest.csv
 
 # Namespace the filenames -- adelie.csv becomes penguins-adelie.csv
 write_by_group(data, group_col = "species", prefix = "penguins",
                output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpBaQ2VO/penguins-adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpBaQ2VO/penguins-gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpLTsR81/penguins-adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpLTsR81/penguins-gentoo.csv
 
 # Group by more than one column
 data2 <- data.frame(
@@ -183,9 +183,9 @@ data2 <- data.frame(
 )
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpBaQ2VO/adelie--male.csv
-#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpBaQ2VO/adelie--female.csv
-#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpBaQ2VO/gentoo--male.csv
-#> ✔ Manifest written to /tmp/RtmpBaQ2VO/manifest.csv
+#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpLTsR81/adelie--male.csv
+#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpLTsR81/adelie--female.csv
+#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpLTsR81/gentoo--male.csv
+#> ✔ Manifest written to /tmp/RtmpLTsR81/manifest.csv
 # }
 ```

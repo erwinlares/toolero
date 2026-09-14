@@ -101,10 +101,11 @@ via <code>...</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments passed to <code>.f</code> on every call. They are
-forwarded unevaluated rather than evaluated here, so <code>.f</code> receives them
-exactly as it would from a direct call. See the tidy evaluation note
-below.</p></dd>
+<dd><p>Additional arguments passed to <code>.f</code> on every call. Forwarded
+unevaluated when running sequentially, so <code>.f</code> receives them exactly as
+it would from a direct call and tidy evaluation works. Materialized when
+<code>workers &gt; 1</code>, which parallel execution requires. See the section on
+passing arguments below.</p></dd>
 
 
 <dt id="arg-groups">groups<a class="anchor" aria-label="anchor" href="#arg-groups"></a></dt>
@@ -211,9 +212,21 @@ group ID repeated per row</p></li>
     <h2 id="passing-arguments-through-to-f">Passing arguments through to <code>.f</code><a class="anchor" aria-label="anchor" href="#passing-arguments-through-to-f"></a></h2>
 
 
-<p>Everything in <code>...</code> is forwarded to <code>.f</code> on every call, unevaluated.
-That matters when <code>.f</code> uses tidy evaluation, because a bare column name
-only means something once it reaches the data:</p>
+<p>Most arguments need nothing special. A number, a string, a logical, a
+file path, a function: these are ordinary values, and they reach <code>.f</code>
+in both modes exactly as you would expect. <code>run_by_group()</code> imposes no
+requirement on how <code>.f</code> is written.</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">scale_group</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">multiplier</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span><span class="va">data</span>, total <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">*</span> <span class="va">multiplier</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/run_by_group.html">run_by_group</a></span><span class="op">(</span>groups <span class="op">=</span> <span class="va">subsets</span>, .f <span class="op">=</span> <span class="va">scale_group</span>, multiplier <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span></code></pre><p></p></div>
+<p>One case is different, and only one: an argument that is a bare <em>column
+name</em>. A symbol like <code>flipper_length_mm</code> has no meaning until it meets
+the data, so a function that accepts one has to capture it rather than
+evaluate it, which is what <code>{{ }}</code> does. That is a property of how <code>.f</code>
+is written rather than anything <code>run_by_group()</code> asks for – calling
+such a function directly has the same requirement.</p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="va">plot_group</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">ggplot</span><span class="op">(</span><span class="va">data</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="op">{</span><span class="op">{</span> <span class="va">x</span> <span class="op">}</span><span class="op">}</span>, y <span class="op">=</span> <span class="op">{</span><span class="op">{</span> <span class="va">y</span> <span class="op">}</span><span class="op">}</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span></span>
@@ -225,19 +238,45 @@ only means something once it reaches the data:</p>
 <span>  x      <span class="op">=</span> <span class="va">flipper_length_mm</span>,</span>
 <span>  y      <span class="op">=</span> <span class="va">body_mass_g</span></span>
 <span><span class="op">)</span></span></code></pre><p></p></div>
-<p><code>flipper_length_mm</code> stays an unevaluated symbol until <code>{{ }}</code> captures it
-inside <code>plot_group()</code> and evaluates it against the group's data. Versions
-before 0.5.0 evaluated <code>...</code> in <code>run_by_group()</code>'s own frame, where that
-symbol means nothing, so the call above failed with
+<p>Run sequentially, which is the default, <code>...</code> is forwarded <em>unevaluated</em>,
+so <code>flipper_length_mm</code> stays a symbol until <code>{{ }}</code> captures it inside
+<code>plot_group()</code> and evaluates it against the group's data. Versions before
+0.5.0 evaluated <code>...</code> in <code>run_by_group()</code>'s own frame, where that symbol
+means nothing, so the call above failed with
 <code>object 'flipper_length_mm' not found</code> before <code>plot_group()</code> was reached.</p>
-<p>A lambda is the alternative, and still works:</p>
-<p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="../reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
+<p>If you would rather not write <code>.f</code> that way, pass the column name as a
+string and index with it. A string is an ordinary value, so it needs no
+tidy evaluation and works in both modes:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">plot_group</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">ggplot</span><span class="op">(</span><span class="va">data</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="va">.data</span><span class="op">[[</span><span class="va">x</span><span class="op">]</span><span class="op">]</span>, y <span class="op">=</span> <span class="va">.data</span><span class="op">[[</span><span class="va">y</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
 <span>  groups <span class="op">=</span> <span class="va">subsets</span>,</span>
-<span>  .f     <span class="op">=</span> \<span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="fu">plot_group</span><span class="op">(</span><span class="va">d</span>, x <span class="op">=</span> <span class="va">flipper_length_mm</span>, y <span class="op">=</span> <span class="va">body_mass_g</span><span class="op">)</span></span>
+<span>  .f     <span class="op">=</span> <span class="va">plot_group</span>,</span>
+<span>  x      <span class="op">=</span> <span class="st">"flipper_length_mm"</span>,</span>
+<span>  y      <span class="op">=</span> <span class="st">"body_mass_g"</span></span>
 <span><span class="op">)</span></span></code></pre><p></p></div>
-<p>Arguments with side effects are evaluated at most once for the whole
-call, not once per group, since a forwarded promise is forced once and
-its value reused.</p>
+<p><strong>Bare column names do not survive <code>workers &gt; 1</code>.</strong> Parallel execution
+sends the work to separate R sessions, which means every argument has to
+be materialized and serialized first. An argument whose value exists only
+inside the data mask <code>.f</code> builds has nothing to serialize, so it cannot
+make the trip. <code>run_by_group()</code> reports this directly rather than letting
+it surface from inside <code>future</code>'s globals inspection. Ordinary values,
+strings included, are unaffected.</p>
+<p>The portable form for a bare column name moves it inside <code>.f</code>, which
+works in both modes:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="../reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
+<span>  groups  <span class="op">=</span> <span class="va">subsets</span>,</span>
+<span>  .f      <span class="op">=</span> \<span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="fu">plot_group</span><span class="op">(</span><span class="va">d</span>, x <span class="op">=</span> <span class="va">flipper_length_mm</span>, y <span class="op">=</span> <span class="va">body_mass_g</span><span class="op">)</span>,</span>
+<span>  workers <span class="op">=</span> <span class="fl">4</span></span>
+<span><span class="op">)</span></span></code></pre><p></p></div>
+<p>Two smaller consequences of forwarding rather than forcing, both matching
+what a direct call to <code>.f</code> does, and both sequential-only: an argument
+with a side effect is evaluated at most once for the whole call rather
+than once per group, and an argument <code>.f</code> never touches is never
+evaluated at all.</p>
     </div>
 
     <div class="section level2">
@@ -250,10 +289,10 @@ its value reused.</p>
 <span class="r-in"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="write_by_group.html">write_by_group</a></span><span class="op">(</span><span class="va">penguins</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="va">tmp</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (152 rows) to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (124 rows) to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/gentoo.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Chinstrap"</span> (68 rows) to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/chinstrap.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/manifest.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (152 rows) to <span style="color: #0000BB;">/tmp/RtmpLTsR81/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (124 rows) to <span style="color: #0000BB;">/tmp/RtmpLTsR81/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Chinstrap"</span> (68 rows) to <span style="color: #0000BB;">/tmp/RtmpLTsR81/chinstrap.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpLTsR81/manifest.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Define an analysis function</span></span></span>
 <span class="r-in"><span><span class="va">summarise_species</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span></span>

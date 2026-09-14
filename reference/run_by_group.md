@@ -44,9 +44,11 @@ run_by_group(
 
 - ...:
 
-  Additional arguments passed to `.f` on every call. They are forwarded
-  unevaluated rather than evaluated here, so `.f` receives them exactly
-  as it would from a direct call. See the tidy evaluation note below.
+  Additional arguments passed to `.f` on every call. Forwarded
+  unevaluated when running sequentially, so `.f` receives them exactly
+  as it would from a direct call and tidy evaluation works. Materialized
+  when `workers > 1`, which parallel execution requires. See the section
+  on passing arguments below.
 
 - groups:
 
@@ -157,9 +159,23 @@ Common return types and their output shape:
 
 ## Passing arguments through to `.f`
 
-Everything in `...` is forwarded to `.f` on every call, unevaluated.
-That matters when `.f` uses tidy evaluation, because a bare column name
-only means something once it reaches the data:
+Most arguments need nothing special. A number, a string, a logical, a
+file path, a function: these are ordinary values, and they reach `.f` in
+both modes exactly as you would expect. `run_by_group()` imposes no
+requirement on how `.f` is written.
+
+    scale_group <- function(data, multiplier) {
+      dplyr::summarise(data, total = sum(x) * multiplier)
+    }
+
+    run_by_group(groups = subsets, .f = scale_group, multiplier = 10)
+
+One case is different, and only one: an argument that is a bare *column
+name*. A symbol like `flipper_length_mm` has no meaning until it meets
+the data, so a function that accepts one has to capture it rather than
+evaluate it, which is what `{{ }}` does. That is a property of how `.f`
+is written rather than anything `run_by_group()` asks for – calling such
+a function directly has the same requirement.
 
     plot_group <- function(data, x, y) {
       ggplot2::ggplot(data, ggplot2::aes(x = {{ x }}, y = {{ y }})) +
@@ -173,23 +189,52 @@ only means something once it reaches the data:
       y      = body_mass_g
     )
 
-`flipper_length_mm` stays an unevaluated symbol until `{{ }}` captures
-it inside `plot_group()` and evaluates it against the group's data.
-Versions before 0.5.0 evaluated `...` in `run_by_group()`'s own frame,
-where that symbol means nothing, so the call above failed with
+Run sequentially, which is the default, `...` is forwarded
+*unevaluated*, so `flipper_length_mm` stays a symbol until `{{ }}`
+captures it inside `plot_group()` and evaluates it against the group's
+data. Versions before 0.5.0 evaluated `...` in `run_by_group()`'s own
+frame, where that symbol means nothing, so the call above failed with
 `object 'flipper_length_mm' not found` before `plot_group()` was
 reached.
 
-A lambda is the alternative, and still works:
+If you would rather not write `.f` that way, pass the column name as a
+string and index with it. A string is an ordinary value, so it needs no
+tidy evaluation and works in both modes:
+
+    plot_group <- function(data, x, y) {
+      ggplot2::ggplot(data, ggplot2::aes(x = .data[[x]], y = .data[[y]])) +
+        ggplot2::geom_point()
+    }
 
     run_by_group(
       groups = subsets,
-      .f     = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g)
+      .f     = plot_group,
+      x      = "flipper_length_mm",
+      y      = "body_mass_g"
     )
 
-Arguments with side effects are evaluated at most once for the whole
-call, not once per group, since a forwarded promise is forced once and
-its value reused.
+**Bare column names do not survive `workers > 1`.** Parallel execution
+sends the work to separate R sessions, which means every argument has to
+be materialized and serialized first. An argument whose value exists
+only inside the data mask `.f` builds has nothing to serialize, so it
+cannot make the trip. `run_by_group()` reports this directly rather than
+letting it surface from inside `future`'s globals inspection. Ordinary
+values, strings included, are unaffected.
+
+The portable form for a bare column name moves it inside `.f`, which
+works in both modes:
+
+    run_by_group(
+      groups  = subsets,
+      .f      = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g),
+      workers = 4
+    )
+
+Two smaller consequences of forwarding rather than forcing, both
+matching what a direct call to `.f` does, and both sequential-only: an
+argument with a side effect is evaluated at most once for the whole call
+rather than once per group, and an argument `.f` never touches is never
+evaluated at all.
 
 ## Examples
 
@@ -202,10 +247,10 @@ penguins <- read_clean_csv(sample_path)
 tmp <- tempdir()
 write_by_group(penguins, group_col = "species",
                output_dir = tmp, manifest = TRUE)
-#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpBaQ2VO/adelie.csv
-#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpBaQ2VO/gentoo.csv
-#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpBaQ2VO/chinstrap.csv
-#> ✔ Manifest written to /tmp/RtmpBaQ2VO/manifest.csv
+#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpLTsR81/adelie.csv
+#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpLTsR81/gentoo.csv
+#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpLTsR81/chinstrap.csv
+#> ✔ Manifest written to /tmp/RtmpLTsR81/manifest.csv
 
 # Define an analysis function
 summarise_species <- function(data) {

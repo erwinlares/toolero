@@ -133,7 +133,10 @@ for the analysis function in step 8.
 
 library(toolero)
 
-project_dir <- file.path(tempdir(), "my-analysis")
+# tempfile() rather than a fixed name under tempdir(): it hands back a
+# path that does not exist yet, so running this block twice in one
+# session scaffolds a second project instead of colliding with the first.
+project_dir <- tempfile("my-analysis-")
 
 # 1. Create a project with sensible defaults.
 #    renv and git are on by default and are what you want in a real
@@ -681,12 +684,6 @@ Rows with a missing value in any grouping column are dropped by default
 (`drop_na = TRUE`), with a message reporting how many were dropped; set
 `drop_na = FALSE` to instead treat missing values as their own group.
 
-Splits go under `data/` rather than beside the raw inputs because of
-what the two folders mean. `data-raw/` holds what arrived and is never
-written to; `data/` holds what the analysis derived. A split is derived,
-so it belongs on the `data/` side, and `data/jobs/` is the conventional
-home recorded as `conventions$split_dir` in `_toolero.yml`.
-
 Groups are written, and manifest rows recorded, in order of first
 appearance in the data rather than in sort order. This is more than
 cosmetic: `submitr` writes its `subdatasets.csv` in manifest order,
@@ -786,6 +783,28 @@ write_by_group(
 )
 ```
 
+Anything else you pass to
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+is forwarded to your analysis function on every call. Ordinary values –
+a number, a string, a logical, a file path – need nothing special. The
+one case that does is a bare column name, such as
+`x = flipper_length_mm`, since a symbol like that has no meaning until
+it meets the data. A function accepting one has to capture it with
+`{{ }}` rather than evaluate it, which is a property of how that
+function is written rather than anything
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+asks for: calling it directly has the same requirement. Passing the
+column name as a string instead, and indexing with `.data[[x]]` inside
+the function, avoids the question entirely.
+
+Bare column names do not survive `workers > 1`, because parallel
+execution has to serialize every argument to send it to a worker session
+and a symbol that only means something inside the data has nothing to
+send.
+[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+says so directly if you try. Moving the column name inside the analysis
+function, with a lambda, works in both modes.
+
 For analyses that are slow or computationally independent across groups,
 [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
 supports parallel execution via `furrr`. The `workers` argument controls
@@ -851,11 +870,14 @@ save_output(
   note = "Final model, trained on full dataset."
 )
 
-# Save a plot via ggsave
+# Save a plot. ggsave() takes the filename first and the plot second,
+# which is the reverse of the order save_output() passes them in, so it
+# needs a wrapper. Writers that take the object first -- saveRDS(),
+# write.csv(), write_clean_csv() -- can be passed directly.
 save_output(
   my_plot,
   "output/figures/coefficients.png",
-  .f     = ggplot2::ggsave,
+  .f     = \(object, file_path, ...) ggplot2::ggsave(file_path, object, ...),
   width  = 8,
   height = 5
 )
@@ -863,6 +885,13 @@ save_output(
 # Write the project manifest at the end of the analysis
 generate_manifest(output_dir = "output")
 ```
+
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+calls the writer as `.f(object, file_path, ...)`, so a writer whose own
+signature puts the destination first needs a wrapper, as `ggsave()` does
+above. The cost is that the accumulator records the `function_used`
+column as `anonymous function: ...` rather than a clean name, which is a
+small loss of provenance in exchange for the write working at all.
 
 The accumulator at `output/accumulator.csv` is append-only and written
 incrementally throughout the analysis. The manifest at
