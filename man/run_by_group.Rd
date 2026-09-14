@@ -44,11 +44,13 @@ each group in the output. Defaults to \code{"group_id"}.}
 \code{manifest} is used. Defaults to \code{\link[=read_clean_csv]{read_clean_csv()}}. Ignored when
 \code{groups} is supplied.}
 
-\item{workers}{A positive integer. Number of parallel R sessions to
-use. When \code{1L} (the default), subsets are processed sequentially
-with \code{purrr::map()}. When greater than \code{1}, subsets are processed
-in parallel with \code{furrr::future_map()}. Requires the \code{furrr} and
-\code{future} packages. The maximum allowed value is
+\item{workers}{A positive integer, or \code{NULL}. Number of parallel R
+sessions to use. When \code{1L} (the default) or \code{NULL}, subsets are
+processed sequentially with \code{purrr::map()}; \code{NULL} is accepted as a
+way of saying "do not parallelize" and is treated as \code{1L}. When
+greater than \code{1}, subsets are processed in parallel with
+\code{furrr::future_map()}. Requires the \code{furrr} and \code{future} packages.
+The maximum allowed value is
 \code{max(1L, parallelly::availableCores() - 1L)} to reserve one core
 for the main R session. A good starting value is the number of
 groups or that core ceiling, whichever is smaller.}

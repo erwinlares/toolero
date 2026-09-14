@@ -156,3 +156,55 @@ test_that("qmd_to_r() emits a success message", {
     make_qmd(tmp_in)
     expect_message(qmd_to_r(input = tmp_in, output = tmp_out))
 })
+
+# -- output directory creation -------------------------------------------------
+# knitr::purl() writes through a connection and does not create the directory
+# its output goes in. R/ is the documented home for derived scripts, so an
+# explicit output path into a folder that does not exist yet is the ordinary
+# case rather than an exotic one.
+
+test_that("qmd_to_r() creates a missing output directory", {
+    root   <- withr::local_tempdir()
+    tmp_in <- fs::path(root, "analysis.qmd")
+    make_qmd(tmp_in)
+    out <- fs::path(root, "R", "analysis.R")
+
+    suppressMessages(qmd_to_r(input = tmp_in, output = out))
+
+    expect_true(fs::file_exists(out))
+})
+
+test_that("qmd_to_r() creates nested output directories", {
+    root   <- withr::local_tempdir()
+    tmp_in <- fs::path(root, "analysis.qmd")
+    make_qmd(tmp_in)
+    out <- fs::path(root, "R", "posts", "analysis.R")
+
+    suppressMessages(qmd_to_r(input = tmp_in, output = out))
+
+    expect_true(fs::file_exists(out))
+})
+
+test_that("qmd_to_r() reports creating the output directory", {
+    root   <- withr::local_tempdir()
+    tmp_in <- fs::path(root, "analysis.qmd")
+    make_qmd(tmp_in)
+
+    expect_message(
+        qmd_to_r(input = tmp_in, output = fs::path(root, "R", "analysis.R")),
+        "directory"
+    )
+})
+
+test_that("qmd_to_r() says nothing about directories when the output dir exists", {
+    root   <- withr::local_tempdir()
+    tmp_in <- fs::path(root, "analysis.qmd")
+    make_qmd(tmp_in)
+
+    # The success alert still fires; only the directory notice should not.
+    messages <- capture_messages(
+        qmd_to_r(input = tmp_in, output = fs::path(root, "analysis.R"))
+    )
+
+    expect_false(any(grepl("directory", messages, fixed = TRUE)))
+})

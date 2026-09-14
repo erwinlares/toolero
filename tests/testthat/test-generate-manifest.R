@@ -89,6 +89,10 @@ test_that(".read_accumulator() rejects a mismatched schema", {
     )
 
     expect_error(.read_accumulator(root))
+
+    # See test-save-output.R: naming an expected column confirms the cli
+    # message formatted rather than failing on a dot-literal.
+    expect_error(.read_accumulator(root), "file_path")
 })
 
 # -- .dedupe_accumulator() -----------------------------------------------------

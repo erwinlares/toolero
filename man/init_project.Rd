@@ -37,14 +37,22 @@ parents are not preserved: a config is an explicit and complete statement
 of the structure, so nothing is added back that the author did not ask
 for. Duplicates of existing folders generate a message and are skipped.
 References to non-existent folders via \code{"-"} generate a warning.
-Defaults to \code{NULL}.}
+\code{"-R"} is the one removal that does not take effect on disk: see
+\code{config} below. Defaults to \code{NULL}.}
 
 \item{config}{A character string. Path to a YAML project config file
 produced by \code{\link[=generate_project_config]{generate_project_config()}}. When supplied, the folder list
 in the config replaces the built-in standard structure entirely, and any
 \verb{conventions:} it declares override the defaults key by key.
 \code{custom_folders} is still applied on top of the config-derived set.
-Defaults to \code{NULL}.}
+Defaults to \code{NULL}.
+
+One folder cannot be suppressed, by a config or by \code{custom_folders}:
+\verb{R/}. \code{\link[usethis:create_project]{usethis::create_project()}} creates it unconditionally, so it is
+present in every project \code{init_project()} makes. A structure that
+leaves it out is honored everywhere else -- \verb{R/} is absent from the
+project manifest, gets no \code{.gitkeep}, and is not audited by
+\code{\link[=check_project]{check_project()}} -- but the directory itself is there.}
 
 \item{open}{Logical. If \code{TRUE}, opens the new project in RStudio after
 creation. Defaults to \code{FALSE}.}

@@ -29,6 +29,12 @@ Invisibly returns the path to the output \code{.R} file.
 to a standalone \code{.R} script using \code{knitr::purl()}. It works on any \code{.qmd}
 file regardless of whether it was created with \code{create_qmd()}.
 }
+\details{
+The parent directory of \code{output} is created if it does not already
+exist, and the creation is reported. \code{knitr::purl()} does not do this
+itself, so writing a derived script into \verb{R/} from a project that was
+not created by \code{\link[=init_project]{init_project()}} would otherwise fail.
+}
 \examples{
 \donttest{
 # Extract R code from a qmd file
@@ -46,7 +52,8 @@ writeLines(c(
 # Default output path: same directory, .R extension
 qmd_to_r(input = qmd)
 
-# Explicit output path
+# Explicit output path. R/ is where toolero expects derived scripts;
+# the directory is created if it does not exist yet.
 out <- tempfile(fileext = ".R")
 qmd_to_r(input = qmd, output = out)
 

@@ -81,35 +81,6 @@ test_that(".flatten_field() trims leading and trailing whitespace", {
     expect_equal(.flatten_field("  padded  "), "padded")
 })
 
-# -- .ensure_directory() -------------------------------------------------------
-
-test_that(".ensure_directory() creates a missing directory", {
-    root   <- withr::local_tempdir()
-    target <- fs::path(root, "nested", "deeper", "file.rds")
-
-    suppressMessages(.ensure_directory(target))
-
-    expect_true(fs::dir_exists(fs::path(root, "nested", "deeper")))
-})
-
-test_that(".ensure_directory() reports when it creates a directory", {
-    root   <- withr::local_tempdir()
-    target <- fs::path(root, "nested", "file.rds")
-
-    expect_message(.ensure_directory(target))
-})
-
-test_that(".ensure_directory() is silent when the directory exists", {
-    root   <- withr::local_tempdir()
-    target <- fs::path(root, "file.rds")
-
-    expect_no_message(.ensure_directory(target))
-})
-
-test_that(".ensure_directory() is silent for a bare filename", {
-    expect_no_message(.ensure_directory("file.rds"))
-})
-
 # -- save_output() input validation --------------------------------------------
 
 test_that("save_output() errors when .f is missing", {
@@ -455,6 +426,17 @@ test_that(".append_accumulator_row() rejects a mismatched existing schema", {
     expect_error(
         .append_accumulator_row(row, output_dir = dir),
         info = "should abort rather than append under a different schema"
+    )
+
+    # Naming a column from the expected schema confirms the message actually
+    # formatted. It did not before: the expected columns reached cli as
+    # {.val {.accumulator_columns()}}, and a `{}` expression starting with a
+    # dot is read as an inline style name, so formatting failed and the
+    # guard's explanation was replaced by a cli parse error. expect_error()
+    # alone passed either way, which is why it went unnoticed.
+    expect_error(
+        .append_accumulator_row(row, output_dir = dir),
+        "file_path"
     )
 })
 

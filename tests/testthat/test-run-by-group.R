@@ -353,3 +353,54 @@ test_that("verbose = TRUE emits a parallel summary message when workers > 1", {
         regexp = "parallel"
     )
 })
+
+# -- 6. workers = NULL ---------------------------------------------------------
+# NULL previously skipped validation entirely and then reached
+# `if (workers > 1L)` as logical(0), raising "argument is of length zero"
+# about a hundred and sixty lines from where it was accepted.
+
+test_that("workers = NULL runs sequentially rather than erroring", {
+    result <- run_by_group(groups = valid_groups, .f = summarise_fn,
+                           workers = NULL)
+
+    expect_s3_class(result, "tbl_df")
+    expect_equal(nrow(result), length(valid_groups))
+})
+
+test_that("workers = NULL matches workers = 1L exactly", {
+    expect_equal(
+        run_by_group(groups = valid_groups, .f = summarise_fn, workers = NULL),
+        run_by_group(groups = valid_groups, .f = summarise_fn, workers = 1L)
+    )
+})
+
+test_that("workers of length greater than one is rejected", {
+    expect_error(
+        run_by_group(groups = valid_groups, .f = summarise_fn,
+                     workers = c(1L, 2L)),
+        class = "rlang_error"
+    )
+})
+
+test_that("workers of length zero is rejected", {
+    expect_error(
+        run_by_group(groups = valid_groups, .f = summarise_fn,
+                     workers = integer(0)),
+        class = "rlang_error"
+    )
+})
+
+test_that("a non-numeric workers is rejected rather than coerced to NA", {
+    expect_error(
+        run_by_group(groups = valid_groups, .f = summarise_fn,
+                     workers = "two"),
+        class = "rlang_error"
+    )
+})
+
+test_that("a bare double workers is accepted", {
+    result <- run_by_group(groups = valid_groups, .f = summarise_fn,
+                           workers = 1)
+
+    expect_equal(nrow(result), length(valid_groups))
+})

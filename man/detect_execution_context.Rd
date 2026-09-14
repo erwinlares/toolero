@@ -19,10 +19,14 @@ A character string, one of \code{"interactive"}, \code{"quarto"}, or
 Identifies which of three execution environments the code is currently
 running in: an interactive R session, a \verb{quarto render} call, or a
 plain \code{Rscript} invocation. This is useful for writing code that behaves
-correctly across all three contexts, such as resolving input file paths
-in a portable way.
+correctly across all three contexts, such as choosing figure dimensions
+or deciding whether to report progress.
 }
 \details{
+To resolve an input data path across the same three contexts, use
+\code{\link[=resolve_input_path]{resolve_input_path()}}, which calls this function and then validates
+what the chosen branch produced.
+
 Detection follows a priority order:
 \enumerate{
 \item If \code{interactive()} is \code{TRUE}, returns \code{"interactive"}.
@@ -30,15 +34,28 @@ Detection follows a priority order:
 returns \code{"quarto"}.
 \item Otherwise, returns \code{"rscript"}.
 }
+
+The order is unobservable in practice, and that is worth recording so
+nobody has to re-derive it. \code{QUARTO_DOCUMENT_PATH} is set only by Quarto
+rendering a document, and every path that renders one -- \verb{quarto render},
+\verb{quarto preview}, \code{\link[quarto:quarto_render]{quarto::quarto_render()}}, the RStudio Render button --
+runs the R code in a spawned process that is not interactive. Running
+chunks inline in RStudio is the reverse case: the session is interactive
+and the variable is unset (checked in RStudio, September 2026). The two
+tests therefore never fire together, so there is no case in which the
+priority arbitrates anything.
 }
 \examples{
 \donttest{
+# Behave differently depending on where the code is running. Progress
+# output is useful at a console and only clutters a cluster job log.
 context <- detect_execution_context()
 
-input_file <- switch(context,
-  interactive = "data/sample.csv",
-  quarto      = params$input_file,
-  rscript     = commandArgs(trailingOnly = TRUE)[1]
-)
+if (context == "rscript") {
+  options(cli.progress_show_after = Inf)
 }
+}
+}
+\seealso{
+\code{\link[=resolve_input_path]{resolve_input_path()}} for the input-path case specifically.
 }

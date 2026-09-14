@@ -80,42 +80,6 @@
     )
 }
 
-#' Ensure the parent directory of a file exists
-#'
-#' Internal helper used by [save_output()] and [.append_accumulator_row()]
-#' to confirm that the directory holding a file exists before writing to
-#' it. Many save functions error on a missing directory, and that error is
-#' a poor description of what actually went wrong.
-#'
-#' @param file_path Character. The path whose parent directory is checked.
-#'
-#' @return The directory path, invisibly.
-#'
-#' @details
-#' Missing directories are created rather than reported as an error, since
-#' `save_output()` is expected to run unattended on a cluster where nobody
-#' is available to intervene. Creation is announced through `cli` so that
-#' the action leaves a trace in the job log, whether or not anyone is
-#' watching at the time. A bare filename resolves to `"."`, which always
-#' exists, so no message is emitted in that case.
-#'
-#' @keywords internal
-.ensure_directory <- function(file_path) {
-    target_dir <- fs::path_dir(file_path)
-
-    if (fs::dir_exists(target_dir)) {
-        return(invisible(target_dir))
-    }
-
-    fs::dir_create(target_dir, recurse = TRUE)
-
-    cli::cli_inform(c(
-        "i" = "Created the directory {.file {target_dir}} to hold {.file {fs::path_file(file_path)}}."
-    ))
-
-    invisible(target_dir)
-}
-
 #' Append a row to the project accumulator
 #'
 #' Internal helper used by [save_output()] to record one row of metadata to
@@ -157,11 +121,19 @@
             )
         )
 
-        if (!identical(existing_header, .accumulator_columns())) {
+        # expected_columns is bound to a local rather than interpolated
+        # directly: cli >= 3.4.0 reads a `{}` expression starting with a dot
+        # as an inline style name, so `{.val {.accumulator_columns()}}` fails
+        # to format. That failure would land precisely here, in the guard
+        # whose job is to explain a schema mismatch, replacing a useful
+        # message with a cli parse error.
+        expected_columns <- .accumulator_columns()
+
+        if (!identical(existing_header, expected_columns)) {
             cli::cli_abort(c(
                 "The existing accumulator does not match the expected schema.",
                 "x" = "Found {length(existing_header)} column{?s}: {.val {existing_header}}.",
-                "i" = "Expected: {.val {.accumulator_columns()}}.",
+                "i" = "Expected: {.val {expected_columns}}.",
                 "i" = "Remove or rename {.file {accumulator_path}} and re-run."
             ))
         }

@@ -50,11 +50,17 @@
         stringsAsFactors = FALSE
     )
 
-    if (!identical(names(accumulator), .accumulator_columns())) {
+    # See the note in .append_accumulator_row(): a `{}` expression starting
+    # with a dot is read by cli as an inline style name, so the expected
+    # schema has to reach the message through a local.
+    expected_columns <- .accumulator_columns()
+    found_columns    <- names(accumulator)
+
+    if (!identical(found_columns, expected_columns)) {
         cli::cli_abort(c(
             "The accumulator does not match the expected schema.",
-            "x" = "Found {length(names(accumulator))} column{?s}: {.val {names(accumulator)}}.",
-            "i" = "Expected: {.val {.accumulator_columns()}}.",
+            "x" = "Found {length(found_columns)} column{?s}: {.val {found_columns}}.",
+            "i" = "Expected: {.val {expected_columns}}.",
             "i" = "Remove or rename {.file {accumulator_path}} and re-run the analysis."
         ))
     }

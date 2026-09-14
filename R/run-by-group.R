@@ -31,11 +31,13 @@
 #' @param .read_fn A function used to read each subset file when
 #'   `manifest` is used. Defaults to [read_clean_csv()]. Ignored when
 #'   `groups` is supplied.
-#' @param workers A positive integer. Number of parallel R sessions to
-#'   use. When `1L` (the default), subsets are processed sequentially
-#'   with `purrr::map()`. When greater than `1`, subsets are processed
-#'   in parallel with `furrr::future_map()`. Requires the `furrr` and
-#'   `future` packages. The maximum allowed value is
+#' @param workers A positive integer, or `NULL`. Number of parallel R
+#'   sessions to use. When `1L` (the default) or `NULL`, subsets are
+#'   processed sequentially with `purrr::map()`; `NULL` is accepted as a
+#'   way of saying "do not parallelize" and is treated as `1L`. When
+#'   greater than `1`, subsets are processed in parallel with
+#'   `furrr::future_map()`. Requires the `furrr` and `future` packages.
+#'   The maximum allowed value is
 #'   `max(1L, parallelly::availableCores() - 1L)` to reserve one core
 #'   for the main R session. A good starting value is the number of
 #'   groups or that core ceiling, whichever is smaller.
@@ -194,32 +196,52 @@ run_by_group <- function(manifest = NULL,
     }
 
     # -- 2. Validate workers -------------------------------------------------------
-    # Coerce to integer defensively so bare doubles like workers = 2 behave
-    # correctly in comparisons.
+    # This block establishes an invariant the rest of the function relies on:
+    # past it, `workers` is a single integer of at least one. That is worth
+    # stating because the only use of it is `if (workers > 1L)` roughly a
+    # hundred and sixty lines below. Anything that reaches there without
+    # being a length-one value fails at that line rather than here, and
+    # `NULL > 1L` is `logical(0)`, which raises "argument is of length zero"
+    # -- an error that says nothing about workers at all.
+    #
+    # NULL is coerced rather than rejected: it is a natural way to say "do
+    # not parallelize", and one is what that means. Bare doubles like
+    # workers = 2 are coerced for the same reason, so that comparisons
+    # behave.
 
-    if (!is.null(workers)) {
-        workers <- as.integer(workers)
+    if (is.null(workers)) {
+        workers <- 1L
+    }
 
-        if (is.na(workers) || workers < 1L) {
-            cli::cli_abort(
-                c("`workers` must be a positive integer.",
-                  "i" = "Requested: {workers} workers."),
-                class = "toolero_error"
-            )
-        }
+    if (length(workers) != 1L) {
+        cli::cli_abort(
+            c("`workers` must be a single positive integer, or NULL.",
+              "i" = "Received a value of length {length(workers)}."),
+            class = "toolero_error"
+        )
+    }
 
-        max_workers <- max(1L, parallelly::availableCores() - 1L)
+    workers <- suppressWarnings(as.integer(workers))
 
-        if (workers > max_workers) {
-            cli::cli_abort(
-                c("`workers` exceeds the recommended maximum for this machine.",
-                  "i" = "Requested: {workers} workers.",
-                  "i" = "Maximum allowed: {max_workers} ({parallelly::availableCores()} \\
-               available cores minus 1 reserved for the main session).",
-                  "i" = "Reduce `workers` to {max_workers} or fewer."),
-                class = "toolero_error"
-            )
-        }
+    if (is.na(workers) || workers < 1L) {
+        cli::cli_abort(
+            c("`workers` must be a positive integer.",
+              "i" = "Requested: {workers} workers."),
+            class = "toolero_error"
+        )
+    }
+
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
+
+    if (workers > max_workers) {
+        cli::cli_abort(
+            c("`workers` exceeds the recommended maximum for this machine.",
+              "i" = "Requested: {workers} workers.",
+              "i" = "Maximum allowed: {max_workers} ({parallelly::availableCores()} \\
+           available cores minus 1 reserved for the main session).",
+              "i" = "Reduce `workers` to {max_workers} or fewer."),
+            class = "toolero_error"
+        )
     }
 
     # -- 3. Resolve data source: groups (memory) or manifest (disk) ---------------
