@@ -159,17 +159,17 @@ p_plot
 # When it runs on a cluster via submitr, the executable script (.sh)
 # packages this folder into a tarball for transfer.
 
-results_dir <- "output"
-dir.create(results_dir, showWarnings = FALSE, recursive = TRUE)
+output_dir <- "output"
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 write_clean_csv(
   p_stats,
-  file.path(results_dir, "results.csv"),
+  file.path(output_dir, "results.csv"),
   overwrite = TRUE
 )
 
 ggplot2::ggsave(
-  filename = file.path(results_dir, "plot.png"),
+  filename = file.path(output_dir, "plot.png"),
   plot     = p_plot
 )
 ```

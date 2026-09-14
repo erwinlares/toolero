@@ -259,13 +259,43 @@ test_that("config suppresses the standard folders entirely", {
 
     init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
 
-    absent <- setdiff(standard_folders, "notebooks")
+    # R/ is the one standard folder init_project() does not create itself.
+    # usethis::create_project() calls use_directory("R") unconditionally, so
+    # it is present in every project whatever the config says. Covered by
+    # the test below rather than excluded silently here.
+    absent <- setdiff(standard_folders, c("notebooks", "R"))
     purrr::walk(absent, \(folder) {
         expect_false(
             fs::dir_exists(fs::path(proj, folder)),
             info = paste("should not exist:", folder)
         )
     })
+})
+
+test_that("R/ survives a config that does not list it", {
+    proj        <- fs::path(tmp, "cfg-02b")
+    config_path <- write_config(tmp, c("notebooks"), "cfg-02b.yml")
+
+    init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
+
+    # Created by usethis, not by toolero, so neither config nor
+    # custom_folders can suppress it.
+    expect_true(fs::dir_exists(fs::path(proj, "R")))
+
+    # It is not part of the resolved set, so it is not in the manifest and
+    # gets no .gitkeep. A reader comparing the manifest against the
+    # directory listing should find R/ in one and not the other.
+    expect_false("R" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
+    expect_false(fs::file_exists(fs::path(proj, "R", ".gitkeep")))
+})
+
+test_that("custom_folders cannot suppress R/ either", {
+    proj <- fs::path(tmp, "cfg-02c")
+
+    init_project(proj, custom_folders = "-R", use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::dir_exists(fs::path(proj, "R")))
+    expect_false("R" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
 })
 
 test_that("a missing config file raises an error", {

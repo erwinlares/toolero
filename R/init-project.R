@@ -23,13 +23,21 @@
 #'   of the structure, so nothing is added back that the author did not ask
 #'   for. Duplicates of existing folders generate a message and are skipped.
 #'   References to non-existent folders via `"-"` generate a warning.
-#'   Defaults to `NULL`.
+#'   `"-R"` is the one removal that does not take effect on disk: see
+#'   `config` below. Defaults to `NULL`.
 #' @param config A character string. Path to a YAML project config file
 #'   produced by [generate_project_config()]. When supplied, the folder list
 #'   in the config replaces the built-in standard structure entirely, and any
 #'   `conventions:` it declares override the defaults key by key.
 #'   `custom_folders` is still applied on top of the config-derived set.
 #'   Defaults to `NULL`.
+#'
+#'   One folder cannot be suppressed, by a config or by `custom_folders`:
+#'   `R/`. [usethis::create_project()] creates it unconditionally, so it is
+#'   present in every project `init_project()` makes. A structure that
+#'   leaves it out is honored everywhere else -- `R/` is absent from the
+#'   project manifest, gets no `.gitkeep`, and is not audited by
+#'   [check_project()] -- but the directory itself is there.
 #' @param open Logical. If `TRUE`, opens the new project in RStudio after
 #'   creation. Defaults to `FALSE`.
 #' @param branding Character or logical. Controls whether an `assets/`
