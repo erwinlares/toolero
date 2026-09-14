@@ -19,7 +19,10 @@
 #' @param .f A function to apply to each subset. Must accept a data
 #'   frame as its first argument. Additional arguments can be passed
 #'   via `...`.
-#' @param ... Additional arguments passed to `.f` on every call.
+#' @param ... Additional arguments passed to `.f` on every call. They are
+#'   forwarded unevaluated rather than evaluated here, so `.f` receives them
+#'   exactly as it would from a direct call. See the tidy evaluation note
+#'   below.
 #' @param groups A named list of data frames, or `NULL` (the default).
 #'   When supplied, `manifest` is ignored and `.f` is applied directly
 #'   to each list element. All elements must be data frames with
@@ -100,6 +103,44 @@
 #' - A model object -- returned as a list-column
 #' - A ggplot object -- returned as a list-column
 #' - A file path -- returned as a list-column
+#'
+#' @section Passing arguments through to `.f`:
+#' Everything in `...` is forwarded to `.f` on every call, unevaluated.
+#' That matters when `.f` uses tidy evaluation, because a bare column name
+#' only means something once it reaches the data:
+#'
+#' ```r
+#' plot_group <- function(data, x, y) {
+#'   ggplot2::ggplot(data, ggplot2::aes(x = {{ x }}, y = {{ y }})) +
+#'     ggplot2::geom_point()
+#' }
+#'
+#' run_by_group(
+#'   groups = subsets,
+#'   .f     = plot_group,
+#'   x      = flipper_length_mm,
+#'   y      = body_mass_g
+#' )
+#' ```
+#'
+#' `flipper_length_mm` stays an unevaluated symbol until `{{ }}` captures it
+#' inside `plot_group()` and evaluates it against the group's data. Versions
+#' before 0.5.0 evaluated `...` in `run_by_group()`'s own frame, where that
+#' symbol means nothing, so the call above failed with
+#' `object 'flipper_length_mm' not found` before `plot_group()` was reached.
+#'
+#' A lambda is the alternative, and still works:
+#'
+#' ```r
+#' run_by_group(
+#'   groups = subsets,
+#'   .f     = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g)
+#' )
+#' ```
+#'
+#' Arguments with side effects are evaluated at most once for the whole
+#' call, not once per group, since a forwarded promise is forced once and
+#' its value reused.
 #'
 #' @importFrom rlang :=
 #' @importFrom parallelly availableCores
@@ -375,10 +416,26 @@ run_by_group <- function(manifest = NULL,
     }
 
     # -- 4. Apply .f to each subset ------------------------------------------------
-    dots <- list(...)
+    # `...` is forwarded rather than captured. The previous implementation
+    # did `dots <- list(...)` and then `do.call()`, which forces every
+    # argument here, before `.f` is entered. That is fatal for any `.f`
+    # using tidy evaluation: a bare column name is a symbol that means
+    # something inside the data and nothing in the frame where it gets
+    # forced, so it fails with "object not found" and `{{ }}` inside `.f`
+    # never gets the chance to capture it.
+    #
+    # Forwarding leaves each argument a promise, which is exactly what `.f`
+    # would have received had the caller invoked it directly. Plain values
+    # are unaffected -- a promise holding 10 forces to 10 the moment `.f`
+    # touches it -- and promises are forced at most once, so an argument
+    # with a side effect still runs once across all groups rather than once
+    # per group.
+    #
+    # `...` is visible inside worker_fn through lexical scope: worker_fn is
+    # defined in this frame, and run_by_group() has `...` in its formals.
 
     worker_fn <- function(i) {
-        do.call(.f, c(list(data_list[[i]]), dots))
+        .f(data_list[[i]], ...)
     }
 
     if (workers > 1L) {

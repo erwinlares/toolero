@@ -28,7 +28,10 @@ may be omitted entirely.}
 frame as its first argument. Additional arguments can be passed
 via \code{...}.}
 
-\item{...}{Additional arguments passed to \code{.f} on every call.}
+\item{...}{Additional arguments passed to \code{.f} on every call. They are
+forwarded unevaluated rather than evaluated here, so \code{.f} receives them
+exactly as it would from a direct call. See the tidy evaluation note
+below.}
 
 \item{groups}{A named list of data frames, or \code{NULL} (the default).
 When supplied, \code{manifest} is ignored and \code{.f} is applied directly
@@ -131,6 +134,44 @@ group ID repeated per row
 \item A ggplot object -- returned as a list-column
 \item A file path -- returned as a list-column
 }
+}
+
+\section{Passing arguments through to \code{.f}}{
+
+Everything in \code{...} is forwarded to \code{.f} on every call, unevaluated.
+That matters when \code{.f} uses tidy evaluation, because a bare column name
+only means something once it reaches the data:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{plot_group <- function(data, x, y) \{
+  ggplot2::ggplot(data, ggplot2::aes(x = \{\{ x \}\}, y = \{\{ y \}\})) +
+    ggplot2::geom_point()
+\}
+
+run_by_group(
+  groups = subsets,
+  .f     = plot_group,
+  x      = flipper_length_mm,
+  y      = body_mass_g
+)
+}\if{html}{\out{</div>}}
+
+\code{flipper_length_mm} stays an unevaluated symbol until \code{{{ }}} captures it
+inside \code{plot_group()} and evaluates it against the group's data. Versions
+before 0.5.0 evaluated \code{...} in \code{run_by_group()}'s own frame, where that
+symbol means nothing, so the call above failed with
+\verb{object 'flipper_length_mm' not found} before \code{plot_group()} was reached.
+
+A lambda is the alternative, and still works:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{run_by_group(
+  groups = subsets,
+  .f     = \\(d) plot_group(d, x = flipper_length_mm, y = body_mass_g)
+)
+}\if{html}{\out{</div>}}
+
+Arguments with side effects are evaluated at most once for the whole
+call, not once per group, since a forwarded promise is forced once and
+its value reused.
 }
 
 \examples{
