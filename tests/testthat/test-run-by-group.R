@@ -404,3 +404,115 @@ test_that("a bare double workers is accepted", {
 
     expect_equal(nrow(result), length(valid_groups))
 })
+
+# -- 7. Tidy evaluation through ... --------------------------------------------
+# GitHub #16. `dots <- list(...)` forced every argument in run_by_group()'s
+# own frame, so a bare column name intended for .f to capture with {{ }} died
+# with "object not found" before .f was ever entered. `...` is now forwarded
+# unevaluated.
+
+test_that("a bare column name survives ... and reaches {{ }} inside .f", {
+    skip_if_not_installed("dplyr")
+
+    pick_column <- function(data, col) {
+        tibble::tibble(total = sum(dplyr::pull(data, {{ col }})))
+    }
+
+    result <- run_by_group(groups = valid_groups, .f = pick_column, col = x)
+
+    expect_equal(result$total, c(sum(grp_a$x), sum(grp_b$x)))
+})
+
+test_that("two tidy-eval arguments both survive", {
+    skip_if_not_installed("dplyr")
+
+    two_cols <- function(data, first, second) {
+        tibble::tibble(
+            a = sum(dplyr::pull(data, {{ first }})),
+            b = sum(dplyr::pull(data, {{ second }}))
+        )
+    }
+
+    result <- run_by_group(groups = valid_groups, .f = two_cols,
+                           first = x, second = y)
+
+    expect_equal(result$a, c(sum(grp_a$x), sum(grp_b$x)))
+    expect_equal(result$b, c(sum(grp_a$y), sum(grp_b$y)))
+})
+
+test_that("tidy evaluation also survives the parallel path", {
+    # This is the test that settles whether furrr forces the forwarded
+    # promises when it serializes worker_fn to a worker session. If it
+    # fails while the sequential version above passes, the parallel path
+    # needs quosures and the docs need a caveat.
+    skip_on_cran()
+    skip_on_ci()
+    skip_if_not_installed("dplyr")
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
+    skip_if(max_workers < 2L, "fewer than 2 workers available on this machine")
+
+    pick_column <- function(data, col) {
+        tibble::tibble(total = sum(dplyr::pull(data, {{ col }})))
+    }
+
+    result <- run_by_group(groups = valid_groups, .f = pick_column,
+                           col = x, workers = max_workers)
+
+    expect_equal(result$total, c(sum(grp_a$x), sum(grp_b$x)))
+})
+
+test_that("the lambda form keeps working", {
+    skip_if_not_installed("dplyr")
+
+    pick_column <- function(data, col) {
+        tibble::tibble(total = sum(dplyr::pull(data, {{ col }})))
+    }
+
+    result <- run_by_group(
+        groups = valid_groups,
+        .f     = \(d) pick_column(d, col = x)
+    )
+
+    expect_equal(result$total, c(sum(grp_a$x), sum(grp_b$x)))
+})
+
+test_that("a plain value argument still reaches .f unchanged", {
+    # The regression guard for the fix itself: forwarding must not turn an
+    # ordinary argument into something exotic.
+    fn <- function(data, multiplier) {
+        expect_type(multiplier, "double")
+        tibble::tibble(result = mean(data$x) * multiplier)
+    }
+
+    result <- run_by_group(groups = valid_groups, .f = fn, multiplier = 10)
+
+    expect_equal(result$result, c(mean(grp_a$x) * 10, mean(grp_b$x) * 10))
+})
+
+test_that("a ... argument is evaluated once, not once per group", {
+    calls   <- 0L
+    counter <- function() {
+        calls <<- calls + 1L
+        10
+    }
+
+    fn <- function(data, multiplier) {
+        tibble::tibble(result = mean(data$x) * multiplier)
+    }
+
+    run_by_group(groups = valid_groups, .f = fn, multiplier = counter())
+
+    expect_equal(calls, 1L)
+})
+
+test_that("an unused ... argument is never evaluated", {
+    # A forwarded promise .f never touches is never forced. This differs
+    # from the old list(...) behaviour, which forced everything, and it
+    # matches what a direct call to .f would do.
+    fn <- function(data, ...) tibble::tibble(n = nrow(data))
+
+    expect_no_error(
+        run_by_group(groups = valid_groups, .f = fn,
+                     unused = stop("this should never be forced"))
+    )
+})

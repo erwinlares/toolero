@@ -630,6 +630,12 @@ Rows with a missing value in any grouping column are dropped by default
 (`drop_na = TRUE`), with a message reporting how many were dropped; set
 `drop_na = FALSE` to instead treat missing values as their own group.
 
+Splits go under `data/` rather than beside the raw inputs because of what the
+two folders mean. `data-raw/` holds what arrived and is never written to;
+`data/` holds what the analysis derived. A split is derived, so it belongs on
+the `data/` side, and `data/jobs/` is the conventional home recorded as
+`conventions$split_dir` in `_toolero.yml`.
+
 Groups are written, and manifest rows recorded, in order of first appearance
 in the data rather than in sort order. This is more than cosmetic: `submitr`
 writes its `subdatasets.csv` in manifest order, HTCondor assigns `ProcId` in

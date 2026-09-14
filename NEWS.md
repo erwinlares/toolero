@@ -282,6 +282,23 @@
 
 ### Bug fixes
 
+* `run_by_group()`: arguments in ... are now forwarded to `.f`   
+  unevaluated   rather than captured with `list(...)` first. The old   
+  behaviour forced every argument in `run_by_group()`'s own frame, which   meant a bare column name intended for `.f` to capture with `{{ }}` was   evaluated where it means nothing and failed with `object '...' not   
+  found` before `.f` was entered. Tidy-eval arguments now work:
+
+```r
+  plot_group <- function(data, x, y) {
+    ggplot2::ggplot(data, ggplot2::aes(x = {{ x }}, y = {{ y }})) +
+      ggplot2::geom_point()
+  }
+
+  run_by_group(groups = subsets, .f = plot_group,
+               x = flipper_length_mm, y = body_mass_g)
+```
+Plain value arguments are unaffected. Two smaller consequences follow from forwarding rather than forcing, both of which match what a direct call to .f would do: an argument with a side effect is evaluated at most once for the whole call rather than once per group, as before, and an argument .f never touches is now never evaluated at all, where previously it was. The lambda workaround, .f = \(d) plot_group(d, x = flipper_length_mm), continues to work and remains the right answer on older versions.
+
+
 * `save_output()` and `generate_manifest()`: the guard that reports an
   accumulator whose columns do not match the expected schema could not
   format its own message. The expected columns reached `cli` as
