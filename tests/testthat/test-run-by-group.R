@@ -440,11 +440,13 @@ test_that("two tidy-eval arguments both survive", {
     expect_equal(result$b, c(sum(grp_a$y), sum(grp_b$y)))
 })
 
-test_that("tidy evaluation also survives the parallel path", {
-    # This is the test that settles whether furrr forces the forwarded
-    # promises when it serializes worker_fn to a worker session. If it
-    # fails while the sequential version above passes, the parallel path
-    # needs quosures and the docs need a caveat.
+test_that("a tidy-eval argument is refused in parallel, with an explanation", {
+    # Parallel execution serializes every argument to a worker session, and
+    # a bare column name has no value outside the data mask .f builds, so
+    # there is nothing to send. This is inherent to crossing a process
+    # boundary rather than a furrr quirk. What is under test is that the
+    # refusal is legible: left alone, the same failure surfaces from inside
+    # globals::globalsOf() as a bare "object 'x' not found" six frames down.
     skip_on_cran()
     skip_on_ci()
     skip_if_not_installed("dplyr")
@@ -455,10 +457,54 @@ test_that("tidy evaluation also survives the parallel path", {
         tibble::tibble(total = sum(dplyr::pull(data, {{ col }})))
     }
 
-    result <- run_by_group(groups = valid_groups, .f = pick_column,
-                           col = x, workers = max_workers)
+    expect_error(
+        run_by_group(groups = valid_groups, .f = pick_column,
+                     col = x, workers = max_workers),
+        class = "toolero_error"
+    )
+    expect_error(
+        run_by_group(groups = valid_groups, .f = pick_column,
+                     col = x, workers = max_workers),
+        "parallel"
+    )
+})
+
+test_that("the portable lambda form works in parallel", {
+    # The workaround the error message recommends. If this ever fails, the
+    # advice in .abort_parallel_dots() is wrong and has to change with it.
+    skip_on_cran()
+    skip_on_ci()
+    skip_if_not_installed("dplyr")
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
+    skip_if(max_workers < 2L, "fewer than 2 workers available on this machine")
+
+    pick_column <- function(data, col) {
+        tibble::tibble(total = sum(dplyr::pull(data, {{ col }})))
+    }
+
+    result <- run_by_group(
+        groups  = valid_groups,
+        .f      = function(d) pick_column(d, col = x),
+        workers = max_workers
+    )
 
     expect_equal(result$total, c(sum(grp_a$x), sum(grp_b$x)))
+})
+
+test_that("a plain value argument still works in parallel", {
+    skip_on_cran()
+    skip_on_ci()
+    max_workers <- max(1L, parallelly::availableCores() - 1L)
+    skip_if(max_workers < 2L, "fewer than 2 workers available on this machine")
+
+    fn <- function(data, multiplier) {
+        tibble::tibble(result = mean(data$x) * multiplier)
+    }
+
+    result <- run_by_group(groups = valid_groups, .f = fn,
+                           multiplier = 10, workers = max_workers)
+
+    expect_equal(result$result, c(mean(grp_a$x) * 10, mean(grp_b$x) * 10))
 })
 
 test_that("the lambda form keeps working", {
@@ -505,10 +551,12 @@ test_that("a ... argument is evaluated once, not once per group", {
     expect_equal(calls, 1L)
 })
 
-test_that("an unused ... argument is never evaluated", {
+test_that("an unused ... argument is never evaluated, running sequentially", {
     # A forwarded promise .f never touches is never forced. This differs
     # from the old list(...) behaviour, which forced everything, and it
-    # matches what a direct call to .f would do.
+    # matches what a direct call to .f would do. It is a property of the
+    # sequential path only: the parallel path materializes ... by
+    # necessity.
     fn <- function(data, ...) tibble::tibble(n = nrow(data))
 
     expect_no_error(

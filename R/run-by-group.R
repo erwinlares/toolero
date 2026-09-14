@@ -19,10 +19,11 @@
 #' @param .f A function to apply to each subset. Must accept a data
 #'   frame as its first argument. Additional arguments can be passed
 #'   via `...`.
-#' @param ... Additional arguments passed to `.f` on every call. They are
-#'   forwarded unevaluated rather than evaluated here, so `.f` receives them
-#'   exactly as it would from a direct call. See the tidy evaluation note
-#'   below.
+#' @param ... Additional arguments passed to `.f` on every call. Forwarded
+#'   unevaluated when running sequentially, so `.f` receives them exactly as
+#'   it would from a direct call and tidy evaluation works. Materialized when
+#'   `workers > 1`, which parallel execution requires. See the section on
+#'   passing arguments below.
 #' @param groups A named list of data frames, or `NULL` (the default).
 #'   When supplied, `manifest` is ignored and `.f` is applied directly
 #'   to each list element. All elements must be data frames with
@@ -105,9 +106,25 @@
 #' - A file path -- returned as a list-column
 #'
 #' @section Passing arguments through to `.f`:
-#' Everything in `...` is forwarded to `.f` on every call, unevaluated.
-#' That matters when `.f` uses tidy evaluation, because a bare column name
-#' only means something once it reaches the data:
+#' Most arguments need nothing special. A number, a string, a logical, a
+#' file path, a function: these are ordinary values, and they reach `.f`
+#' in both modes exactly as you would expect. `run_by_group()` imposes no
+#' requirement on how `.f` is written.
+#'
+#' ```r
+#' scale_group <- function(data, multiplier) {
+#'   dplyr::summarise(data, total = sum(x) * multiplier)
+#' }
+#'
+#' run_by_group(groups = subsets, .f = scale_group, multiplier = 10)
+#' ```
+#'
+#' One case is different, and only one: an argument that is a bare *column
+#' name*. A symbol like `flipper_length_mm` has no meaning until it meets
+#' the data, so a function that accepts one has to capture it rather than
+#' evaluate it, which is what `{{ }}` does. That is a property of how `.f`
+#' is written rather than anything `run_by_group()` asks for -- calling
+#' such a function directly has the same requirement.
 #'
 #' ```r
 #' plot_group <- function(data, x, y) {
@@ -123,24 +140,55 @@
 #' )
 #' ```
 #'
-#' `flipper_length_mm` stays an unevaluated symbol until `{{ }}` captures it
-#' inside `plot_group()` and evaluates it against the group's data. Versions
-#' before 0.5.0 evaluated `...` in `run_by_group()`'s own frame, where that
-#' symbol means nothing, so the call above failed with
+#' Run sequentially, which is the default, `...` is forwarded *unevaluated*,
+#' so `flipper_length_mm` stays a symbol until `{{ }}` captures it inside
+#' `plot_group()` and evaluates it against the group's data. Versions before
+#' 0.5.0 evaluated `...` in `run_by_group()`'s own frame, where that symbol
+#' means nothing, so the call above failed with
 #' `object 'flipper_length_mm' not found` before `plot_group()` was reached.
 #'
-#' A lambda is the alternative, and still works:
+#' If you would rather not write `.f` that way, pass the column name as a
+#' string and index with it. A string is an ordinary value, so it needs no
+#' tidy evaluation and works in both modes:
 #'
 #' ```r
+#' plot_group <- function(data, x, y) {
+#'   ggplot2::ggplot(data, ggplot2::aes(x = .data[[x]], y = .data[[y]])) +
+#'     ggplot2::geom_point()
+#' }
+#'
 #' run_by_group(
 #'   groups = subsets,
-#'   .f     = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g)
+#'   .f     = plot_group,
+#'   x      = "flipper_length_mm",
+#'   y      = "body_mass_g"
 #' )
 #' ```
 #'
-#' Arguments with side effects are evaluated at most once for the whole
-#' call, not once per group, since a forwarded promise is forced once and
-#' its value reused.
+#' **Bare column names do not survive `workers > 1`.** Parallel execution
+#' sends the work to separate R sessions, which means every argument has to
+#' be materialized and serialized first. An argument whose value exists only
+#' inside the data mask `.f` builds has nothing to serialize, so it cannot
+#' make the trip. `run_by_group()` reports this directly rather than letting
+#' it surface from inside `future`'s globals inspection. Ordinary values,
+#' strings included, are unaffected.
+#'
+#' The portable form for a bare column name moves it inside `.f`, which
+#' works in both modes:
+#'
+#' ```r
+#' run_by_group(
+#'   groups  = subsets,
+#'   .f      = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g),
+#'   workers = 4
+#' )
+#' ```
+#'
+#' Two smaller consequences of forwarding rather than forcing, both matching
+#' what a direct call to `.f` does, and both sequential-only: an argument
+#' with a side effect is evaluated at most once for the whole call rather
+#' than once per group, and an argument `.f` never touches is never
+#' evaluated at all.
 #'
 #' @importFrom rlang :=
 #' @importFrom parallelly availableCores
@@ -416,31 +464,36 @@ run_by_group <- function(manifest = NULL,
     }
 
     # -- 4. Apply .f to each subset ------------------------------------------------
-    # `...` is forwarded rather than captured. The previous implementation
-    # did `dots <- list(...)` and then `do.call()`, which forces every
-    # argument here, before `.f` is entered. That is fatal for any `.f`
-    # using tidy evaluation: a bare column name is a symbol that means
-    # something inside the data and nothing in the frame where it gets
-    # forced, so it fails with "object not found" and `{{ }}` inside `.f`
-    # never gets the chance to capture it.
+    # The two paths handle `...` differently, and the difference is forced by
+    # what each one can do rather than by preference.
     #
-    # Forwarding leaves each argument a promise, which is exactly what `.f`
-    # would have received had the caller invoked it directly. Plain values
-    # are unaffected -- a promise holding 10 forces to 10 the moment `.f`
-    # touches it -- and promises are forced at most once, so an argument
-    # with a side effect still runs once across all groups rather than once
-    # per group.
+    # Sequentially, `...` is forwarded unevaluated. Each argument stays a
+    # promise, which is exactly what `.f` would have received from a direct
+    # call, so a bare column name survives for `{{ }}` to capture inside
+    # `.f`. The previous implementation captured `list(...)` up front, which
+    # forced every argument in this frame, where a column name means
+    # nothing, and failed before `.f` was entered.
     #
-    # `...` is visible inside worker_fn through lexical scope: worker_fn is
-    # defined in this frame, and run_by_group() has `...` in its formals.
-
-    worker_fn <- function(i) {
-        .f(data_list[[i]], ...)
-    }
+    # In parallel it cannot work that way. `future` inspects the worker
+    # function for globals and materializes them so they can be sent to the
+    # worker sessions, and `...` is one of them. An argument whose value
+    # only exists inside `.f`'s data mask has nothing to send. That is
+    # inherent to crossing a process boundary, not a `furrr` quirk, so the
+    # parallel branch materializes `...` deliberately and explains itself
+    # when an argument cannot survive it.
 
     if (workers > 1L) {
         rlang::check_installed("furrr",  reason = "for parallel execution")
         rlang::check_installed("future", reason = "for parallel execution")
+
+        # Materialized here rather than inside the worker so the failure is
+        # caught in this frame, where there is enough context to explain it.
+        # Left to `future`, the same failure surfaces from six frames down
+        # inside globals::globalsOf() as a bare "object 'x' not found".
+        dots <- tryCatch(
+            list(...),
+            error = function(cnd) .abort_parallel_dots(cnd)
+        )
 
         old_plan <- future::plan(future::multisession, workers = workers)
         on.exit(future::plan(old_plan), add = TRUE)
@@ -464,7 +517,7 @@ run_by_group <- function(manifest = NULL,
 
         results_list <- furrr::future_map(
             seq_along(data_list),
-            worker_fn,
+            function(i) do.call(.f, c(list(data_list[[i]]), dots)),
             .options = furrr_opts
         )
 
@@ -478,7 +531,7 @@ run_by_group <- function(manifest = NULL,
                         "Processing group {.val {group_names[[i]]}} ({i}/{length(data_list)})"
                     )
                 }
-                worker_fn(i)
+                .f(data_list[[i]], ...)
             }
         )
     }
@@ -514,4 +567,39 @@ run_by_group <- function(manifest = NULL,
     }
 
     output
+}
+
+
+# -- Helper: explain a ... argument that cannot cross a process boundary -------
+
+#' Report a `...` argument that cannot be sent to a parallel worker
+#'
+#' Internal helper used by [run_by_group()] when materializing `...` for
+#' parallel execution fails. The usual cause is a bare column name intended
+#' for `.f` to capture with `{{ }}`: it has no value outside the data mask
+#' `.f` builds, so there is nothing to send to a worker session.
+#'
+#' @param cnd The condition raised while evaluating `...`.
+#'
+#' @return Never returns; aborts.
+#'
+#' @keywords internal
+.abort_parallel_dots <- function(cnd) {
+    cli::cli_abort(
+        c(
+            "An argument in {.arg ...} could not be evaluated for parallel
+             execution.",
+            "x" = conditionMessage(cnd),
+            "i" = "With {.code workers > 1}, {.arg ...} has to be materialized
+                   so it can be sent to the worker sessions. An argument that
+                   only means something inside {.arg .f} -- a bare column name
+                   for tidy evaluation to capture -- has no value to send.",
+            "i" = "Run sequentially with {.code workers = 1}, where {.arg ...}
+                   is forwarded unevaluated and tidy evaluation works.",
+            "i" = "Or move the argument inside {.arg .f}, which works in both
+                   modes: {.code .f = function(d) my_fn(d, x = my_column)}."
+        ),
+        class  = "toolero_error",
+        parent = cnd
+    )
 }

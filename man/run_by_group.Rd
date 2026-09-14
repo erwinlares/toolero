@@ -28,10 +28,11 @@ may be omitted entirely.}
 frame as its first argument. Additional arguments can be passed
 via \code{...}.}
 
-\item{...}{Additional arguments passed to \code{.f} on every call. They are
-forwarded unevaluated rather than evaluated here, so \code{.f} receives them
-exactly as it would from a direct call. See the tidy evaluation note
-below.}
+\item{...}{Additional arguments passed to \code{.f} on every call. Forwarded
+unevaluated when running sequentially, so \code{.f} receives them exactly as
+it would from a direct call and tidy evaluation works. Materialized when
+\code{workers > 1}, which parallel execution requires. See the section on
+passing arguments below.}
 
 \item{groups}{A named list of data frames, or \code{NULL} (the default).
 When supplied, \code{manifest} is ignored and \code{.f} is applied directly
@@ -138,9 +139,24 @@ group ID repeated per row
 
 \section{Passing arguments through to \code{.f}}{
 
-Everything in \code{...} is forwarded to \code{.f} on every call, unevaluated.
-That matters when \code{.f} uses tidy evaluation, because a bare column name
-only means something once it reaches the data:
+Most arguments need nothing special. A number, a string, a logical, a
+file path, a function: these are ordinary values, and they reach \code{.f}
+in both modes exactly as you would expect. \code{run_by_group()} imposes no
+requirement on how \code{.f} is written.
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{scale_group <- function(data, multiplier) \{
+  dplyr::summarise(data, total = sum(x) * multiplier)
+\}
+
+run_by_group(groups = subsets, .f = scale_group, multiplier = 10)
+}\if{html}{\out{</div>}}
+
+One case is different, and only one: an argument that is a bare \emph{column
+name}. A symbol like \code{flipper_length_mm} has no meaning until it meets
+the data, so a function that accepts one has to capture it rather than
+evaluate it, which is what \code{{{ }}} does. That is a property of how \code{.f}
+is written rather than anything \code{run_by_group()} asks for -- calling
+such a function directly has the same requirement.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{plot_group <- function(data, x, y) \{
   ggplot2::ggplot(data, ggplot2::aes(x = \{\{ x \}\}, y = \{\{ y \}\})) +
@@ -155,23 +171,53 @@ run_by_group(
 )
 }\if{html}{\out{</div>}}
 
-\code{flipper_length_mm} stays an unevaluated symbol until \code{{{ }}} captures it
-inside \code{plot_group()} and evaluates it against the group's data. Versions
-before 0.5.0 evaluated \code{...} in \code{run_by_group()}'s own frame, where that
-symbol means nothing, so the call above failed with
+Run sequentially, which is the default, \code{...} is forwarded \emph{unevaluated},
+so \code{flipper_length_mm} stays a symbol until \code{{{ }}} captures it inside
+\code{plot_group()} and evaluates it against the group's data. Versions before
+0.5.0 evaluated \code{...} in \code{run_by_group()}'s own frame, where that symbol
+means nothing, so the call above failed with
 \verb{object 'flipper_length_mm' not found} before \code{plot_group()} was reached.
 
-A lambda is the alternative, and still works:
+If you would rather not write \code{.f} that way, pass the column name as a
+string and index with it. A string is an ordinary value, so it needs no
+tidy evaluation and works in both modes:
 
-\if{html}{\out{<div class="sourceCode r">}}\preformatted{run_by_group(
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{plot_group <- function(data, x, y) \{
+  ggplot2::ggplot(data, ggplot2::aes(x = .data[[x]], y = .data[[y]])) +
+    ggplot2::geom_point()
+\}
+
+run_by_group(
   groups = subsets,
-  .f     = \\(d) plot_group(d, x = flipper_length_mm, y = body_mass_g)
+  .f     = plot_group,
+  x      = "flipper_length_mm",
+  y      = "body_mass_g"
 )
 }\if{html}{\out{</div>}}
 
-Arguments with side effects are evaluated at most once for the whole
-call, not once per group, since a forwarded promise is forced once and
-its value reused.
+\strong{Bare column names do not survive \code{workers > 1}.} Parallel execution
+sends the work to separate R sessions, which means every argument has to
+be materialized and serialized first. An argument whose value exists only
+inside the data mask \code{.f} builds has nothing to serialize, so it cannot
+make the trip. \code{run_by_group()} reports this directly rather than letting
+it surface from inside \code{future}'s globals inspection. Ordinary values,
+strings included, are unaffected.
+
+The portable form for a bare column name moves it inside \code{.f}, which
+works in both modes:
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{run_by_group(
+  groups  = subsets,
+  .f      = \\(d) plot_group(d, x = flipper_length_mm, y = body_mass_g),
+  workers = 4
+)
+}\if{html}{\out{</div>}}
+
+Two smaller consequences of forwarding rather than forcing, both matching
+what a direct call to \code{.f} does, and both sequential-only: an argument
+with a side effect is evaluated at most once for the whole call rather
+than once per group, and an argument \code{.f} never touches is never
+evaluated at all.
 }
 
 \examples{
