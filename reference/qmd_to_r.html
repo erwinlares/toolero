@@ -83,6 +83,13 @@ output. toolero provides its own cli feedback instead.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>Invisibly returns the path to the output <code>.R</code> file.</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>The parent directory of <code>output</code> is created if it does not already
+exist, and the creation is reported. <code><a href="https://rdrr.io/pkg/knitr/man/knit.html" class="external-link">knitr::purl()</a></code> does not do this
+itself, so writing a derived script into <code>R/</code> from a project that was
+not created by <code><a href="init_project.html">init_project()</a></code> would otherwise fail.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -101,16 +108,17 @@ output. toolero provides its own cli feedback instead.</p></dd>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Default output path: same directory, .R extension</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpAyNNfD/file4e5432bda806.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpAyNNfD/file4e5432bda806.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/file4e9f27b97ffa.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/file4e9f27b97ffa.R</span>.</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Explicit output path</span></span></span>
+<span class="r-in"><span><span class="co"># Explicit output path. R/ is where toolero expects derived scripts;</span></span></span>
+<span class="r-in"><span><span class="co"># the directory is created if it does not exist yet.</span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".R"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span>, output <span class="op">=</span> <span class="va">out</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpAyNNfD/file4e5432bda806.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpAyNNfD/file4e5450693d20.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/file4e9f27b97ffa.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/file4e9f661a948.R</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Strip all documentation</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span>, output <span class="op">=</span> <span class="va">out</span>, documentation <span class="op">=</span> <span class="fl">0L</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpAyNNfD/file4e5432bda806.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpAyNNfD/file4e5450693d20.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/file4e9f27b97ffa.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/file4e9f661a948.R</span>.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

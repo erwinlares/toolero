@@ -52,7 +52,8 @@ init_project(
   complete statement of the structure, so nothing is added back that the
   author did not ask for. Duplicates of existing folders generate a
   message and are skipped. References to non-existent folders via `"-"`
-  generate a warning. Defaults to `NULL`.
+  generate a warning. `"-R"` is the one removal that does not take
+  effect on disk: see `config` below. Defaults to `NULL`.
 
 - config:
 
@@ -62,6 +63,16 @@ init_project(
   standard structure entirely, and any `conventions:` it declares
   override the defaults key by key. `custom_folders` is still applied on
   top of the config-derived set. Defaults to `NULL`.
+
+  One folder cannot be suppressed, by a config or by `custom_folders`:
+  `R/`.
+  [`usethis::create_project()`](https://usethis.r-lib.org/reference/create_package.html)
+  creates it unconditionally, so it is present in every project
+  `init_project()` makes. A structure that leaves it out is honored
+  everywhere else – `R/` is absent from the project manifest, gets no
+  `.gitkeep`, and is not audited by
+  [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
+  – but the directory itself is there.
 
 - open:
 

@@ -56,11 +56,6 @@ create_qmd(
 
   - Stamps the document's own YAML header with `purl: true`.
 
-  - Ensures the header declares a `params` block with an `input_file`
-    entry, adding `params: input_file: "data-raw/data.csv"` as a
-    placeholder when the template does not already declare one. See the
-    note below on why this is tied to `use_purl`.
-
   - Ensures `R/purl.R` exists in `path` (subject to `overwrite`, like
     any other scaffolded file – an existing `R/purl.R` is left in place
     unless `overwrite = TRUE`).
@@ -90,8 +85,7 @@ create_qmd(
   When `use_purl = FALSE`, the document's header is still stamped, with
   `purl: false`, so `R/purl.R` (in a project where some other document
   has `use_purl = TRUE`) can positively confirm this document should be
-  skipped rather than merely lacking an opinion. The `params` block is
-  not stamped in that case.
+  skipped rather than merely lacking an opinion.
 
   `R/purl.R` itself only purls documents whose own header carries
   `purl: true`, so turning this on for one document inside a larger
@@ -101,20 +95,6 @@ create_qmd(
   the project root, so two documents that happen to share a filename in
   different directories (e.g. a directory-per-post convention using
   `index.qmd`) do not overwrite each other's output.
-
-  On the `params` stamp: the input-resolution pattern recommended
-  throughout this family of packages – see
-  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
-  and `submitr::htc_gen_submit()` – reads `params$input_file` in its
-  `quarto` branch, which requires the document to declare `params:`. The
-  example template does; the skeleton deliberately does not, since
-  `include_examples = FALSE` asks for a bare document and padding it to
-  serve a cluster workflow the user may never reach would be the wrong
-  trade. `use_purl = TRUE` is the user saying this document is destined
-  to become a script, and a script is exactly the artifact that runs
-  under `Rscript` on an execute node. So the skeleton stays bare for the
-  local case and acquires what it needs at the moment it announces where
-  it is going. An existing `input_file` is never overwritten.
 
 - include_examples:
 
@@ -181,13 +161,12 @@ Invisibly returns `path`.
     whichever are present into the YAML header.
 
 5.  Stamps `purl: true` or `purl: false` into the document's own YAML
-    header, reflecting `use_purl`, and when `use_purl = TRUE` also
-    ensures a `params: input_file:` entry is present.
+    header, reflecting `use_purl`.
 
 6.  If `yaml_data` is provided, reads the YAML file and substitutes
     values into the document header. This runs after style injection and
     the purl stamp, so `yaml_data` can override any auto-generated YAML
-    key, including `purl` and `params` themselves.
+    key, including `purl` itself.
 
 7.  If `use_purl = TRUE`, ensures `R/purl.R` exists. Then, unless
     `_quarto.yml` already exists and declares `project: type:` as
@@ -197,11 +176,33 @@ Invisibly returns `path`.
     if absent, or merging the hook into the existing file's `project:`
     block if present.
 
-8.  The sample dataset bundled with the template is a subset of the
-    Palmer Penguins dataset. Citation: Horst AM, Hill AP, Gorman KB
-    (2020). palmerpenguins: Palmer Archipelago (Antarctica) Penguin
-    Data. R package version 0.1.0.
+8.  The sample dataset bundled with the template, `data-raw/sample.csv`,
+    is a subset of the Palmer Archipelago penguin data, taken from an
+    earlier version of the `palmerpenguins` package than the one on CRAN
+    today. Treat it as teaching material rather than as a citable copy
+    of the data.
+
+    Since R 4.5.0 the same data ships with base R, so
+    [`?datasets::penguins`](https://rdrr.io/r/datasets/penguins.html) is
+    the most convenient reference, with
+    [`datasets::penguins_raw`](https://rdrr.io/r/datasets/penguins.html)
+    carrying the uncleaned form. One difference matters when reading the
+    two side by side: base R shortened four of the column names, so
+    `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm` and
+    `body_mass_g` here are `bill_len`, `bill_dep`, `flipper_len` and
+    `body_mass` there. `species`, `island`, `sex` and `year` are spelled
+    the same in both. This template keeps the longer names, which carry
+    their units.
+
+    Original data: Gorman KB, Williams TD, Fraser WR (2014). Ecological
+    sexual dimorphism and environmental variability within a community
+    of Antarctic penguins (genus Pygoscelis). PLoS ONE 9(3): e90081.
+    [doi:10.1371/journal.pone.0090081](https://doi.org/10.1371/journal.pone.0090081)
+    . R package: Horst AM, Hill AP, Gorman KB (2020). palmerpenguins:
+    Palmer Archipelago (Antarctica) Penguin Data.
     [doi:10.5281/zenodo.3960218](https://doi.org/10.5281/zenodo.3960218)
+    . Collected by Palmer Station Antarctica LTER, a member of the Long
+    Term Ecological Research Network.
 
 Every edit to the document's YAML header is made line by line rather
 than by parsing the header and writing it back out. Keys the edit does
@@ -220,34 +221,34 @@ temporary output during testing or exploration.
 # Minimal blank document -- no examples, no styling, no purl
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
-#> ✔ Created /tmp/RtmpAyNNfD/analysis.qmd
+#> ✔ Created /tmp/RtmpBaQ2VO/analysis.qmd
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
-#> ✔ Created /tmp/RtmpAyNNfD/data-raw/sample.csv
-#> ✔ Created /tmp/RtmpAyNNfD/assets/logo.png
-#> ✔ Created /tmp/RtmpAyNNfD/analysis.qmd
+#> ✔ Created /tmp/RtmpBaQ2VO/data-raw/sample.csv
+#> ✔ Created /tmp/RtmpBaQ2VO/assets/logo.png
+#> ✔ Created /tmp/RtmpBaQ2VO/analysis.qmd
 
-# Opt this document into purl: stamps purl: true and a params block,
-# and wires up R/purl.R + the _quarto.yml post-render hook (merged if
-# the file already exists, e.g. inside a larger Quarto website project)
+# Opt this document into purl: stamps purl: true and wires up
+# R/purl.R + the _quarto.yml post-render hook (merged if the file
+# already exists, e.g. inside a larger Quarto website project)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE, use_purl = TRUE)
-#> ✔ Created /tmp/RtmpAyNNfD/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmpAyNNfD/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmpAyNNfD/analysis.qmd
-#> ✔ Created /tmp/RtmpAyNNfD/R/purl.R
-#> ✔ Created /tmp/RtmpAyNNfD/_quarto.yml
+#> ✔ Created /tmp/RtmpBaQ2VO/data-raw/sample.csv
+#> ℹ Skipping /tmp/RtmpBaQ2VO/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/RtmpBaQ2VO/analysis.qmd
+#> ✔ Created /tmp/RtmpBaQ2VO/R/purl.R
+#> ✔ Created /tmp/RtmpBaQ2VO/_quarto.yml
 
 # Blank document wired to branding assets (assumes assets/ exists,
 # e.g. from init_project(branding = "uw-madison"))
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)
-#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmpAyNNfD/assets.
+#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmpBaQ2VO/assets.
 #> Skipping style injection.
-#> ✔ Created /tmp/RtmpAyNNfD/report.qmd
+#> ✔ Created /tmp/RtmpBaQ2VO/report.qmd
 
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
@@ -256,15 +257,15 @@ create_qmd(path = tempdir(), filename = "report.qmd",
 #> Warning: Style directory /home/runner/work/toolero/toolero/docs/reference/my-branding
 #> does not exist. Skipping style injection. Create the directory and add your
 #> branding assets, or set `use_style = FALSE`.
-#> ✔ Created /tmp/RtmpAyNNfD/report.qmd
+#> ✔ Created /tmp/RtmpBaQ2VO/report.qmd
 
 # Pre-populated YAML overrides
 yaml_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", yaml_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpAyNNfD/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmpAyNNfD/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmpAyNNfD/analysis.qmd
+#> ✔ Created /tmp/RtmpBaQ2VO/data-raw/sample.csv
+#> ℹ Skipping /tmp/RtmpBaQ2VO/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/RtmpBaQ2VO/analysis.qmd
 # }
 ```

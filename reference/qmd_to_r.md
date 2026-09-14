@@ -41,6 +41,16 @@ qmd_to_r(input, output = NULL, documentation = 1L, quiet = TRUE)
 
 Invisibly returns the path to the output `.R` file.
 
+## Details
+
+The parent directory of `output` is created if it does not already
+exist, and the creation is reported.
+[`knitr::purl()`](https://rdrr.io/pkg/knitr/man/knit.html) does not do
+this itself, so writing a derived script into `R/` from a project that
+was not created by
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+would otherwise fail.
+
 ## Examples
 
 ``` r
@@ -59,15 +69,16 @@ writeLines(c(
 
 # Default output path: same directory, .R extension
 qmd_to_r(input = qmd)
-#> ✔ Extracted R code from /tmp/RtmpAyNNfD/file4e5432bda806.qmd to /tmp/RtmpAyNNfD/file4e5432bda806.R.
+#> ✔ Extracted R code from /tmp/RtmpBaQ2VO/file4e9f27b97ffa.qmd to /tmp/RtmpBaQ2VO/file4e9f27b97ffa.R.
 
-# Explicit output path
+# Explicit output path. R/ is where toolero expects derived scripts;
+# the directory is created if it does not exist yet.
 out <- tempfile(fileext = ".R")
 qmd_to_r(input = qmd, output = out)
-#> ✔ Extracted R code from /tmp/RtmpAyNNfD/file4e5432bda806.qmd to /tmp/RtmpAyNNfD/file4e5450693d20.R.
+#> ✔ Extracted R code from /tmp/RtmpBaQ2VO/file4e9f27b97ffa.qmd to /tmp/RtmpBaQ2VO/file4e9f661a948.R.
 
 # Strip all documentation
 qmd_to_r(input = qmd, output = out, documentation = 0L)
-#> ✔ Extracted R code from /tmp/RtmpAyNNfD/file4e5432bda806.qmd to /tmp/RtmpAyNNfD/file4e5450693d20.R.
+#> ✔ Extracted R code from /tmp/RtmpBaQ2VO/file4e9f27b97ffa.qmd to /tmp/RtmpBaQ2VO/file4e9f661a948.R.
 # }
 ```

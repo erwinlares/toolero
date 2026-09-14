@@ -101,7 +101,10 @@ via <code>...</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments passed to <code>.f</code> on every call.</p></dd>
+<dd><p>Additional arguments passed to <code>.f</code> on every call. They are
+forwarded unevaluated rather than evaluated here, so <code>.f</code> receives them
+exactly as it would from a direct call. See the tidy evaluation note
+below.</p></dd>
 
 
 <dt id="arg-groups">groups<a class="anchor" aria-label="anchor" href="#arg-groups"></a></dt>
@@ -125,11 +128,13 @@ each group in the output. Defaults to <code>"group_id"</code>.</p></dd>
 
 
 <dt id="arg-workers">workers<a class="anchor" aria-label="anchor" href="#arg-workers"></a></dt>
-<dd><p>A positive integer. Number of parallel R sessions to
-use. When <code>1L</code> (the default), subsets are processed sequentially
-with <code><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">purrr::map()</a></code>. When greater than <code>1</code>, subsets are processed
-in parallel with <code><a href="https://furrr.futureverse.org/reference/future_map.html" class="external-link">furrr::future_map()</a></code>. Requires the <code>furrr</code> and
-<code>future</code> packages. The maximum allowed value is
+<dd><p>A positive integer, or <code>NULL</code>. Number of parallel R
+sessions to use. When <code>1L</code> (the default) or <code>NULL</code>, subsets are
+processed sequentially with <code><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">purrr::map()</a></code>; <code>NULL</code> is accepted as a
+way of saying "do not parallelize" and is treated as <code>1L</code>. When
+greater than <code>1</code>, subsets are processed in parallel with
+<code><a href="https://furrr.futureverse.org/reference/future_map.html" class="external-link">furrr::future_map()</a></code>. Requires the <code>furrr</code> and <code>future</code> packages.
+The maximum allowed value is
 <code>max(1L, parallelly::availableCores() - 1L)</code> to reserve one core
 for the main R session. A good starting value is the number of
 groups or that core ceiling, whichever is smaller.</p></dd>
@@ -202,6 +207,38 @@ group ID repeated per row</p></li>
 <li><p>A ggplot object – returned as a list-column</p></li>
 <li><p>A file path – returned as a list-column</p></li>
 </ul></div>
+    <div class="section level2">
+    <h2 id="passing-arguments-through-to-f">Passing arguments through to <code>.f</code><a class="anchor" aria-label="anchor" href="#passing-arguments-through-to-f"></a></h2>
+
+
+<p>Everything in <code>...</code> is forwarded to <code>.f</code> on every call, unevaluated.
+That matters when <code>.f</code> uses tidy evaluation, because a bare column name
+only means something once it reaches the data:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="va">plot_group</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span>, <span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">ggplot</span><span class="op">(</span><span class="va">data</span>, <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">aes</span><span class="op">(</span>x <span class="op">=</span> <span class="op">{</span><span class="op">{</span> <span class="va">x</span> <span class="op">}</span><span class="op">}</span>, y <span class="op">=</span> <span class="op">{</span><span class="op">{</span> <span class="va">y</span> <span class="op">}</span><span class="op">}</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>    <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">geom_point</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
+<span>  groups <span class="op">=</span> <span class="va">subsets</span>,</span>
+<span>  .f     <span class="op">=</span> <span class="va">plot_group</span>,</span>
+<span>  x      <span class="op">=</span> <span class="va">flipper_length_mm</span>,</span>
+<span>  y      <span class="op">=</span> <span class="va">body_mass_g</span></span>
+<span><span class="op">)</span></span></code></pre><p></p></div>
+<p><code>flipper_length_mm</code> stays an unevaluated symbol until <code>{{ }}</code> captures it
+inside <code>plot_group()</code> and evaluates it against the group's data. Versions
+before 0.5.0 evaluated <code>...</code> in <code>run_by_group()</code>'s own frame, where that
+symbol means nothing, so the call above failed with
+<code>object 'flipper_length_mm' not found</code> before <code>plot_group()</code> was reached.</p>
+<p>A lambda is the alternative, and still works:</p>
+<p></p><div class="sourceCode r"><pre><code><span><span class="fu"><a href="../reference/run_by_group.html">run_by_group</a></span><span class="op">(</span></span>
+<span>  groups <span class="op">=</span> <span class="va">subsets</span>,</span>
+<span>  .f     <span class="op">=</span> \<span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="fu">plot_group</span><span class="op">(</span><span class="va">d</span>, x <span class="op">=</span> <span class="va">flipper_length_mm</span>, y <span class="op">=</span> <span class="va">body_mass_g</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre><p></p></div>
+<p>Arguments with side effects are evaluated at most once for the whole
+call, not once per group, since a forwarded promise is forced once and
+its value reused.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -213,10 +250,10 @@ group ID repeated per row</p></li>
 <span class="r-in"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="write_by_group.html">write_by_group</a></span><span class="op">(</span><span class="va">penguins</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="va">tmp</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (152 rows) to <span style="color: #0000BB;">/tmp/RtmpAyNNfD/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (124 rows) to <span style="color: #0000BB;">/tmp/RtmpAyNNfD/gentoo.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Chinstrap"</span> (68 rows) to <span style="color: #0000BB;">/tmp/RtmpAyNNfD/chinstrap.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpAyNNfD/manifest.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (152 rows) to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (124 rows) to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Chinstrap"</span> (68 rows) to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/chinstrap.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpBaQ2VO/manifest.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Define an analysis function</span></span></span>
 <span class="r-in"><span><span class="va">summarise_species</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span></span>

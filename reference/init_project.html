@@ -100,7 +100,8 @@ parents are not preserved: a config is an explicit and complete statement
 of the structure, so nothing is added back that the author did not ask
 for. Duplicates of existing folders generate a message and are skipped.
 References to non-existent folders via <code>"-"</code> generate a warning.
-Defaults to <code>NULL</code>.</p></dd>
+<code>"-R"</code> is the one removal that does not take effect on disk: see
+<code>config</code> below. Defaults to <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
@@ -109,7 +110,13 @@ produced by <code><a href="generate_project_config.html">generate_project_config
 in the config replaces the built-in standard structure entirely, and any
 <code>conventions:</code> it declares override the defaults key by key.
 <code>custom_folders</code> is still applied on top of the config-derived set.
-Defaults to <code>NULL</code>.</p></dd>
+Defaults to <code>NULL</code>.</p>
+<p>One folder cannot be suppressed, by a config or by <code>custom_folders</code>:
+<code>R/</code>. <code><a href="https://usethis.r-lib.org/reference/create_package.html" class="external-link">usethis::create_project()</a></code> creates it unconditionally, so it is
+present in every project <code>init_project()</code> makes. A structure that
+leaves it out is honored everywhere else – <code>R/</code> is absent from the
+project manifest, gets no <code>.gitkeep</code>, and is not audited by
+<code><a href="check_project.html">check_project()</a></code> – but the directory itself is there.</p></dd>
 
 
 <dt id="arg-open">open<a class="anchor" aria-label="anchor" href="#arg-open"></a></dt>

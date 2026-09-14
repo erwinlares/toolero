@@ -44,7 +44,9 @@ run_by_group(
 
 - ...:
 
-  Additional arguments passed to `.f` on every call.
+  Additional arguments passed to `.f` on every call. They are forwarded
+  unevaluated rather than evaluated here, so `.f` receives them exactly
+  as it would from a direct call. See the tidy evaluation note below.
 
 - groups:
 
@@ -70,10 +72,12 @@ run_by_group(
 
 - workers:
 
-  A positive integer. Number of parallel R sessions to use. When `1L`
-  (the default), subsets are processed sequentially with
-  [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html). When
-  greater than `1`, subsets are processed in parallel with
+  A positive integer, or `NULL`. Number of parallel R sessions to use.
+  When `1L` (the default) or `NULL`, subsets are processed sequentially
+  with [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html);
+  `NULL` is accepted as a way of saying "do not parallelize" and is
+  treated as `1L`. When greater than `1`, subsets are processed in
+  parallel with
   [`furrr::future_map()`](https://furrr.futureverse.org/reference/future_map.html).
   Requires the `furrr` and `future` packages. The maximum allowed value
   is `max(1L, parallelly::availableCores() - 1L)` to reserve one core
@@ -151,6 +155,42 @@ Common return types and their output shape:
 
 - A file path – returned as a list-column
 
+## Passing arguments through to `.f`
+
+Everything in `...` is forwarded to `.f` on every call, unevaluated.
+That matters when `.f` uses tidy evaluation, because a bare column name
+only means something once it reaches the data:
+
+    plot_group <- function(data, x, y) {
+      ggplot2::ggplot(data, ggplot2::aes(x = {{ x }}, y = {{ y }})) +
+        ggplot2::geom_point()
+    }
+
+    run_by_group(
+      groups = subsets,
+      .f     = plot_group,
+      x      = flipper_length_mm,
+      y      = body_mass_g
+    )
+
+`flipper_length_mm` stays an unevaluated symbol until `{{ }}` captures
+it inside `plot_group()` and evaluates it against the group's data.
+Versions before 0.5.0 evaluated `...` in `run_by_group()`'s own frame,
+where that symbol means nothing, so the call above failed with
+`object 'flipper_length_mm' not found` before `plot_group()` was
+reached.
+
+A lambda is the alternative, and still works:
+
+    run_by_group(
+      groups = subsets,
+      .f     = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g)
+    )
+
+Arguments with side effects are evaluated at most once for the whole
+call, not once per group, since a forwarded promise is forced once and
+its value reused.
+
 ## Examples
 
 ``` r
@@ -162,10 +202,10 @@ penguins <- read_clean_csv(sample_path)
 tmp <- tempdir()
 write_by_group(penguins, group_col = "species",
                output_dir = tmp, manifest = TRUE)
-#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpAyNNfD/adelie.csv
-#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpAyNNfD/gentoo.csv
-#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpAyNNfD/chinstrap.csv
-#> ✔ Manifest written to /tmp/RtmpAyNNfD/manifest.csv
+#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpBaQ2VO/adelie.csv
+#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpBaQ2VO/gentoo.csv
+#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpBaQ2VO/chinstrap.csv
+#> ✔ Manifest written to /tmp/RtmpBaQ2VO/manifest.csv
 
 # Define an analysis function
 summarise_species <- function(data) {
