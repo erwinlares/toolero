@@ -321,7 +321,7 @@ The directory will contain:
 The `.yaml` file records everything needed to reproduce the render:
 
 ``` yaml
-rendered_by: toolero::arborize(), version 0.4.0
+rendered_by: toolero::arborize(), version 0.5.0
 rendered_at: 2026-04-30 14:23:11 CDT
 output: /path/to/figures/np-tree.png
 tree_notation: simple

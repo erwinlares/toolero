@@ -16,22 +16,6 @@
   `false` is an artifact that works only on the machine that made it.
   Set it back in your own header if you would rather have the sidecar.
 
-- `create_qmd(use_purl = TRUE)`: the generated document’s header now
-  declares a `params` block with an `input_file` entry, added as
-  `params: input_file: "data-raw/data.csv"` when the template does not
-  already declare one. The input-resolution pattern this family of
-  packages recommends – see
-  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
-  and `submitr::htc_gen_submit()` – reads `params$input_file` in its
-  `quarto` branch, which requires the document to declare `params:`. The
-  example template does; the skeleton deliberately does not, since
-  `include_examples = FALSE` asks for a bare document. `use_purl = TRUE`
-  is the user saying this document is destined to become a script, and a
-  script is exactly the artifact that runs under `Rscript` on an execute
-  node, so that is where the block is earned. An `input_file` the
-  template or `yaml_data` supplies is never overwritten, and the
-  placeholder is meant to be edited.
-
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
   uses
   [`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html)
@@ -352,102 +336,46 @@
   (`sample.csv`, `_quarto.yml`, `purl.R`, the `.qmd` itself) continue to
   respect `overwrite`.
 
+- Added
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md),
+  which resolves an input data path for the current execution context
+  and explains what went wrong when it cannot. It replaces the
+  [`switch()`](https://rdrr.io/r/base/switch.html) on
+  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
+  that this family of packages has been recommending in four different
+  places, which had already drifted: the roxygen example resolved the
+  interactive branch to `data/sample.csv` while the bundled template
+  resolved it to `data-raw/sample.csv`.
+
+  Each of the three branch arguments is an ordinary R argument and
+  therefore a promise, so only the branch matching the context is ever
+  evaluated, exactly as in the hand-written
+  [`switch()`](https://rdrr.io/r/base/switch.html). The difference is
+  where the evaluation happens. A document that declares no `params:`
+  block raises `object 'params' not found`, and because the promise is
+  now forced inside
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+  rather than in the document’s own frame, that error can be caught and
+  turned into a message about the YAML header. No amount of
+  documentation could have reached it.
+
+  Three failures it reports that previously surfaced one call later as
+  something unhelpful: `commandArgs(trailingOnly = TRUE)[1]` returning
+  `NA_character_` when no argument was passed, which is what `submitr`’s
+  single mode with no `data_files` produces; a `params` block that
+  exists without an `input_file` key; and a resolved path that is simply
+  not there, which is most often a working directory that is not what
+  the author assumed.
+
+  Omitting an argument is meaningful. The `rscript` branch defaults to
+  the first command line argument. The `interactive` and `quarto`
+  branches both fall back to the document’s own `params$input_file`, so
+  a document whose header declares one can call
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+  with no arguments and the path is written once, in the header, rather
+  than there and again in a chunk that has to be kept in step with it.
+
 #### Bug fixes
-
-- [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md):
-  when running sequentially, arguments in `...` are now forwarded to
-  `.f` unevaluated rather than captured with `list(...)` first. Most
-  arguments are unaffected either way: a number, a string, a logical, a
-  file path are ordinary values, and they reached `.f` correctly before
-  and still do. The case that was broken is the one argument that is not
-  an ordinary value, a bare column name. The old behavior forced every
-  argument in
-  [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)’s
-  own frame, where a symbol like `flipper_length_mm` means nothing, so a
-  function written to capture it with `{{ }}` failed with object
-  `'flipper_length_mm'` not found before it was ever entered. Such
-  functions now work:
-
-``` r
-
-
-plot_group <- function(data, x, y) {
-    ggplot2::ggplot(data, ggplot2::aes(x = {{ x }}, y = {{ y }})) +
-      ggplot2::geom_point()
-}
-
-run_by_group(groups = subsets, .f = plot_group,
-             x = flipper_length_mm, y = body_mass_g)
-```
-
-To be clear about what this does not ask of you:
-[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
-places no requirement on how `.f` is written. `{{ }}` is what any
-function accepting a bare column name needs, called directly or not; a
-function taking only ordinary values needs nothing. If you would rather
-avoid tidy evaluation altogether, pass the column name as a string and
-index with `.data[[x]]` inside `.f`, which works in both modes.
-
-Two smaller consequences follow, both matching what a direct call to
-`.f` does: an argument with a side effect is evaluated at most once for
-the whole call rather than once per group, as before, and an argument
-`.f` never touches is now never evaluated at all, where previously it
-was.
-
-Bare column names do not survive `workers > 1`. Parallel execution sends
-the work to separate R sessions, so every argument has to be
-materialized and serialized first, and an argument whose value exists
-only inside the data mask `.f` builds has nothing to serialize.
-[`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
-now reports that directly, naming the two ways forward, rather than
-letting it surface from inside future’s globals inspection as an
-unattributed `object 'x' not found`. Ordinary values, strings included,
-are unaffected. The portable form for a bare column name moves it inside
-`.f`, and works in both modes:
-
-``` r
-
-
-  run_by_group(
-    groups  = subsets,
-    .f      = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g),
-    workers = 4
-  )
-```
-
-- [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
-  and
-  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md):
-  the guard that reports an accumulator whose columns do not match the
-  expected schema could not format its own message. The expected columns
-  reached `cli` as `{.val {.accumulator_columns()}}`, and `cli` 3.4.0
-  and later read a [`{}`](https://rdrr.io/r/base/Paren.html) expression
-  beginning with a dot as an inline style name rather than as R code, so
-  formatting failed and the explanation was replaced by a `cli` parse
-  error. The failure only ever surfaced in the one branch whose purpose
-  is to explain what went wrong. Both sites now bind the schema to a
-  local first. The existing tests asserted only that something was
-  thrown, which is why this went unnoticed; they now check that the
-  message names a column.
-
-- `run_by_group(workers = NULL)`: `NULL` skipped the validation block
-  entirely and then reached `if (workers > 1L)` about a hundred and
-  sixty lines later, where `NULL > 1L` is `logical(0)` and `if` raises
-  “argument is of length zero”. `NULL` is now documented and accepted as
-  a way of saying “do not parallelize” and is coerced to `1L`. The block
-  also now rejects a `workers` of any length other than one, so that
-  everything after it can rely on `workers` being a single integer of at
-  least one rather than on a reader noticing the gap.
-
-- [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md):
-  creates the parent directory of `output` if it does not already exist.
-  [`knitr::purl()`](https://rdrr.io/pkg/knitr/man/knit.html) writes
-  through a connection and does not, so an explicit output path into a
-  folder that is not there failed with a connection error naming the
-  file rather than the missing directory. `R/` is the documented home
-  for derived scripts, which makes this the ordinary case for any
-  project not created by
-  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md).
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   the YAML header was matched with a regular expression whose match
@@ -493,14 +421,116 @@ are unaffected. The portable form for a bare column name moves it inside
   returns. Every test in the suite passed `use_git = FALSE`, which is
   why this went unnoticed; the git path is now covered.
 
-#### Internal changes
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+  documented that `R/` cannot be suppressed, by `config` or by
+  `custom_folders`.
+  [`usethis::create_project()`](https://usethis.r-lib.org/reference/create_package.html)
+  calls `use_directory("R")` unconditionally, so the directory is
+  present in every project regardless of the resolved folder set. A
+  structure that leaves it out is honored everywhere else: `R/` is
+  absent from `_toolero.yml`, gets no `.gitkeep`, and is not audited by
+  [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md).
+  Only the directory itself is unavoidable. No code change; the test
+  that asserted otherwise was the thing that was wrong, and it only
+  began failing once `R/` joined the default folder set in this release.
 
-- [`.ensure_directory()`](https://erwinlares.github.io/toolero/reference/dot-ensure_directory.md)
-  moved from `R/save-output.R` to `R/utils-project.R`, since
-  [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
-  now uses it too and it is no longer specific to the accumulator. Its
-  tests moved with it into the new
-  `tests/testthat/test-utils-project.R`.
+- [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+  and
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md):
+  the guard that reports an accumulator whose columns do not match the
+  expected schema could not format its own message. The expected columns
+  reached `cli` as `{.val {.accumulator_columns()}}`, and `cli` 3.4.0
+  and later read a [`{}`](https://rdrr.io/r/base/Paren.html) expression
+  beginning with a dot as an inline style name rather than as R code, so
+  formatting failed and the explanation was replaced by a `cli` parse
+  error. The failure only ever surfaced in the one branch whose purpose
+  is to explain what went wrong. Both sites now bind the schema to a
+  local first. The existing tests asserted only that something was
+  thrown, which is why this went unnoticed; they now check that the
+  message names a column.
+
+- `run_by_group(workers = NULL)`: `NULL` skipped the validation block
+  entirely and then reached `if (workers > 1L)` about a hundred and
+  sixty lines later, where `NULL > 1L` is `logical(0)` and `if` raises
+  “argument is of length zero”. `NULL` is now documented and accepted as
+  a way of saying “do not parallelize” and is coerced to `1L`. The block
+  also now rejects a `workers` of any length other than one, so that
+  everything after it can rely on `workers` being a single integer of at
+  least one rather than on a reader noticing the gap.
+
+- [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md):
+  creates the parent directory of `output` if it does not already exist.
+  [`knitr::purl()`](https://rdrr.io/pkg/knitr/man/knit.html) writes
+  through a connection and does not, so an explicit output path into a
+  folder that is not there failed with a connection error naming the
+  file rather than the missing directory. `R/` is the documented home
+  for derived scripts, which makes this the ordinary case for any
+  project not created by
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md).
+
+- [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md):
+  when running sequentially, arguments in `...` are now forwarded to
+  `.f` unevaluated rather than captured with `list(...)` first. Most
+  arguments are unaffected either way: a number, a string, a logical, a
+  file path are ordinary values, and they reached `.f` correctly before
+  and still do. The case that was broken is the one argument that is not
+  an ordinary value, a bare *column name*. The old behaviour forced
+  every argument in
+  [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)’s
+  own frame, where a symbol like `flipper_length_mm` means nothing, so a
+  function written to capture it with `{{ }}` failed with
+  `object 'flipper_length_mm' not found` before it was ever entered.
+  Such functions now work:
+
+  ``` r
+
+  plot_group <- function(data, x, y) {
+    ggplot2::ggplot(data, ggplot2::aes(x = {{ x }}, y = {{ y }})) +
+      ggplot2::geom_point()
+  }
+
+  run_by_group(groups = subsets, .f = plot_group,
+               x = flipper_length_mm, y = body_mass_g)
+  ```
+
+  To be clear about what this does *not* ask of you:
+  [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+  places no requirement on how `.f` is written. `{{ }}` is what any
+  function accepting a bare column name needs, called directly or not; a
+  function taking only ordinary values needs nothing. If you would
+  rather avoid tidy evaluation altogether, pass the column name as a
+  string and index with `.data[[x]]` inside `.f`, which works in both
+  modes.
+
+  Two smaller consequences follow, both matching what a direct call to
+  `.f` does: an argument with a side effect is evaluated at most once
+  for the whole call rather than once per group, as before, and an
+  argument `.f` never touches is now never evaluated at all, where
+  previously it was.
+
+  **Bare column names do not survive `workers > 1`.** Parallel execution
+  sends the work to separate R sessions, so every argument has to be
+  materialized and serialized first, and an argument whose value exists
+  only inside the data mask `.f` builds has nothing to serialize.
+  [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+  now reports that directly, naming the two ways forward, rather than
+  letting it surface from inside `future`’s globals inspection as an
+  unattributed `object 'x' not found`. Ordinary values, strings
+  included, are unaffected. The portable form for a bare column name
+  moves it inside `.f`, and works in both modes:
+
+  ``` r
+
+  run_by_group(
+    groups  = subsets,
+    .f      = \(d) plot_group(d, x = flipper_length_mm, y = body_mass_g),
+    workers = 4
+  )
+  ```
+
+  Closes [\#16](https://github.com/erwinlares/toolero/issues/16).
+
+#### Internal changes
 
 - New `R/utils-yaml.R` holds the line-oriented header helpers:
   `.split_yaml_header()`, `.join_yaml_header()`, `.set_yaml_key()` and
@@ -650,6 +680,13 @@ are unaffected. The portable form for a bare column name moves it inside
   [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)’s
   new `use_readme` argument.
 
+- [`.ensure_directory()`](https://erwinlares.github.io/toolero/reference/dot-ensure_directory.md)
+  moved from `R/save-output.R` to `R/utils-project.R`, since
+  [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+  now uses it too and it is no longer specific to the accumulator. Its
+  tests moved with it into the new
+  `tests/testthat/test-utils-project.R`.
+
 #### New features (continued)
 
 - Added
@@ -684,31 +721,6 @@ are unaffected. The portable form for a bare column name moves it inside
   manifest with a warning.
 
 #### Improvements
-
-- The README was brought up to date with the 0.5.0 changes. The opening
-  workflow now runs end to end against the bundled sample data, with the
-  analysis function defined inline: it previously read an `input.csv`
-  that nothing created, called an undefined `my_analysis`, and wrote the
-  derived script into `scripts/` rather than `R/`. Two claims that had
-  gone stale are corrected: `R/purl.R` is scaffolded subject to
-  `overwrite` rather than “unconditionally”, and the job manifest has
-  one schema rather than a separate three-column shape for single-column
-  splits. New material covers `_toolero.yml` and what downstream
-  packages read from it, `R/` in the standard folder set and why it
-  cannot be suppressed, `.gitkeep`,
-  [`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html)
-  and the absent creation-time snapshot, the two `renv` checks in
-  [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md),
-  `prefix` and first-appearance ordering in
-  [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md),
-  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md),
-  `embed-resources: true`, the accumulator schema as the thing that
-  holds still, and what running `toolero` inside a container commits you
-  to. The dependency list now distinguishes required packages from
-  suggested ones and names which function needs each, `knitr` for
-  [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
-  above all, which was absent from the list while being required by step
-  4 of the first workflow.
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   every edit to a document’s YAML header is now made line by line rather
@@ -756,6 +768,68 @@ are unaffected. The portable form for a bare column name moves it inside
   `"warn"` – the user declared them explicitly, so their absence is a
   conformance failure rather than an advisory (issue
   [\#12](https://github.com/erwinlares/toolero/issues/12)).
+
+- [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md):
+  its `@examples` no longer show the input resolution
+  [`switch()`](https://rdrr.io/r/base/switch.html), which now lives in
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md).
+  The example shows a use that is genuinely about the context itself,
+  and a `@seealso` points at the new function.
+
+- [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md):
+  the documented priority order now records that it is unobservable.
+  `QUARTO_DOCUMENT_PATH` is set only by Quarto rendering a document, and
+  every path that renders one runs the R code in a process that is not
+  interactive; running chunks inline in RStudio is the reverse,
+  interactive with the variable unset. The two tests never fire
+  together, so the priority never arbitrates anything. The order is
+  unchanged.
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  the credit for the bundled `sample.csv` now says what the file is and
+  where to read about it. It is a subset of the Palmer Archipelago
+  penguin data taken from an earlier version of `palmerpenguins` than
+  the one on CRAN today, and since R 4.5.0 the same data ships with base
+  R as [`datasets::penguins`](https://rdrr.io/r/datasets/penguins.html).
+  The note records that base R shortened four column names, so
+  `bill_length_mm`, `bill_depth_mm`, `flipper_length_mm` and
+  `body_mass_g` in the CSV are `bill_len`, `bill_dep`, `flipper_len` and
+  `body_mass` there. The template keeps the longer names, which carry
+  their units. The Gorman, Williams and Fraser
+
+  2014. data paper is now cited alongside the R package.
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  the bundled example template resolves its input through
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+  rather than a hand-written
+  [`switch()`](https://rdrr.io/r/base/switch.html), and points out that
+  the zero-argument form works once the header declares `input_file`.
+
+- The README was brought up to date with the 0.5.0 changes. The opening
+  workflow now runs end to end against the bundled sample data, with the
+  analysis function defined inline: it previously read an `input.csv`
+  that nothing created, called an undefined `my_analysis`, and wrote the
+  derived script into `scripts/` rather than `R/`. Two claims that had
+  gone stale are corrected: `R/purl.R` is scaffolded subject to
+  `overwrite` rather than “unconditionally”, and the job manifest has
+  one schema rather than a separate three-column shape for single-column
+  splits. New material covers `_toolero.yml` and what downstream
+  packages read from it, `R/` in the standard folder set and why it
+  cannot be suppressed, `.gitkeep`,
+  [`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html)
+  and the absent creation-time snapshot, the two `renv` checks in
+  [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md),
+  `prefix` and first-appearance ordering in
+  [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md),
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md),
+  `embed-resources: true`, the accumulator schema as the thing that
+  holds still, and what running `toolero` inside a container commits you
+  to. The dependency list now distinguishes required packages from
+  suggested ones and names which function needs each, `knitr` for
+  [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+  above all, which was absent from the list while being required by step
+  4 of the first workflow.
 
 #### Deprecated features
 

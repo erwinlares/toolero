@@ -76,16 +76,28 @@ context
 #> [1] "interactive"
 ```
 
-The value of this simple function lies in what it enables downstream.
-Once you know the context, you can resolve inputs, parameters, and paths
-correctly for each one in a single place, using a pattern you write once
-and carry across projects.
+The value of this simple function lies in what it enables downstream. It
+is the kind of thing you reach for directly when the behavior that
+varies is not about data at all – suppressing an interactive progress
+message on a batch run, for instance:
 
 ``` r
 
-context <- detect_execution_context()
+if (detect_execution_context() == "rscript") {
+  options(cli.progress_show_after = Inf)
+}
+```
 
-input_file <- switch(context,
+For the specific, recurring case of resolving an *input file path*
+across the three contexts, `toolero` packages the pattern for you in a
+second function,
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md),
+built directly on top of
+[`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md):
+
+``` r
+
+input_file <- resolve_input_path(
   interactive = "data/input.csv",
   quarto      = params$input_file,
   rscript     = commandArgs(trailingOnly = TRUE)[1]
@@ -95,17 +107,39 @@ input_file <- switch(context,
 This block replaces three separate entry points with one. Whether the
 analysis runs interactively, renders as a report, or executes as a
 scheduled job, the same logic handles it. Recall that this is exactly
-the kind of drift we identified as the root cause of the problem:
-[`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
-gives you one place to manage it.
+the kind of drift we identified as the root cause of the problem: one
+function call gives you one place to manage it, rather than three copies
+of a hand-written [`switch()`](https://rdrr.io/r/base/switch.html) that
+can drift apart from each other, which is what an earlier version of
+this vignette recommended.
+
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+does more than pick the right branch, too. Each branch is an ordinary R
+argument, so only the one matching the current context is ever evaluated
+– the `params` reference above never runs under `Rscript`, where
+`params` does not exist at all. And because the function checks the
+result before handing it back, three failures that used to surface one
+call later as something unhelpful are now caught and explained: a
+missing command line argument, a `params` block that exists without an
+`input_file` key, and a resolved path that simply is not there.
+Arguments can also be omitted entirely – `rscript` then defaults to the
+first command line argument, and `interactive` and `quarto` both fall
+back to the document’s own `params$input_file` – so a document whose
+header already declares `input_file` can call
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+with no arguments at all. See
+[`?resolve_input_path`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+for the full set of failure messages and what each one means.
 
 It may not be unreasonable to assume that many researchers already
 handle this implicitly, either by keeping separate scripts for each
 context or by commenting and uncommenting lines depending on how they
-plan to run the code. Both are workable but both obscure intent. The
-`switch` pattern above makes the branching explicit and readable: anyone
-who opens the file can see immediately that the code was written to run
-in three contexts and understand what each one does.
+plan to run the code. Both are workable but both obscure intent. Naming
+the branches explicitly, as
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+does, makes the branching readable: anyone who opens the file can see
+immediately that the code was written to run in three contexts and
+understand what each one does.
 
 ## A worked example
 
@@ -124,16 +158,14 @@ standalone, or when it is dispatched on a cluster. In other words, it is
 fragile precisely at the moments that matter most.
 
 A more portable version uses
-[`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
 to resolve the path appropriate for each launch method:
 
 ``` r
 
 library(toolero)
 
-context <- detect_execution_context()
-
-input_file <- switch(context,
+input_file <- resolve_input_path(
   interactive = "data/penguins.csv",
   quarto      = params$input_file,
   rscript     = commandArgs(trailingOnly = TRUE)[1]
@@ -149,19 +181,22 @@ be portable, not just locally convenient.
 ## Connecting to `create_qmd()` and `qmd_to_r()`
 
 [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
-fits naturally into the broader `toolero` workflow for literate,
-portable analysis documents.
+and
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+fit naturally into the broader `toolero` workflow for literate, portable
+analysis documents.
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
 scaffolds a new Quarto document from a template that includes
 context-aware input resolution by default – the sample document it
-generates already uses
-[`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
-in the data-loading section. You do not have to add it manually.
+generates already resolves its input with
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+and declares the `input_file` its `params:` block needs. You do not have
+to add either manually.
 
 ``` r
 
 # Scaffold a new document with context-aware input resolution built in
-create_qmd(path = ".", filename = "analysis.qmd")
+create_qmd("analysis.qmd", path = ".")
 ```
 
 Once the analysis is written and verified,
@@ -176,16 +211,19 @@ qmd_to_r(
 )
 ```
 
-The extracted script inherits the `switch` block from the document, so
-it resolves inputs correctly when run with `Rscript` or dispatched by a
-job scheduler. That is the important point: because context detection
-was baked into the document from the beginning, the standalone script is
-already portable. You do not have to adapt it for the command-line
-context after the fact.
+The extracted script inherits the
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+call from the document, so it resolves inputs correctly when run with
+`Rscript` or dispatched by a job scheduler. That is the important point:
+because context detection was baked into the document from the
+beginning, the standalone script is already portable. You do not have to
+adapt it for the command-line context after the fact.
 
 In other words,
 [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
-is the piece that makes the
+and
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+are the pieces that make the
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
 –
 [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
@@ -201,15 +239,19 @@ how it is being run, and that ignorance is a common source of path
 errors, parameter mismatches, and diverging entry points.
 
 The function does one thing – identify the current execution context –
-and returns a value you can act on immediately with a `switch` block.
-The result is code that is explicit about its portability, easy to read,
-and correct across interactive, Quarto, and command-line execution
-without maintaining separate versions.
+and returns a value you can act on immediately. For the specific case of
+finding an input file,
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+builds directly on it, checking the result and explaining what went
+wrong when it cannot resolve a usable path. Together they produce code
+that is explicit about its portability, easy to read, and correct across
+interactive, Quarto, and command-line execution without maintaining
+separate versions.
 
 Used alongside
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
 and
 [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md),
-it closes the loop between a literate analysis document and a runnable
+they close the loop between a literate analysis document and a runnable
 standalone script, making the path from local notebook to computing
 cluster a little more direct.

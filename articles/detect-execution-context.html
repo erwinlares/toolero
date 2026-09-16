@@ -145,13 +145,19 @@ no arguments and produces one output.</p>
 <span><span class="va">context</span></span>
 <span><span class="co">#&gt; [1] "interactive"</span></span></code></pre></div>
 <p>The value of this simple function lies in what it enables downstream.
-Once you know the context, you can resolve inputs, parameters, and paths
-correctly for each one in a single place, using a pattern you write once
-and carry across projects.</p>
+It is the kind of thing you reach for directly when the behavior that
+varies is not about data at all – suppressing an interactive progress
+message on a batch run, for instance:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="../reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="st">"rscript"</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>cli.progress_show_after <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span></span>
+<span><span class="op">}</span></span></code></pre></div>
+<p>For the specific, recurring case of resolving an <em>input file
+path</em> across the three contexts, <code>toolero</code> packages the
+pattern for you in a second function, <code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code>,
+built directly on top of <code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code>:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_input_path.html">resolve_input_path</a></span><span class="op">(</span></span>
 <span>  interactive <span class="op">=</span> <span class="st">"data/input.csv"</span>,</span>
 <span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
 <span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
@@ -159,17 +165,36 @@ and carry across projects.</p>
 <p>This block replaces three separate entry points with one. Whether the
 analysis runs interactively, renders as a report, or executes as a
 scheduled job, the same logic handles it. Recall that this is exactly
-the kind of drift we identified as the root cause of the problem:
-<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> gives you one place to manage
-it.</p>
+the kind of drift we identified as the root cause of the problem: one
+function call gives you one place to manage it, rather than three copies
+of a hand-written <code><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch()</a></code> that can drift apart from each
+other, which is what an earlier version of this vignette
+recommended.</p>
+<p><code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> does more than pick the right
+branch, too. Each branch is an ordinary R argument, so only the one
+matching the current context is ever evaluated – the <code>params</code>
+reference above never runs under <code>Rscript</code>, where
+<code>params</code> does not exist at all. And because the function
+checks the result before handing it back, three failures that used to
+surface one call later as something unhelpful are now caught and
+explained: a missing command line argument, a <code>params</code> block
+that exists without an <code>input_file</code> key, and a resolved path
+that simply is not there. Arguments can also be omitted entirely –
+<code>rscript</code> then defaults to the first command line argument,
+and <code>interactive</code> and <code>quarto</code> both fall back to
+the document’s own <code>params$input_file</code> – so a document whose
+header already declares <code>input_file</code> can call
+<code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> with no arguments at all. See
+<code><a href="../reference/resolve_input_path.html">?resolve_input_path</a></code> for the full set of failure messages
+and what each one means.</p>
 <p>It may not be unreasonable to assume that many researchers already
 handle this implicitly, either by keeping separate scripts for each
 context or by commenting and uncommenting lines depending on how they
-plan to run the code. Both are workable but both obscure intent. The
-<code>switch</code> pattern above makes the branching explicit and
-readable: anyone who opens the file can see immediately that the code
-was written to run in three contexts and understand what each one
-does.</p>
+plan to run the code. Both are workable but both obscure intent. Naming
+the branches explicitly, as <code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> does,
+makes the branching readable: anyone who opens the file can see
+immediately that the code was written to run in three contexts and
+understand what each one does.</p>
 </div>
 <div class="section level2">
 <h2 id="a-worked-example">A worked example<a class="anchor" aria-label="anchor" href="#a-worked-example"></a>
@@ -177,20 +202,18 @@ does.</p>
 <p>Consider a Quarto document that reads a data file, summarizes it, and
 produces a figure. In an early draft of this workflow, the input path
 might be hardcoded:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu">readr</span><span class="fu">::</span><span class="fu"><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">read_csv</a></span><span class="op">(</span><span class="st">"data/penguins.csv"</span><span class="op">)</span></span></code></pre></div>
 <p>This works when rendering from the project root. It fails as soon as
 the document moves to a subdirectory, when the script is extracted and
 run standalone, or when it is dispatched on a cluster. In other words,
 it is fragile precisely at the moments that matter most.</p>
-<p>A more portable version uses <code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code>
-to resolve the path appropriate for each launch method:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<p>A more portable version uses <code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> to
+resolve the path appropriate for each launch method:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">context</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch</a></span><span class="op">(</span><span class="va">context</span>,</span>
+<span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_input_path.html">resolve_input_path</a></span><span class="op">(</span></span>
 <span>  interactive <span class="op">=</span> <span class="st">"data/penguins.csv"</span>,</span>
 <span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
 <span>  rscript     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
@@ -205,34 +228,37 @@ was designed to be portable, not just locally convenient.</p>
 <h2 id="connecting-to-create_qmd-and-qmd_to_r">Connecting to <code>create_qmd()</code> and
 <code>qmd_to_r()</code><a class="anchor" aria-label="anchor" href="#connecting-to-create_qmd-and-qmd_to_r"></a>
 </h2>
-<p><code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> fits naturally into the
-broader <code>toolero</code> workflow for literate, portable analysis
-documents. <code><a href="../reference/create_qmd.html">create_qmd()</a></code> scaffolds a new Quarto document
-from a template that includes context-aware input resolution by default
-– the sample document it generates already uses
-<code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> in the data-loading section. You
-do not have to add it manually.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<p><code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> and
+<code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> fit naturally into the broader
+<code>toolero</code> workflow for literate, portable analysis documents.
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code> scaffolds a new Quarto document from a
+template that includes context-aware input resolution by default – the
+sample document it generates already resolves its input with
+<code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> and declares the
+<code>input_file</code> its <code>params:</code> block needs. You do not
+have to add either manually.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Scaffold a new document with context-aware input resolution built in</span></span>
-<span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"."</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span><span class="st">"analysis.qmd"</span>, path <span class="op">=</span> <span class="st">"."</span><span class="op">)</span></span></code></pre></div>
 <p>Once the analysis is written and verified, <code><a href="../reference/qmd_to_r.html">qmd_to_r()</a></code>
 extracts the R code from the document into a standalone script.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/qmd_to_r.html">qmd_to_r</a></span><span class="op">(</span></span>
 <span>  input  <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
 <span>  output <span class="op">=</span> <span class="st">"scripts/analysis.R"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>The extracted script inherits the <code>switch</code> block from the
-document, so it resolves inputs correctly when run with
+<p>The extracted script inherits the <code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code>
+call from the document, so it resolves inputs correctly when run with
 <code>Rscript</code> or dispatched by a job scheduler. That is the
 important point: because context detection was baked into the document
 from the beginning, the standalone script is already portable. You do
 not have to adapt it for the command-line context after the fact.</p>
-<p>In other words, <code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> is the piece
-that makes the <code><a href="../reference/create_qmd.html">create_qmd()</a></code> – <code><a href="../reference/qmd_to_r.html">qmd_to_r()</a></code>
-pipeline genuinely portable rather than portable in theory. Write the
-analysis once, render it as a report, extract it as a script, and submit
-it to a cluster – the same input-resolution logic works throughout.</p>
+<p>In other words, <code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code> and
+<code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> are the pieces that make the
+<code><a href="../reference/create_qmd.html">create_qmd()</a></code> – <code><a href="../reference/qmd_to_r.html">qmd_to_r()</a></code> pipeline genuinely
+portable rather than portable in theory. Write the analysis once, render
+it as a report, extract it as a script, and submit it to a cluster – the
+same input-resolution logic works throughout.</p>
 </div>
 <div class="section level2">
 <h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
@@ -242,12 +268,15 @@ problem: R code does not know by default how it is being run, and that
 ignorance is a common source of path errors, parameter mismatches, and
 diverging entry points.</p>
 <p>The function does one thing – identify the current execution context
-– and returns a value you can act on immediately with a
-<code>switch</code> block. The result is code that is explicit about its
-portability, easy to read, and correct across interactive, Quarto, and
-command-line execution without maintaining separate versions.</p>
+– and returns a value you can act on immediately. For the specific case
+of finding an input file, <code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> builds
+directly on it, checking the result and explaining what went wrong when
+it cannot resolve a usable path. Together they produce code that is
+explicit about its portability, easy to read, and correct across
+interactive, Quarto, and command-line execution without maintaining
+separate versions.</p>
 <p>Used alongside <code><a href="../reference/create_qmd.html">create_qmd()</a></code> and <code><a href="../reference/qmd_to_r.html">qmd_to_r()</a></code>,
-it closes the loop between a literate analysis document and a runnable
+they close the loop between a literate analysis document and a runnable
 standalone script, making the path from local notebook to computing
 cluster a little more direct.</p>
 </div>
