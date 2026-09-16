@@ -247,10 +247,10 @@ penguins <- read_clean_csv(sample_path)
 tmp <- tempdir()
 write_by_group(penguins, group_col = "species",
                output_dir = tmp, manifest = TRUE)
-#> ✔ Written "Adelie" (152 rows) to /tmp/Rtmp1VmBx5/adelie.csv
-#> ✔ Written "Gentoo" (124 rows) to /tmp/Rtmp1VmBx5/gentoo.csv
-#> ✔ Written "Chinstrap" (68 rows) to /tmp/Rtmp1VmBx5/chinstrap.csv
-#> ✔ Manifest written to /tmp/Rtmp1VmBx5/manifest.csv
+#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpT5WO3x/adelie.csv
+#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpT5WO3x/gentoo.csv
+#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpT5WO3x/chinstrap.csv
+#> ✔ Manifest written to /tmp/RtmpT5WO3x/manifest.csv
 
 # Define an analysis function
 summarise_species <- function(data) {
