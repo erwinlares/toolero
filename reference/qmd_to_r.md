@@ -69,16 +69,16 @@ writeLines(c(
 
 # Default output path: same directory, .R extension
 qmd_to_r(input = qmd)
-#> ✔ Extracted R code from /tmp/RtmpVrEXet/file1a946af4c2cd.qmd to /tmp/RtmpVrEXet/file1a946af4c2cd.R.
+#> ✔ Extracted R code from /tmp/RtmprEtJYE/file19915e4ba0df.qmd to /tmp/RtmprEtJYE/file19915e4ba0df.R.
 
 # Explicit output path. R/ is where toolero expects derived scripts;
 # the directory is created if it does not exist yet.
 out <- tempfile(fileext = ".R")
 qmd_to_r(input = qmd, output = out)
-#> ✔ Extracted R code from /tmp/RtmpVrEXet/file1a946af4c2cd.qmd to /tmp/RtmpVrEXet/file1a947c50b215.R.
+#> ✔ Extracted R code from /tmp/RtmprEtJYE/file19915e4ba0df.qmd to /tmp/RtmprEtJYE/file1991721db0e.R.
 
 # Strip all documentation
 qmd_to_r(input = qmd, output = out, documentation = 0L)
-#> ✔ Extracted R code from /tmp/RtmpVrEXet/file1a946af4c2cd.qmd to /tmp/RtmpVrEXet/file1a947c50b215.R.
+#> ✔ Extracted R code from /tmp/RtmprEtJYE/file19915e4ba0df.qmd to /tmp/RtmprEtJYE/file1991721db0e.R.
 # }
 ```
