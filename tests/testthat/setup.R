@@ -18,16 +18,3 @@
 # and the tests no longer reach into renv's namespace.
 Sys.setenv(RENV_CONFIG_SANDBOX_ENABLED = "FALSE")
 
-writeLines(
-    c("R_LIBS      = ", Sys.getenv("R_LIBS"),
-      "R_LIBS_USER = ", Sys.getenv("R_LIBS_USER"),
-      "R_LIBS_SITE = ", Sys.getenv("R_LIBS_SITE"),
-      ".libPaths():", .libPaths(),
-      "packages:",
-      vapply(c("readr", "vroom", "janitor", "tidyr",
-               "dplyr", "tidyselect", "progress"),
-             function(p) tryCatch(find.package(p),
-                                  error = function(e) paste(p, "NOT FOUND")),
-             character(1))),
-    "covr-probe-ci.txt"
-)
