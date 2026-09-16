@@ -25,7 +25,17 @@ jobs:
           extra-packages: any::covr, any::xml2
           needs: coverage
           cache-version: 2
-
+      - name: Library state in the job
+        run: |
+          cat("R_LIBS_USER =", Sys.getenv("R_LIBS_USER"), "\n")
+          cat("R_LIBS_SITE =", Sys.getenv("R_LIBS_SITE"), "\n")
+          print(.libPaths())
+          for (p in c("readr", "vroom", "janitor", "tidyr",
+                      "dplyr", "tidyselect", "progress")) {
+            cat(p, "->",
+                tryCatch(find.package(p), error = function(e) "NOT FOUND"), "\n")
+          }
+        shell: Rscript {0}
       - name: Test coverage
         run: |
           cov <- covr::package_coverage(
