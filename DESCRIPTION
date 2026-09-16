@@ -28,6 +28,7 @@ Suggests:
     pdftools,
     rmarkdown,
     spelling,
+    quarto,
     testthat (>= 3.2.0)
 Config/testthat/edition: 3
 Imports:
@@ -39,7 +40,6 @@ Imports:
     lifecycle,
     parallelly,
     purrr,
-    quarto,
     readr,
     renv (>= 1.0.0),
     rlang,
