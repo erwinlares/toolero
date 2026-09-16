@@ -97,6 +97,13 @@ time as your project's needs grow.
 `submitr`. The dependencies run in one direction only: each package prepares
 cleanly for the next, but none reaches backward.
 
+
+The three packages also share a single source of truth for the conventions
+that let them hand work to one another -- folder names, file paths,
+terminology -- so a question like "where does the derived script live" has
+one answer that can be cited rather than three that have to be reconciled.
+See [CONVENTIONS.md](CONVENTIONS.md) for the full account.
+
 What the later packages read, rather than guess, is recorded in the project
 manifest. `init_project()` writes `_toolero.yml` at the project root
 describing the folder set it resolved and the naming conventions in force.
