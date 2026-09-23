@@ -11,7 +11,8 @@ save_output(
   ...,
   manifest = TRUE,
   note = NULL,
-  output_dir = "output"
+  output_dir = NULL,
+  config = NULL
 )
 }
 \arguments{
@@ -39,8 +40,17 @@ nothing is recorded.}
 \item{note}{Character or \code{NULL}. An optional free-text note recorded
 alongside this row.}
 
-\item{output_dir}{Character. Directory containing (or to contain) the
-accumulator. Defaults to \code{"output"}.}
+\item{output_dir}{Character or \code{NULL}. Directory containing (or to
+contain) the accumulator. If \code{NULL} (the default) and \code{config} is
+supplied, resolved from the config's \code{output_dir} convention; if
+\code{config} is also \code{NULL}, falls back to \code{"output"}, the family-wide
+convention, unchanged from earlier versions.}
+
+\item{config}{Character or \code{NULL}. Path to a project configuration file
+(typically a project's own \verb{_toolero.yml}, as written by
+\code{\link[=init_project]{init_project()}}). Only consulted when \code{output_dir} is not supplied;
+an explicit \code{output_dir} always wins. Defaults to \code{NULL}, which leaves
+pre-0.5.1 behavior unchanged.}
 }
 \value{
 \code{object}, invisibly. Called for its side effects.
@@ -71,6 +81,15 @@ the file afterward. Timestamps are recorded in UTC with millisecond
 precision so that they sort lexicographically -- \code{\link[=generate_manifest]{generate_manifest()}}
 relies on this when keeping the latest row per \code{file_path}.
 }
+\section{Project conventions}{
+
+\code{config} is entirely opt-in. Nothing changes for a project never
+scaffolded by \code{\link[=init_project]{init_project()}}: pass \code{output_dir} (or rely on the
+\code{"output"} default) exactly as before. When \code{config} is supplied but
+cannot be read, this aborts with the same message \code{\link[=init_project]{init_project()}} gives
+for a bad \code{config}, rather than silently falling back to \code{"output"}.
+}
+
 \examples{
 output_dir <- withr::local_tempdir()
 

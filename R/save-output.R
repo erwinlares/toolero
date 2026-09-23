@@ -182,8 +182,16 @@
 #'   nothing is recorded.
 #' @param note Character or `NULL`. An optional free-text note recorded
 #'   alongside this row.
-#' @param output_dir Character. Directory containing (or to contain) the
-#'   accumulator. Defaults to `"output"`.
+#' @param output_dir Character or `NULL`. Directory containing (or to
+#'   contain) the accumulator. If `NULL` (the default) and `config` is
+#'   supplied, resolved from the config's `output_dir` convention; if
+#'   `config` is also `NULL`, falls back to `"output"`, the family-wide
+#'   convention, unchanged from earlier versions.
+#' @param config Character or `NULL`. Path to a project configuration file
+#'   (typically a project's own `_toolero.yml`, as written by
+#'   [init_project()]). Only consulted when `output_dir` is not supplied;
+#'   an explicit `output_dir` always wins. Defaults to `NULL`, which leaves
+#'   pre-0.5.1 behavior unchanged.
 #'
 #' @return `object`, invisibly. Called for its side effects.
 #'
@@ -203,6 +211,13 @@
 #' the file afterward. Timestamps are recorded in UTC with millisecond
 #' precision so that they sort lexicographically -- [generate_manifest()]
 #' relies on this when keeping the latest row per `file_path`.
+#'
+#' @section Project conventions:
+#' `config` is entirely opt-in. Nothing changes for a project never
+#' scaffolded by [init_project()]: pass `output_dir` (or rely on the
+#' `"output"` default) exactly as before. When `config` is supplied but
+#' cannot be read, this aborts with the same message [init_project()] gives
+#' for a bad `config`, rather than silently falling back to `"output"`.
 #'
 #' @seealso [generate_manifest()]
 #'
@@ -224,10 +239,21 @@ save_output <- function(object,
                         ...,
                         manifest = TRUE,
                         note = NULL,
-                        output_dir = "output") {
+                        output_dir = NULL,
+                        config = NULL) {
 
     if (missing(.f)) {
         cli::cli_abort("{.arg .f} must be supplied.")
+    }
+
+    if (is.null(output_dir) && !is.null(config)) {
+        resolved   <- .read_config_file(config, arg = "config")
+        output_dir <- resolved$conventions$output_dir
+        cli::cli_inform("Using {.field output_dir} ({.val {output_dir}}) from {.path {config}}.")
+    }
+
+    if (is.null(output_dir)) {
+        output_dir <- "output"
     }
 
     f_expr <- deparse(substitute(.f))

@@ -349,26 +349,28 @@ test_that("does not error on a reserved column name when manifest = FALSE", {
     )
 })
 
-# -- sanitize_filename() helper -----------------------------------------------
+# -- .sanitize_filename() helper -----------------------------------------------
+# Renamed from sanitize_filename() in 0.5.1.9000 after confirming against the
+# package's own NAMESPACE that nothing outside write_by_group() calls it.
 
-test_that("sanitize_filename() lowercases input", {
-    expect_equal(sanitize_filename("Adelie"), "adelie")
+test_that(".sanitize_filename() lowercases input", {
+    expect_equal(.sanitize_filename("Adelie"), "adelie")
 })
 
-test_that("sanitize_filename() replaces spaces with dashes", {
-    expect_equal(sanitize_filename("group one"), "group-one")
+test_that(".sanitize_filename() replaces spaces with dashes", {
+    expect_equal(.sanitize_filename("group one"), "group-one")
 })
 
-test_that("sanitize_filename() replaces special characters with dashes", {
-    expect_equal(sanitize_filename("group@one!"), "group-one")
+test_that(".sanitize_filename() replaces special characters with dashes", {
+    expect_equal(.sanitize_filename("group@one!"), "group-one")
 })
 
-test_that("sanitize_filename() collapses consecutive dashes", {
-    expect_equal(sanitize_filename("group  one"), "group-one")
+test_that(".sanitize_filename() collapses consecutive dashes", {
+    expect_equal(.sanitize_filename("group  one"), "group-one")
 })
 
-test_that("sanitize_filename() strips leading and trailing dashes", {
-    expect_equal(sanitize_filename("@group@"), "group")
+test_that(".sanitize_filename() strips leading and trailing dashes", {
+    expect_equal(.sanitize_filename("@group@"), "group")
 })
 
 
@@ -683,4 +685,86 @@ test_that("run_by_group() accepts a manifest carrying per-column fields", {
     )
 
     expect_setequal(result$group_id, c("Adelie", "Gentoo", "Chinstrap"))
+})
+
+# -- config argument (T-I2) ------------------------------------------------------
+
+make_toolero_config <- function(root, split_dir, filename = "_toolero.yml") {
+    config_path <- fs::path(root, filename)
+    yaml::write_yaml(
+        list(
+            schema_version = 1L,
+            folders        = list("data"),
+            conventions    = list(split_dir = split_dir)
+        ),
+        config_path
+    )
+    config_path
+}
+
+test_that("output_dir must be supplied directly when config is also NULL", {
+    data <- make_test_data()
+
+    expect_error(
+        write_by_group(data, group_col = "species"),
+        "must be supplied, or resolvable"
+    )
+})
+
+test_that("config resolves output_dir from the config's split_dir when output_dir is not supplied", {
+    root       <- withr::local_tempdir()
+    split_dir  <- fs::path(root, "jobs")
+    config     <- make_toolero_config(root, split_dir = as.character(split_dir))
+    data       <- make_test_data()
+
+    suppressMessages(
+        write_by_group(data, group_col = "species", config = config)
+    )
+
+    expect_true(fs::file_exists(fs::path(split_dir, "adelie.csv")))
+})
+
+test_that("an explicit output_dir wins over config", {
+    root      <- withr::local_tempdir()
+    split_dir <- fs::path(root, "jobs")
+    explicit  <- fs::path(root, "explicit")
+    config    <- make_toolero_config(root, split_dir = as.character(split_dir))
+    data      <- make_test_data()
+
+    write_by_group(data, group_col = "species", output_dir = explicit, config = config)
+
+    expect_true(fs::file_exists(fs::path(explicit, "adelie.csv")))
+    expect_false(fs::dir_exists(split_dir))
+})
+
+test_that("config reports which convention it used", {
+    root      <- withr::local_tempdir()
+    split_dir <- fs::path(root, "jobs")
+    config    <- make_toolero_config(root, split_dir = as.character(split_dir))
+    data      <- make_test_data()
+
+    expect_message(
+        write_by_group(data, group_col = "species", config = config),
+        "split_dir"
+    )
+})
+
+test_that("an unreadable config aborts rather than silently falling back", {
+    root   <- withr::local_tempdir()
+    config <- fs::path(root, "_toolero.yml")
+    writeLines("not: [valid", config)
+    data <- make_test_data()
+
+    expect_error(
+        write_by_group(data, group_col = "species", config = config)
+    )
+})
+
+test_that("a project never scaffolded by init_project() is unaffected by config's absence", {
+    tmp  <- withr::local_tempdir()
+    data <- make_test_data()
+
+    write_by_group(data, group_col = "species", output_dir = tmp)
+
+    expect_true(fs::file_exists(fs::path(tmp, "adelie.csv")))
 })

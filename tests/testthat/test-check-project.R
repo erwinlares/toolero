@@ -880,3 +880,165 @@ test_that(".project_has_sources() finds a source at the project root", {
 
     expect_true(.project_has_sources(project, "data"))
 })
+
+# -- stale purled scripts (T-G2) -------------------------------------------------
+
+write_purled_qmd <- function(project, rel_path = "analysis.qmd", purl = TRUE) {
+    qmd_path <- fs::path(project, rel_path)
+    fs::dir_create(fs::path_dir(qmd_path))
+    writeLines(c(
+        "---",
+        "title: Untitled",
+        paste0("purl: ", if (isTRUE(purl)) "true" else "false"),
+        "---",
+        "",
+        "Body."
+    ), qmd_path)
+    qmd_path
+}
+
+write_bare_qmd <- function(project, rel_path = "plain.qmd") {
+    qmd_path <- fs::path(project, rel_path)
+    fs::dir_create(fs::path_dir(qmd_path))
+    writeLines(c("---", "title: Untitled", "---", "", "Body."), qmd_path)
+    qmd_path
+}
+
+# Sets path's modification time to one second after reference's, so ordering
+# is deterministic regardless of how fast the two writes actually happened.
+touch_after <- function(path, reference) {
+    ref_time <- fs::file_info(reference)$modification_time
+    Sys.setFileTime(path, ref_time + 1)
+}
+
+test_that("a .qmd with no YAML header produces no purl row", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    writeLines("plain text, no header", fs::path(project, "plain.qmd"))
+
+    result <- check_project(path = project)
+
+    expect_false(any(grepl("^purl: ", result$check)))
+})
+
+test_that("a .qmd with a header but no purl key produces no purl row", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_bare_qmd(project)
+
+    result <- check_project(path = project)
+
+    expect_false(any(grepl("^purl: ", result$check)))
+})
+
+test_that("a .qmd stamped purl: false produces no purl row", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_purled_qmd(project, purl = FALSE)
+
+    result <- check_project(path = project)
+
+    expect_false(any(grepl("^purl: ", result$check)))
+})
+
+test_that("warns when the derived script does not exist yet", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_purled_qmd(project, "analysis.qmd")
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == "purl: analysis.qmd", ]
+    expect_equal(nrow(row), 1L)
+    expect_equal(row$status, "warn")
+    expect_match(row$message, "does not exist yet")
+})
+
+test_that("warns when the derived script is older than the .qmd", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    fs::dir_create(fs::path(project, "R"))
+    r_path <- fs::path(project, "R", "analysis.R")
+    writeLines("1 + 1", r_path)
+    qmd_path <- write_purled_qmd(project, "analysis.qmd")
+    touch_after(qmd_path, r_path)
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == "purl: analysis.qmd", ]
+    expect_equal(row$status, "warn")
+    expect_match(row$message, "older than")
+})
+
+test_that("passes when the derived script is up to date", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    qmd_path <- write_purled_qmd(project, "analysis.qmd")
+    fs::dir_create(fs::path(project, "R"))
+    r_path <- fs::path(project, "R", "analysis.R")
+    writeLines("1 + 1", r_path)
+    touch_after(r_path, qmd_path)
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == "purl: analysis.qmd", ]
+    expect_equal(row$status, "pass")
+    expect_match(row$message, "up to date")
+})
+
+test_that("a purled .qmd nested in a declared folder maps to R/ at the same relative path", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    rel_qmd  <- fs::path("reports", "monthly.qmd")
+    qmd_path <- write_purled_qmd(project, rel_qmd)
+    r_path   <- fs::path(project, "R", "reports", "monthly.R")
+    fs::dir_create(fs::path_dir(r_path))
+    writeLines("1 + 1", r_path)
+    touch_after(r_path, qmd_path)
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == paste0("purl: ", rel_qmd), ]
+    expect_equal(nrow(row), 1L)
+    expect_equal(row$status, "pass")
+})
+
+test_that("stale-purl scanning does not descend into renv/library", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root, folders = "data")
+
+    fs::dir_create(fs::path(project, "renv", "library", "somepkg"))
+    write_purled_qmd(fs::path(project, "renv", "library", "somepkg"), "vendored.qmd")
+
+    result <- check_project(path = project)
+
+    expect_false(any(grepl("^purl: ", result$check)))
+})
+
+# -- .find_purled_qmds() and .purl_output_path() helpers ------------------------
+
+test_that(".find_purled_qmds() returns only documents stamped purl: true", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    write_purled_qmd(project, "yes.qmd", purl = TRUE)
+    write_purled_qmd(project, "no.qmd",  purl = FALSE)
+    write_bare_qmd(project, "plain.qmd")
+
+    found <- .find_purled_qmds(project, .default_folders())
+
+    expect_equal(fs::path_file(found), "yes.qmd")
+})
+
+test_that(".purl_output_path() mirrors the .qmd's own relative path under R/", {
+    project <- fs::path("tmp", "some-project")
+    qmd     <- fs::path(project, "posts", "2026-08-04", "index.qmd")
+
+    expect_equal(
+        .purl_output_path(qmd, project),
+        fs::path(project, "R", "posts", "2026-08-04", "index.R")
+    )
+})

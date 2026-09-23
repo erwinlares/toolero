@@ -1,5 +1,51 @@
 # R/generate-manifest.R
 
+#' Read the current git commit, if any
+#'
+#' Internal helper used by [generate_manifest()] to record which version of
+#' the project's code was checked out when the manifest was written. Best
+#' effort and silent: returns `NULL` whenever `git` is not installed, `path`
+#' is not inside a git repository, or the repository has no commits yet,
+#' rather than aborting a manifest write over a fact that is genuinely
+#' optional.
+#'
+#' Shells out to `git rev-parse HEAD` rather than depending on a git R
+#' package, since this is the only place in toolero that needs git at all.
+#'
+#' @param path Character. Directory to check, passed to `git -C`.
+#'
+#' @return A single character string (the full 40-character commit SHA), or
+#'   `NULL`.
+#'
+#' @keywords internal
+.git_commit <- function(path = ".") {
+    if (nzchar(Sys.which("git")) == FALSE) {
+        return(NULL)
+    }
+
+    result <- tryCatch(
+        system2(
+            "git",
+            c("-C", shQuote(path), "rev-parse", "HEAD"),
+            stdout = TRUE,
+            stderr = FALSE
+        ),
+        error = function(cnd) NULL,
+        warning = function(cnd) NULL
+    )
+
+    status <- attr(result, "status")
+    if (!is.null(status) && status != 0L) {
+        return(NULL)
+    }
+
+    if (is.null(result) || length(result) != 1L || !nzchar(result)) {
+        return(NULL)
+    }
+
+    result
+}
+
 #' Read the project accumulator
 #'
 #' Internal helper used by [generate_manifest()] to read
@@ -120,12 +166,21 @@
 #' and writes `project-manifest.json` describing every artifact the project
 #' produced.
 #'
-#' @param output_dir Character. Directory containing `accumulator.csv` and
-#'   receiving the manifest. Defaults to `"output"`.
+#' @param output_dir Character or `NULL`. Directory containing
+#'   `accumulator.csv` and receiving the manifest. If `NULL` (the default)
+#'   and `config` is supplied, resolved from the config's `output_dir`
+#'   convention; if `config` is also `NULL`, falls back to `"output"`,
+#'   unchanged from earlier versions.
 #' @param filename Character. Name of the manifest file. Defaults to
 #'   `"project-manifest.json"`.
 #' @param overwrite Logical. When `FALSE` (default), an existing manifest
 #'   at that path is an error rather than being replaced.
+#' @param config Character or `NULL`. Path to a project configuration file
+#'   (typically a project's own `_toolero.yml`, as written by
+#'   [init_project()]). Only consulted when `output_dir` is not supplied;
+#'   an explicit `output_dir` always wins. Defaults to `NULL`.
+#' @param git_root Character. Directory to check for a git commit to record
+#'   in the manifest (see the Provenance section below). Defaults to `"."`.
 #'
 #' @return The path to the manifest, invisibly.
 #'
@@ -152,6 +207,24 @@
 #' holding no rows is different -- the file exists, so the machinery was
 #' wired up -- and produces an empty manifest with a warning.
 #'
+#' @section Provenance:
+#' The manifest also records `commit`: the git commit checked out in
+#' `git_root` at the moment the manifest was written, or `null` when the
+#' project is not a git repository, has no commits yet, or `git` is not
+#' installed. This is deliberately the one piece of "which version of the
+#' code produced this" that package versions cannot supply -- `renv.lock`
+#' already answers which package versions were in play, but nothing else
+#' records which revision of the analysis script itself ran. Like
+#' `execution_context` and `generated_at`, it describes the run as a whole
+#' and is not repeated per artifact.
+#'
+#' `config` is entirely opt-in and affects `output_dir` only, not `commit`.
+#' Nothing changes for a project never scaffolded by [init_project()]: pass
+#' `output_dir` (or rely on the `"output"` default) exactly as before. When
+#' `config` is supplied but cannot be read, this aborts with the same
+#' message [init_project()] gives for a bad `config`, rather than silently
+#' falling back to `"output"`.
+#'
 #' @section The project manifest and the job manifest:
 #' This is the *project manifest*: a record of outputs from a computation
 #' that has already happened. It is distinct from the *job manifest*
@@ -176,9 +249,21 @@
 #' generate_manifest(output_dir = output_dir)
 #'
 #' @export
-generate_manifest <- function(output_dir = "output",
+generate_manifest <- function(output_dir = NULL,
                               filename = "project-manifest.json",
-                              overwrite = FALSE) {
+                              overwrite = FALSE,
+                              config = NULL,
+                              git_root = ".") {
+
+    if (is.null(output_dir) && !is.null(config)) {
+        resolved   <- .read_config_file(config, arg = "config")
+        output_dir <- resolved$conventions$output_dir
+        cli::cli_inform("Using {.field output_dir} ({.val {output_dir}}) from {.path {config}}.")
+    }
+
+    if (is.null(output_dir)) {
+        output_dir <- "output"
+    }
 
     if (!rlang::is_string(output_dir)) {
         cli::cli_abort(c(
@@ -220,6 +305,7 @@ generate_manifest <- function(output_dir = "output",
     manifest <- list(
         execution_context = detect_execution_context(),
         generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS3Z", tz = "UTC"),
+        commit = .git_commit(git_root),
         artifacts = artifacts
     )
 

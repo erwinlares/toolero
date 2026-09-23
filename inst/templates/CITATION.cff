@@ -1,0 +1,15 @@
+# This CITATION.cff file was generated with toolero::generate_citation().
+# Visit https://citation-file-format.github.io/ for guidance on the format.
+
+cff-version: 1.2.0
+message: "If you use this project, please cite it as below."
+title: "Your Project Title"
+authors:
+{{authors}}
+date-released: "{{date_released}}"
+
+# Uncomment and fill in as they become true of this project:
+# version: "1.0.0"
+# repository-code: "https://github.com/your-username/your-repo"
+# url: "https://your-project-website.example"
+# license: "MIT"

@@ -10,8 +10,9 @@
 #'   the combinations of values actually present in the data (not the full
 #'   cross-product of possible values).
 #' @param output_dir A string or `NULL`. Path to the directory where output
-#'   files will be written. Created if it does not exist. If `NULL`, the
-#'   user must supply a path explicitly.
+#'   files will be written. Created if it does not exist. If `NULL`, resolved
+#'   from `config`'s `split_dir` convention when `config` is supplied;
+#'   otherwise the user must supply a path explicitly.
 #' @param manifest A logical. Whether to write a `manifest.csv` file to
 #'   `output_dir` listing the output files, group values, and row counts.
 #'   Defaults to `FALSE`.
@@ -25,8 +26,16 @@
 #'   a single `-`. `prefix = "data"` grouping on one column turns `a.csv` into
 #'   `data-a.csv`; grouping on two turns `a--female.csv` into
 #'   `data-a--female.csv`. Defaults to `NULL`, which leaves filenames
-#'   unchanged. Placed last in the signature so that adding it does not shift
-#'   any existing positional argument.
+#'   unchanged.
+#' @param config A string or `NULL`. Path to a project configuration file
+#'   (typically a project's own `_toolero.yml`, as written by
+#'   [init_project()]). When supplied, and `output_dir` is not, `output_dir`
+#'   defaults to the config's `split_dir` convention. An explicit `output_dir`
+#'   always wins over `config`; `config` only fills in what you didn't
+#'   supply. Defaults to `NULL`, which leaves today's behavior unchanged:
+#'   `output_dir` must be supplied directly, config or no config. Placed last
+#'   in the signature, along with `prefix`, so that adding either does not
+#'   shift any existing positional argument.
 #'
 #' @return Invisibly returns `output_dir`.
 #'
@@ -96,9 +105,18 @@
 #' semantically different groups collapse into one file. Rather than merge
 #' them, `write_by_group()` aborts and names the column.
 #'
-#' Note: `output_dir` has no default value. Always supply an explicit path
-#' to avoid writing files to unexpected locations. Use `tempdir()` for
-#' temporary output during testing or exploration.
+#' Note: `output_dir` has no default value of its own. Supply it directly, or
+#' supply `config` and let it resolve from the project's `split_dir`
+#' convention. Use `tempdir()` for temporary output during testing or
+#' exploration.
+#'
+#' @section Project conventions:
+#' `config` is entirely opt-in. A project never scaffolded by [init_project()]
+#' behaves exactly as before: pass `output_dir` and nothing about `config`
+#' changes. When `config` is supplied but the file cannot be read, this
+#' aborts with the same message [init_project()] gives for a bad `config`,
+#' rather than silently falling back to a built-in default -- a config you
+#' asked for and didn't get should never look identical to not asking.
 #'
 #' @seealso [run_by_group()], the apply half of this pair.
 #'
@@ -129,6 +147,9 @@
 #' )
 #' write_by_group(data2, group_col = c("species", "sex"),
 #'                output_dir = tempdir(), manifest = TRUE)
+#'
+#' # Let a project's own _toolero.yml supply output_dir via split_dir
+#' write_by_group(data, group_col = "species", config = "_toolero.yml")
 #' }
 write_by_group <- function(
         data,
@@ -136,13 +157,20 @@ write_by_group <- function(
         output_dir = NULL,
         manifest = FALSE,
         drop_na = TRUE,
-        prefix = NULL) {
+        prefix = NULL,
+        config = NULL) {
 
-    # -- 0. Validate output_dir -------------------------------------------------
+    # -- 0. Resolve output_dir, from config's split_dir if not supplied ---------
+    if (is.null(output_dir) && !is.null(config)) {
+        resolved     <- .read_config_file(config, arg = "config")
+        output_dir   <- resolved$conventions$split_dir
+        cli::cli_inform("Using {.field split_dir} ({.val {output_dir}}) from {.path {config}}.")
+    }
+
     if (is.null(output_dir)) {
         cli::cli_abort(
-            "{.arg output_dir} must be supplied. Use {.code tempdir()} for temporary
-       output or provide an explicit path."
+            "{.arg output_dir} must be supplied, or resolvable from {.arg config}.
+       Use {.code tempdir()} for temporary output or provide an explicit path."
         )
     }
 
@@ -205,7 +233,7 @@ write_by_group <- function(
             )
         }
 
-        prefix_key <- sanitize_filename(prefix)
+        prefix_key <- .sanitize_filename(prefix)
 
         if (!nzchar(prefix_key)) {
             cli::cli_abort(c(
@@ -266,7 +294,7 @@ write_by_group <- function(
     })
     names(raw_cols) <- group_col
 
-    sanitized_cols <- lapply(raw_cols, sanitize_filename)
+    sanitized_cols <- lapply(raw_cols, .sanitize_filename)
 
     composite_sanitized <- do.call(paste, c(sanitized_cols, sep = "--"))
     composite_raw        <- do.call(paste, c(raw_cols, sep = " | "))
@@ -342,12 +370,16 @@ write_by_group <- function(
 #' That leaves `--` free to mark the boundary between grouping columns
 #' without any possibility of colliding with content.
 #'
+#' Not exported. Confirmed as internal-only against the package's own
+#' `NAMESPACE` (0.5.1.9000) rather than assumed: nothing outside
+#' [write_by_group()], the only place that calls it, needs this directly.
+#'
 #' @param x A character vector.
 #'
 #' @return A character vector of the same length.
 #'
 #' @keywords internal
-sanitize_filename <- function(x) {
+.sanitize_filename <- function(x) {
     x |>
         tolower() |>
         gsub(pattern = "[^a-z0-9]+", replacement = "-", x = _) |>

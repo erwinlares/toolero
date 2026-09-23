@@ -1,0 +1,82 @@
+# profile.yml
+#
+# Personal defaults for create_qmd(header_defaults = ). Fill in the values
+# below once, keep this file somewhere outside any one project (many
+# people keep it in their home directory), and point every new document at
+# it instead of retyping the same author block and formatting preferences
+# each time.
+#
+# Nothing here is required. Delete a key you don't want pre-filled and
+# create_qmd() leaves the template's own placeholder in its place. You can
+# also keep more than one of these -- a personal one and a work one, say --
+# under different filenames, and choose which to use per call.
+
+## Personal information -------------------------------------------------
+#
+# This becomes the document's author block. Standard Quarto fields only:
+# name, affiliation, orcid, email, and url all render in the default HTML
+# title block (orcid as the small green icon next to your name, url as a
+# link on it). A field left blank here is a field left blank in every
+# document that uses this file, so it's worth getting these right once.
+#
+# Deliberately not included: a phone number or mailing address. Documents
+# built from this file are the kind that tend to get rendered to HTML and
+# published, and neither belongs in something public. If you want a social
+# media handle attached to your name, Quarto's default title block won't
+# render it without a customized template, but it's harmless to add as an
+# extra field under author if you've set one up:
+#   mastodon: "@you@example.social"
+
+author:
+  - name: "Your Name"
+    affiliation: "Your Department, Your Institution"
+    orcid: "0000-0000-0000-0000"
+    email: "you@example.edu"
+    url: "https://your-website.example"
+
+## Document settings ------------------------------------------------------
+#
+# These are about how you like a document to look and behave, not about
+# who you are. Everything here is a Quarto document option; see
+# https://quarto.org/docs/reference/formats/html.html for the full list if
+# you want to add more.
+
+# today / last-modified are Quarto keywords, not literal dates -- Quarto
+# fills them in at render time.
+date: today
+date-modified: last-modified
+
+# Tags you commonly use to classify your own documents. Safe to leave as a
+# short generic list and override per document, or to delete this key
+# entirely if you'd rather set categories fresh each time.
+categories:
+  - "your-category"
+
+# The language most of your documents are written in. Override per
+# document (lang: es, say) for the occasional one that isn't.
+lang: "en"
+
+# Quiet, reproducible rendering: suppress package startup noise in the
+# rendered output, and freeze execution results so re-rendering an old
+# document doesn't silently pick up a different package version's output.
+execute:
+  warning: false
+  message: false
+  freeze: auto
+
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-title: "Contents"
+    number-sections: true
+    # Keeps CSS, JS and images inside the .html, so the rendered file
+    # travels on its own without a _files/ sidecar directory.
+    embed-resources: true
+
+# Uncomment and fill in if you cite sources in these documents regularly:
+# bibliography: "references.bib"
+# csl: "apa.csl"
+
+# Uncomment for a specific date format instead of Quarto's own default:
+# date-format: "long"

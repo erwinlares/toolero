@@ -94,6 +94,19 @@ because there is nothing yet to discover -- so the pairing is what makes
 the observation worth printing.
 }
 
+\section{Stale purled scripts}{
+
+Every \code{.qmd} under \code{path} whose header declares \code{purl: true} (see
+\code{\link[=create_qmd]{create_qmd()}}'s \code{use_purl} argument) gets its own row, comparing it
+against the \code{.R} script \code{R/purl.R} is expected to have derived from it.
+Missing entirely, or older than the \code{.qmd} it was purled from, is
+reported as \code{"warn"}: the \code{.qmd} is the source of truth, so an \verb{R/}
+script older than the document it came from means an edit was made and
+not yet re-rendered, and a container or cluster job that bakes in the
+\code{.R} file would run the old analysis without any error to say so.
+Documents never opted into purl produce no row -- nothing to check.
+}
+
 \examples{
 # Audit the current working directory
 \donttest{

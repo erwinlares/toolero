@@ -58,12 +58,12 @@ test_that("respects custom filename argument", {
   expect_false(fs::file_exists(fs::path(tmp, "analysis.qmd")))
 })
 
-test_that("pre-populates YAML when yaml_data is provided", {
+test_that("pre-populates YAML when header_defaults is provided", {
   tmp <- withr::local_tempdir()
   yaml_file <- withr::local_tempfile(fileext = ".yml")
   make_yaml_config(yaml_file)
 
-  create_qmd(path = tmp, filename = "analysis.qmd", yaml_data = yaml_file)
+  create_qmd(path = tmp, filename = "analysis.qmd", header_defaults = yaml_file)
 
   qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
   expect_true(grepl("Erwin Lares", qmd_content, fixed = TRUE))
@@ -349,9 +349,9 @@ test_that("warns when custom style directory does not exist", {
   )
 })
 
-# -- use_style with yaml_data override ------------------------------------------
+# -- use_style with header_defaults override -------------------------------------
 
-test_that("yaml_data overrides auto-injected style values", {
+test_that("header_defaults overrides auto-injected style values", {
   tmp <- withr::local_tempdir()
   make_style_dir(tmp)
 
@@ -361,11 +361,33 @@ test_that("yaml_data overrides auto-injected style values", {
 
   create_qmd(
     path = tmp, filename = "analysis.qmd",
-    include_examples = FALSE, use_style = TRUE, yaml_data = yaml_file
+    include_examples = FALSE, use_style = TRUE, header_defaults = yaml_file
   )
 
   qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
   expect_true(grepl("override.css", qmd_content, fixed = TRUE))
+})
+
+test_that("header_defaults preserves use_style's other injected keys when overriding one sibling (T-G6)", {
+  tmp <- withr::local_tempdir()
+  make_style_dir(tmp)
+
+  yaml_file <- withr::local_tempfile(fileext = ".yml")
+  # Overrides only css: the header_file/footer_file keys use_style injected
+  # into the same format: html: mapping are not mentioned here at all, and
+  # should survive rather than being discarded along with the rest of the
+  # block css lives in.
+  readr::write_file("format:\n  html:\n    css: custom/override.css\n", yaml_file)
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_style = TRUE, header_defaults = yaml_file
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("override.css", qmd_content, fixed = TRUE))
+  expect_true(grepl("include-before-body", qmd_content, fixed = TRUE))
+  expect_true(grepl("include-after-body", qmd_content, fixed = TRUE))
 })
 
 # -- use_purl: default and header stamping -------------------------------------
@@ -713,11 +735,79 @@ test_that("errors informatively when path does not exist", {
   )
 })
 
-test_that("errors informatively when yaml_data path does not exist", {
+test_that("errors informatively when header_defaults path does not exist", {
   tmp <- withr::local_tempdir()
   expect_error(
     create_qmd(path = tmp, filename = "analysis.qmd",
-               yaml_data = "/no/such/file.yml"),
+               header_defaults = "/no/such/file.yml"),
+    "does not exist"
+  )
+})
+
+# -- yaml_data -> header_defaults rename (deprecation) ---------------------------
+
+test_that("yaml_data still works, via the deprecation shim", {
+  tmp <- withr::local_tempdir()
+  yaml_file <- withr::local_tempfile(fileext = ".yml")
+  make_yaml_config(yaml_file)
+
+  suppressWarnings(
+    create_qmd(path = tmp, filename = "analysis.qmd", yaml_data = yaml_file)
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("Erwin Lares", qmd_content, fixed = TRUE))
+})
+
+test_that("supplying yaml_data emits a lifecycle deprecation warning", {
+  tmp <- withr::local_tempdir()
+  yaml_file <- withr::local_tempfile(fileext = ".yml")
+  make_yaml_config(yaml_file)
+
+  expect_warning(
+    create_qmd(path = tmp, filename = "analysis.qmd", yaml_data = yaml_file),
+    class = "lifecycle_warning_deprecated"
+  )
+})
+
+test_that("supplying header_defaults alone does not warn", {
+  tmp <- withr::local_tempdir()
+  yaml_file <- withr::local_tempfile(fileext = ".yml")
+  make_yaml_config(yaml_file)
+
+  expect_no_warning(
+    create_qmd(path = tmp, filename = "analysis.qmd", header_defaults = yaml_file)
+  )
+})
+
+test_that("header_defaults takes precedence when both header_defaults and yaml_data are supplied", {
+  tmp <- withr::local_tempdir()
+
+  header_defaults_file <- withr::local_tempfile(fileext = ".yml")
+  readr::write_file("title: 'From header_defaults'\n", header_defaults_file)
+
+  yaml_data_file <- withr::local_tempfile(fileext = ".yml")
+  readr::write_file("title: 'From yaml_data'\n", yaml_data_file)
+
+  suppressWarnings(
+    create_qmd(
+      path = tmp, filename = "analysis.qmd",
+      header_defaults = header_defaults_file, yaml_data = yaml_data_file
+    )
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("From header_defaults", qmd_content, fixed = TRUE))
+  expect_false(grepl("From yaml_data", qmd_content, fixed = TRUE))
+})
+
+test_that("errors informatively when yaml_data (deprecated) path does not exist", {
+  tmp <- withr::local_tempdir()
+  expect_error(
+    suppressWarnings(
+      create_qmd(path = tmp, filename = "analysis.qmd",
+                 yaml_data = "/no/such/file.yml")
+    ),
     "does not exist"
   )
 })
@@ -1156,22 +1246,210 @@ test_that("the example template sets embed-resources: true", {
   expect_false(grepl("embed-resources: false", qmd_content, fixed = TRUE))
 })
 
-# -- Logical values supplied through yaml_data ---------------------------------
+# -- Logical values supplied through header_defaults ----------------------------
 # The older .substitute_yaml() test covering this passes trivially now that
 # untouched keys are never reserialized, so this exercises the handler on a
 # value the user actually supplies.
 
-test_that("a logical supplied through yaml_data is written as true, not yes", {
+test_that("a logical supplied through header_defaults is written as true, not yes", {
   tmp <- withr::local_tempdir()
   yaml_file <- withr::local_tempfile(fileext = ".yml")
   readr::write_file("draft: true\n", yaml_file)
 
   create_qmd(
     path = tmp, filename = "analysis.qmd",
-    include_examples = FALSE, yaml_data = yaml_file
+    include_examples = FALSE, header_defaults = yaml_file
   )
 
   qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
   expect_true(grepl("draft: true", qmd_content, fixed = TRUE))
   expect_false(grepl("draft: yes", qmd_content, fixed = TRUE))
+})
+
+# -- T-G6: deep merge of mappings vs. wholesale replacement of sequences --------
+# .substitute_yaml() used to build one .set_yaml_key() entry per TOP-LEVEL
+# user-YAML key, so a nested mapping like format: html: ... was replaced as a
+# single block -- silently discarding any sibling key (css from use_style,
+# say) the header_defaults file didn't mention. These tests cover the fix:
+# a mapping is now flattened and merged key by key; a sequence (author:,
+# categories:) is still replaced as a whole, since merging a list element by
+# element against the template's own list isn't a meaningful operation.
+
+test_that("substitute_yaml() merges a nested mapping, preserving a sibling key not mentioned", {
+  template <- paste0(
+    "---\n",
+    "format:\n",
+    "  html:\n",
+    "    toc: true\n",
+    "    css: assets/styles.css\n",
+    "---\n\n",
+    "Body."
+  )
+  user_yaml <- list(format = list(html = list(toc = FALSE)))
+
+  result <- .substitute_yaml(template, user_yaml)
+
+  expect_true(grepl("toc: false", result, fixed = TRUE))
+  expect_true(grepl("css: assets/styles.css", result, fixed = TRUE))
+})
+
+test_that("substitute_yaml() descends more than one level of nested mappings", {
+  template <- paste0(
+    "---\n",
+    "format:\n",
+    "  html:\n",
+    "    toc: true\n",
+    "    number-sections: true\n",
+    "---\n\n",
+    "Body."
+  )
+  user_yaml <- list(format = list(html = list(`number-sections` = FALSE)))
+
+  result <- .substitute_yaml(template, user_yaml)
+
+  expect_true(grepl("number-sections: false", result, fixed = TRUE))
+  expect_true(grepl("toc: true", result, fixed = TRUE))
+})
+
+test_that("substitute_yaml() replaces a sequence wholesale rather than merging element by element", {
+  template <- paste0(
+    "---\n",
+    "categories:\n",
+    "  - alpha\n",
+    "  - beta\n",
+    "---\n\n",
+    "Body."
+  )
+  user_yaml <- list(categories = list("gamma"))
+
+  result <- .substitute_yaml(template, user_yaml)
+
+  expect_true(grepl("gamma", result, fixed = TRUE))
+  expect_false(grepl("alpha", result, fixed = TRUE))
+  expect_false(grepl("beta", result, fixed = TRUE))
+})
+
+test_that(".is_yaml_mapping() distinguishes a named mapping from a sequence", {
+  expect_true(.is_yaml_mapping(list(a = 1, b = 2)))
+  expect_false(.is_yaml_mapping(list(1, 2)))
+  expect_false(.is_yaml_mapping(list()))
+  expect_false(.is_yaml_mapping("not a list"))
+})
+
+test_that(".flatten_yaml_keys() produces one leaf entry per mapping key", {
+  entries <- .flatten_yaml_keys(list(format = list(html = list(toc = TRUE))))
+
+  expect_length(entries, 1L)
+  expect_equal(entries[[1L]]$path, c("format", "html", "toc"))
+  expect_true(entries[[1L]]$value)
+})
+
+test_that(".flatten_yaml_keys() treats a sequence as a single leaf value, not a mapping to descend into", {
+  entries <- .flatten_yaml_keys(list(categories = list("a", "b")))
+
+  expect_length(entries, 1L)
+  expect_equal(entries[[1L]]$path, "categories")
+  expect_equal(entries[[1L]]$value, list("a", "b"))
+})
+
+test_that("create_qmd() preserves use_style's other keys when header_defaults sets a sibling format key", {
+  tmp <- withr::local_tempdir()
+  make_style_dir(tmp)
+
+  yaml_file <- withr::local_tempfile(fileext = ".yml")
+  readr::write_file("format:\n  html:\n    toc: false\n", yaml_file)
+
+  create_qmd(
+    path = tmp, filename = "analysis.qmd",
+    include_examples = FALSE, use_style = TRUE, header_defaults = yaml_file
+  )
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl("styles.css", qmd_content, fixed = TRUE))
+  expect_true(grepl("toc: false", qmd_content, fixed = TRUE))
+})
+
+# -- T-I3: assets/logo.png follows the project's declared folders ---------------
+# create_qmd(include_examples = TRUE) used to always copy the placeholder
+# logo into assets/, even for a project scaffolded with
+# init_project(branding = "none"), which declares no assets/ folder at all.
+
+make_project_manifest <- function(path, folders) {
+  yaml::write_yaml(
+    list(
+      schema_version = 1L,
+      folders        = as.list(folders),
+      conventions    = list(output_dir = "output", script_dir = "R", split_dir = "data/jobs")
+    ),
+    fs::path(path, "_toolero.yml")
+  )
+}
+
+test_that("skips assets/logo.png when the project's _toolero.yml does not declare assets", {
+  tmp <- withr::local_tempdir()
+  make_project_manifest(tmp, folders = c("data-raw", "data", "R"))
+
+  suppressMessages(
+    create_qmd(path = tmp, filename = "analysis.qmd", include_examples = TRUE)
+  )
+
+  expect_false(fs::file_exists(fs::path(tmp, "assets", "logo.png")))
+})
+
+test_that("skipping the logo does not create an empty assets/ directory", {
+  tmp <- withr::local_tempdir()
+  make_project_manifest(tmp, folders = c("data-raw", "data"))
+
+  suppressMessages(
+    create_qmd(path = tmp, filename = "analysis.qmd", include_examples = TRUE)
+  )
+
+  expect_false(fs::dir_exists(fs::path(tmp, "assets")))
+})
+
+test_that("still copies data-raw/sample.csv when assets are declared off", {
+  tmp <- withr::local_tempdir()
+  make_project_manifest(tmp, folders = c("data-raw", "data", "R"))
+
+  suppressMessages(
+    create_qmd(path = tmp, filename = "analysis.qmd", include_examples = TRUE)
+  )
+
+  expect_true(fs::file_exists(fs::path(tmp, "data-raw", "sample.csv")))
+})
+
+test_that("writes assets/logo.png when the project's _toolero.yml declares assets", {
+  tmp <- withr::local_tempdir()
+  make_project_manifest(tmp, folders = c("data-raw", "data", "R", "assets"))
+
+  create_qmd(path = tmp, filename = "analysis.qmd", include_examples = TRUE)
+
+  expect_true(fs::file_exists(fs::path(tmp, "assets", "logo.png")))
+})
+
+test_that("writes assets/logo.png when there is no _toolero.yml at all", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(path = tmp, filename = "analysis.qmd", include_examples = TRUE)
+
+  expect_true(fs::file_exists(fs::path(tmp, "assets", "logo.png")))
+})
+
+test_that("a _toolero.yml with no folders key at all is treated like no manifest", {
+  tmp <- withr::local_tempdir()
+  yaml::write_yaml(list(schema_version = 1L), fs::path(tmp, "_toolero.yml"))
+
+  create_qmd(path = tmp, filename = "analysis.qmd", include_examples = TRUE)
+
+  expect_true(fs::file_exists(fs::path(tmp, "assets", "logo.png")))
+})
+
+test_that("reports why the logo was skipped", {
+  tmp <- withr::local_tempdir()
+  make_project_manifest(tmp, folders = c("data-raw", "data"))
+
+  expect_message(
+    create_qmd(path = tmp, filename = "analysis.qmd", include_examples = TRUE),
+    "does not declare"
+  )
 })

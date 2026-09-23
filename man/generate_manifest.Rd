@@ -5,20 +5,33 @@
 \title{Write the project manifest}
 \usage{
 generate_manifest(
-  output_dir = "output",
+  output_dir = NULL,
   filename = "project-manifest.json",
-  overwrite = FALSE
+  overwrite = FALSE,
+  config = NULL,
+  git_root = "."
 )
 }
 \arguments{
-\item{output_dir}{Character. Directory containing \code{accumulator.csv} and
-receiving the manifest. Defaults to \code{"output"}.}
+\item{output_dir}{Character or \code{NULL}. Directory containing
+\code{accumulator.csv} and receiving the manifest. If \code{NULL} (the default)
+and \code{config} is supplied, resolved from the config's \code{output_dir}
+convention; if \code{config} is also \code{NULL}, falls back to \code{"output"},
+unchanged from earlier versions.}
 
 \item{filename}{Character. Name of the manifest file. Defaults to
 \code{"project-manifest.json"}.}
 
 \item{overwrite}{Logical. When \code{FALSE} (default), an existing manifest
 at that path is an error rather than being replaced.}
+
+\item{config}{Character or \code{NULL}. Path to a project configuration file
+(typically a project's own \verb{_toolero.yml}, as written by
+\code{\link[=init_project]{init_project()}}). Only consulted when \code{output_dir} is not supplied;
+an explicit \code{output_dir} always wins. Defaults to \code{NULL}.}
+
+\item{git_root}{Character. Directory to check for a git commit to record
+in the manifest (see the Provenance section below). Defaults to \code{"."}.}
 }
 \value{
 The path to the manifest, invisibly.
@@ -52,6 +65,26 @@ empty manifest would present that as a finished result. An accumulator
 holding no rows is different -- the file exists, so the machinery was
 wired up -- and produces an empty manifest with a warning.
 }
+\section{Provenance}{
+
+The manifest also records \code{commit}: the git commit checked out in
+\code{git_root} at the moment the manifest was written, or \code{null} when the
+project is not a git repository, has no commits yet, or \code{git} is not
+installed. This is deliberately the one piece of "which version of the
+code produced this" that package versions cannot supply -- \code{renv.lock}
+already answers which package versions were in play, but nothing else
+records which revision of the analysis script itself ran. Like
+\code{execution_context} and \code{generated_at}, it describes the run as a whole
+and is not repeated per artifact.
+
+\code{config} is entirely opt-in and affects \code{output_dir} only, not \code{commit}.
+Nothing changes for a project never scaffolded by \code{\link[=init_project]{init_project()}}: pass
+\code{output_dir} (or rely on the \code{"output"} default) exactly as before. When
+\code{config} is supplied but cannot be read, this aborts with the same
+message \code{\link[=init_project]{init_project()}} gives for a bad \code{config}, rather than silently
+falling back to \code{"output"}.
+}
+
 \section{The project manifest and the job manifest}{
 
 This is the \emph{project manifest}: a record of outputs from a computation

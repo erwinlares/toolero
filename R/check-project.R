@@ -81,6 +81,17 @@
 #' because there is nothing yet to discover -- so the pairing is what makes
 #' the observation worth printing.
 #'
+#' @section Stale purled scripts:
+#' Every `.qmd` under `path` whose header declares `purl: true` (see
+#' [create_qmd()]'s `use_purl` argument) gets its own row, comparing it
+#' against the `.R` script `R/purl.R` is expected to have derived from it.
+#' Missing entirely, or older than the `.qmd` it was purled from, is
+#' reported as `"warn"`: the `.qmd` is the source of truth, so an `R/`
+#' script older than the document it came from means an edit was made and
+#' not yet re-rendered, and a container or cluster job that bakes in the
+#' `.R` file would run the old analysis without any error to say so.
+#' Documents never opted into purl produce no row -- nothing to check.
+#'
 #' @seealso [init_project()], [generate_project_config()]
 #'
 #' @examples
@@ -422,6 +433,51 @@ check_project <- function(path   = ".",
         )
     }
 
+    # -- 16b. Check for stale purled scripts --------------------------------
+    # One row per .qmd stamped purl: true, so the report shows every
+    # tracked document's status individually rather than one aggregate
+    # verdict. Documents never opted into purl (no header, or purl: false)
+    # produce no row at all -- nothing to check.
+    purled_qmds <- .find_purled_qmds(path, folder_list)
+
+    for (i in seq_along(purled_qmds)) {
+        qmd_path <- purled_qmds[[i]]
+        rel_qmd  <- fs::path_rel(qmd_path, start = path)
+        r_path   <- .purl_output_path(qmd_path, path)
+
+        key <- paste0("purl_", i)
+
+        if (!fs::file_exists(r_path)) {
+            results[[key]] <- .check_result(
+                check   = paste0("purl: ", rel_qmd),
+                status  = "warn",
+                message = .cli_escape(paste0(
+                    fs::path_rel(r_path, start = path), " does not exist yet -- ",
+                    "render ", rel_qmd, " or run qmd_to_r() to produce it"
+                ))
+            )
+        } else if (fs::file_info(qmd_path)$modification_time >
+                   fs::file_info(r_path)$modification_time) {
+            results[[key]] <- .check_result(
+                check   = paste0("purl: ", rel_qmd),
+                status  = "warn",
+                message = .cli_escape(paste0(
+                    fs::path_rel(r_path, start = path), " is older than ", rel_qmd,
+                    " -- re-render or re-run qmd_to_r() so the derived script ",
+                    "reflects the latest edits"
+                ))
+            )
+        } else {
+            results[[key]] <- .check_result(
+                check   = paste0("purl: ", rel_qmd),
+                status  = "pass",
+                message = .cli_escape(paste0(
+                    fs::path_rel(r_path, start = path), " is up to date with ", rel_qmd
+                ))
+            )
+        }
+    }
+
     # -- 17. Assemble tibble -----------------------------------------------
     out <- tibble::tibble(
         check   = unname(vapply(results, `[[`, character(1L), "check")),
@@ -530,6 +586,93 @@ check_project <- function(path   = ".",
     }
 
     FALSE
+}
+
+#' Find every .qmd stamped purl: true
+#'
+#' Internal helper used by [check_project()] to locate the documents its
+#' stale-purl check needs to look at. Searches the project root without
+#' recursing, plus each declared folder with recursion, the same shape
+#' [.project_has_sources()] uses and for the same reason: a full recursive
+#' sweep would walk `renv/library`, which is slow and holds no documents of
+#' the project's own.
+#'
+#' A `.qmd`'s own header is read with `.split_yaml_header()` and parsed with
+#' `yaml::yaml.load()` rather than matched with a regular expression,
+#' because `.inject_purl_yaml()` always writes a real YAML boolean and this
+#' should agree with however a reader would parse it, not with a pattern
+#' that happens to work today.
+#'
+#' @param path Character. Path to a project directory.
+#' @param folders Character vector. Folders declared for this project.
+#'
+#' @return A character vector of full paths to `.qmd` files whose header
+#'   declares `purl: true`, possibly empty.
+#'
+#' @keywords internal
+.find_purled_qmds <- function(path, folders) {
+    pattern <- "[.][Qq]md$"
+
+    root  <- as.character(fs::path(path))
+    nests <- as.character(fs::path(path, folders))
+
+    if (length(nests) > 0L) {
+        nests <- nests[fs::dir_exists(nests)]
+    }
+
+    candidates <- fs::dir_ls(root, type = "file", recurse = FALSE, regexp = pattern, fail = FALSE)
+
+    for (dir in nests) {
+        candidates <- c(
+            candidates,
+            fs::dir_ls(dir, type = "file", recurse = TRUE, regexp = pattern, fail = FALSE)
+        )
+    }
+
+    candidates <- unique(candidates)
+
+    is_purled <- vapply(candidates, function(qmd_path) {
+        content <- tryCatch(readr::read_file(qmd_path), error = function(cnd) NA_character_)
+        if (is.na(content)) {
+            return(FALSE)
+        }
+
+        parts <- .split_yaml_header(content)
+        if (is.null(parts)) {
+            return(FALSE)
+        }
+
+        header <- tryCatch(
+            yaml::yaml.load(paste(parts$header, collapse = "\n")),
+            error = function(cnd) NULL
+        )
+
+        isTRUE(header[["purl"]])
+    }, logical(1L))
+
+    unname(candidates[is_purled])
+}
+
+#' Expected purl output path for a .qmd
+#'
+#' Internal helper used by [check_project()]. Mirrors the convention
+#' `R/purl.R` itself follows: a document's derived script lives under `R/`
+#' at the same path, relative to the project root, that the document itself
+#' occupies, so two documents sharing a filename in different directories
+#' (e.g. a directory-per-post convention using `index.qmd`) map to
+#' different output paths.
+#'
+#' @param qmd_path Character. Full path to a `.qmd` file.
+#' @param path Character. Path to the project root.
+#'
+#' @return A single character string: the full path where the purled `.R`
+#'   script is expected.
+#'
+#' @keywords internal
+.purl_output_path <- function(qmd_path, path) {
+    rel_qmd <- fs::path_rel(qmd_path, start = path)
+    rel_r   <- fs::path_ext_set(rel_qmd, "R")
+    fs::path(path, "R", rel_r)
 }
 
 #' Does a .renvignore exclude Quarto documents?

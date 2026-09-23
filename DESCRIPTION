@@ -1,6 +1,6 @@
 Package: toolero
 Title: A Toolkit for Research Workflows
-Version: 0.5.0
+Version: 0.6.0
 Authors@R:
     person("Erwin", "Lares", , "erwin.lares@wisc.edu", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-3284-828X"))

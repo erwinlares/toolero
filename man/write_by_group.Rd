@@ -10,7 +10,8 @@ write_by_group(
   output_dir = NULL,
   manifest = FALSE,
   drop_na = TRUE,
-  prefix = NULL
+  prefix = NULL,
+  config = NULL
 )
 }
 \arguments{
@@ -22,8 +23,9 @@ the combinations of values actually present in the data (not the full
 cross-product of possible values).}
 
 \item{output_dir}{A string or \code{NULL}. Path to the directory where output
-files will be written. Created if it does not exist. If \code{NULL}, the
-user must supply a path explicitly.}
+files will be written. Created if it does not exist. If \code{NULL}, resolved
+from \code{config}'s \code{split_dir} convention when \code{config} is supplied;
+otherwise the user must supply a path explicitly.}
 
 \item{manifest}{A logical. Whether to write a \code{manifest.csv} file to
 \code{output_dir} listing the output files, group values, and row counts.
@@ -40,8 +42,17 @@ output filename, sanitized the same way group values are and joined with
 a single \code{-}. \code{prefix = "data"} grouping on one column turns \code{a.csv} into
 \code{data-a.csv}; grouping on two turns \code{a--female.csv} into
 \code{data-a--female.csv}. Defaults to \code{NULL}, which leaves filenames
-unchanged. Placed last in the signature so that adding it does not shift
-any existing positional argument.}
+unchanged.}
+
+\item{config}{A string or \code{NULL}. Path to a project configuration file
+(typically a project's own \verb{_toolero.yml}, as written by
+\code{\link[=init_project]{init_project()}}). When supplied, and \code{output_dir} is not, \code{output_dir}
+defaults to the config's \code{split_dir} convention. An explicit \code{output_dir}
+always wins over \code{config}; \code{config} only fills in what you didn't
+supply. Defaults to \code{NULL}, which leaves today's behavior unchanged:
+\code{output_dir} must be supplied directly, config or no config. Placed last
+in the signature, along with \code{prefix}, so that adding either does not
+shift any existing positional argument.}
 }
 \value{
 Invisibly returns \code{output_dir}.
@@ -124,9 +135,20 @@ America, Not Applicable, a country code -- would then have two
 semantically different groups collapse into one file. Rather than merge
 them, \code{write_by_group()} aborts and names the column.
 
-Note: \code{output_dir} has no default value. Always supply an explicit path
-to avoid writing files to unexpected locations. Use \code{tempdir()} for
-temporary output during testing or exploration.
+Note: \code{output_dir} has no default value of its own. Supply it directly, or
+supply \code{config} and let it resolve from the project's \code{split_dir}
+convention. Use \code{tempdir()} for temporary output during testing or
+exploration.
+}
+
+\section{Project conventions}{
+
+\code{config} is entirely opt-in. A project never scaffolded by \code{\link[=init_project]{init_project()}}
+behaves exactly as before: pass \code{output_dir} and nothing about \code{config}
+changes. When \code{config} is supplied but the file cannot be read, this
+aborts with the same message \code{\link[=init_project]{init_project()}} gives for a bad \code{config},
+rather than silently falling back to a built-in default -- a config you
+asked for and didn't get should never look identical to not asking.
 }
 
 \examples{
@@ -154,6 +176,9 @@ data2 <- data.frame(
 )
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
+
+# Let a project's own _toolero.yml supply output_dir via split_dir
+write_by_group(data, group_col = "species", config = "_toolero.yml")
 }
 }
 \seealso{

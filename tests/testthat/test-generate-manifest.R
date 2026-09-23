@@ -431,3 +431,141 @@ test_that("a failed save survives into the manifest", {
 
     expect_setequal(statuses, c("success", "failure"))
 })
+
+# -- config argument (T-I2) ------------------------------------------------------
+
+make_toolero_config <- function(root, output_dir, filename = "_toolero.yml") {
+    config_path <- fs::path(root, filename)
+    yaml::write_yaml(
+        list(
+            schema_version = 1L,
+            folders        = list("data"),
+            conventions    = list(output_dir = output_dir)
+        ),
+        config_path
+    )
+    config_path
+}
+
+test_that("output_dir defaults to \"output\" when neither output_dir nor config is supplied", {
+    root <- withr::local_tempdir()
+    withr::local_dir(root)
+    make_accumulator("output", make_row())
+
+    suppressMessages(generate_manifest())
+
+    expect_true(fs::file_exists(fs::path(root, "output", "project-manifest.json")))
+})
+
+test_that("config resolves output_dir from the config's output_dir convention", {
+    root       <- withr::local_tempdir()
+    output_dir <- fs::path(root, "results")
+    config     <- make_toolero_config(root, output_dir = as.character(output_dir))
+    make_accumulator(output_dir, make_row())
+
+    suppressMessages(generate_manifest(config = config))
+
+    expect_true(fs::file_exists(fs::path(output_dir, "project-manifest.json")))
+})
+
+test_that("an explicit output_dir wins over config", {
+    root      <- withr::local_tempdir()
+    from_conf <- fs::path(root, "from-config")
+    explicit  <- fs::path(root, "explicit")
+    config    <- make_toolero_config(root, output_dir = as.character(from_conf))
+    make_accumulator(explicit, make_row())
+
+    suppressMessages(generate_manifest(output_dir = explicit, config = config))
+
+    expect_true(fs::file_exists(fs::path(explicit, "project-manifest.json")))
+    expect_false(fs::dir_exists(from_conf))
+})
+
+test_that("config reports which convention it used", {
+    root       <- withr::local_tempdir()
+    output_dir <- fs::path(root, "results")
+    config     <- make_toolero_config(root, output_dir = as.character(output_dir))
+    make_accumulator(output_dir, make_row())
+
+    expect_message(generate_manifest(config = config), "output_dir")
+})
+
+test_that("an unreadable config aborts rather than silently falling back to \"output\"", {
+    root   <- withr::local_tempdir()
+    config <- fs::path(root, "_toolero.yml")
+    writeLines("not: [valid", config)
+
+    expect_error(generate_manifest(config = config))
+})
+
+# -- commit provenance (T-G4) -----------------------------------------------------
+
+test_that(".git_commit() returns NULL when path is not a git repository", {
+    root <- withr::local_tempdir()
+    expect_null(.git_commit(root))
+})
+
+test_that(".git_commit() returns NULL when git is not installed", {
+    withr::local_envvar(c(PATH = ""))
+    root <- withr::local_tempdir()
+
+    expect_null(.git_commit(root))
+})
+
+test_that(".git_commit() returns the current commit SHA in a git repository", {
+    skip_if(!nzchar(Sys.which("git")), "git is not installed")
+
+    root <- withr::local_tempdir()
+    withr::local_envvar(c(
+        GIT_AUTHOR_NAME     = "toolero tests",
+        GIT_AUTHOR_EMAIL    = "tests@example.com",
+        GIT_COMMITTER_NAME  = "toolero tests",
+        GIT_COMMITTER_EMAIL = "tests@example.com"
+    ))
+    system2("git", c("-C", shQuote(root), "init", "--quiet"))
+    system2("git", c("-C", shQuote(root), "commit", "--allow-empty", "--quiet", "-m", "init"))
+
+    expect_match(.git_commit(root), "^[0-9a-f]{40}$")
+})
+
+test_that("generate_manifest() records commit as null when git_root is not a repository", {
+    root <- withr::local_tempdir()
+    make_accumulator(root, make_row())
+
+    suppressMessages(generate_manifest(output_dir = root, git_root = root))
+
+    expect_null(read_manifest(root)$commit)
+})
+
+test_that("generate_manifest() records the commit when git_root is a git repository", {
+    skip_if(!nzchar(Sys.which("git")), "git is not installed")
+
+    root <- withr::local_tempdir()
+    withr::local_envvar(c(
+        GIT_AUTHOR_NAME     = "toolero tests",
+        GIT_AUTHOR_EMAIL    = "tests@example.com",
+        GIT_COMMITTER_NAME  = "toolero tests",
+        GIT_COMMITTER_EMAIL = "tests@example.com"
+    ))
+    system2("git", c("-C", shQuote(root), "init", "--quiet"))
+    system2("git", c("-C", shQuote(root), "commit", "--allow-empty", "--quiet", "-m", "init"))
+    make_accumulator(root, make_row())
+
+    suppressMessages(generate_manifest(output_dir = root, git_root = root))
+
+    expect_match(read_manifest(root)$commit, "^[0-9a-f]{40}$")
+})
+
+test_that("generate_manifest() defaults git_root to the current directory", {
+    expect_equal(formals(generate_manifest)$git_root, ".")
+})
+
+test_that("commit is recorded once at the top level, not per artifact", {
+    root <- withr::local_tempdir()
+    make_accumulator(root, make_row())
+
+    suppressMessages(generate_manifest(output_dir = root, git_root = root))
+
+    artifact <- read_manifest(root)$artifacts[[1L]]
+    expect_false("commit" %in% names(artifact))
+})

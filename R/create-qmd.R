@@ -9,12 +9,19 @@
 #'   Must be supplied explicitly, e.g. `"analysis.qmd"`.
 #' @param path A string. Path to the directory where the document will be
 #'   created. Defaults to `"."` (the current working directory).
-#' @param yaml_data A string or `NULL`. Path to a YAML file containing
-#'   metadata to pre-populate the document header. If `NULL` (the default),
-#'   the template is copied as-is with placeholder prompts intact. Each
-#'   top-level key in the file replaces the template's key of the same
-#'   name; keys the file does not mention are left exactly as the template
-#'   wrote them.
+#' @param header_defaults A string or `NULL`. Path to a YAML file supplying
+#'   values to pre-populate the document header -- typically a profile
+#'   written by [generate_profile()], but any YAML file following the same
+#'   shape works. If `NULL` (the default), the template is copied as-is
+#'   with placeholder prompts intact. Every key in the file, at any depth,
+#'   replaces the template's key of the same name; keys the file does not
+#'   mention are left exactly as the template wrote them. A key whose value
+#'   is itself a mapping (`format: html: ...`) is descended into and merged
+#'   key by key, so a sibling the file doesn't mention -- `css:` from
+#'   `use_style`, say -- survives; a key whose value is a sequence
+#'   (`author:`, `categories:`) is replaced as a whole, not merged element
+#'   by element. Named `yaml_data` before v0.5.1.9000; that name still
+#'   works but is deprecated (see below).
 #' @param overwrite A logical. Whether to overwrite existing files. Defaults
 #'   to `FALSE`. Note two exceptions: `assets/logo.png` is never
 #'   overwritten, since an existing logo is assumed to be deliberate
@@ -66,16 +73,25 @@
 #'   convention using `index.qmd`) do not overwrite each other's output.
 #'
 #' @param include_examples Logical. If `TRUE` (the default), copies a sample
-#'   dataset (`sample.csv`) into `data-raw/`, a placeholder logo
-#'   (`generic-logo.png`, copied as `logo.png`) into `assets/`, and uses a
-#'   template `.qmd` pre-populated with a worked analysis example. If
-#'   `assets/logo.png` already exists (e.g. from a prior [init_project()]
-#'   call with `branding` set), it is always left untouched -- an existing
-#'   logo takes precedence over the generic placeholder even when
-#'   `overwrite = TRUE`. The YAML header includes a `params` block
-#'   referencing the sample data. If `FALSE`, creates a blank `.qmd` with
-#'   only the YAML header and no example content, and skips copying the
-#'   sample dataset and logo.
+#'   dataset (`sample.csv`) into `data-raw/` and uses a template `.qmd`
+#'   pre-populated with a worked analysis example. The YAML header includes
+#'   a `params` block referencing the sample data. If `FALSE`, creates a
+#'   blank `.qmd` with only the YAML header and no example content, and
+#'   skips copying the sample dataset.
+#'
+#'   A placeholder logo (`generic-logo.png`, copied as `logo.png`) is also
+#'   copied into `assets/`, but only when branding is actually part of the
+#'   project: if `path` carries a `_toolero.yml` (as written by
+#'   [init_project()]) whose `folders:` list does not include `assets`
+#'   (i.e. the project was scaffolded with `branding = "none"`), the logo
+#'   is skipped along with it, so a project that declared no branding does
+#'   not end up with an undeclared `assets/logo.png` anyway. A `.qmd`
+#'   created outside any toolero-scaffolded project (no `_toolero.yml` at
+#'   `path`) always gets the logo, since there is no project-level branding
+#'   decision to defer to. If `assets/logo.png` already exists (e.g. from a
+#'   prior [init_project()] call with `branding` set), it is always left
+#'   untouched -- an existing logo takes precedence over the generic
+#'   placeholder even when `overwrite = TRUE`.
 #' @param use_style Logical or character. Controls whether custom branding
 #'   assets are wired into the YAML.
 #'   - `FALSE` (the default): no custom styling. The YAML `format: html:`
@@ -97,6 +113,10 @@
 #'   the branding asset set, is not wired into the document YAML --
 #'   favicons are a Quarto website-project option rather than an HTML
 #'   format option, so set it in `_quarto.yml` if you need one.
+#' @param yaml_data `r lifecycle::badge("deprecated")` A string or `NULL`.
+#'   Renamed to `header_defaults` in v0.5.1.9000 -- the argument still
+#'   works, and its value is used when `header_defaults` is not also
+#'   supplied, but new code should use `header_defaults`.
 #'
 #' @return Invisibly returns `path`.
 #'
@@ -115,10 +135,12 @@
 #'    whichever are present into the YAML header.
 #' 5. Stamps `purl: true` or `purl: false` into the document's own YAML
 #'    header, reflecting `use_purl`.
-#' 6. If `yaml_data` is provided, reads the YAML file and substitutes
-#'    values into the document header. This runs after style injection
-#'    and the purl stamp, so `yaml_data` can override any auto-generated
-#'    YAML key, including `purl` itself.
+#' 6. If `header_defaults` (or the deprecated `yaml_data`) is provided,
+#'    reads the YAML file and substitutes its values into the document
+#'    header, descending into nested mappings so a sibling key it doesn't
+#'    mention survives. This runs after style injection and the purl
+#'    stamp, so `header_defaults` can override any auto-generated YAML
+#'    key, including `purl` itself.
 #' 7. If `use_purl = TRUE`, ensures `R/purl.R` exists. Then, unless
 #'    `_quarto.yml` already exists and declares `project: type:` as
 #'    `website`, `book`, or `manuscript` (in which case wiring is
@@ -190,20 +212,33 @@
 #'            include_examples = FALSE, use_style = "my-branding/",
 #'            overwrite = TRUE)
 #'
-#' # Pre-populated YAML overrides
-#' yaml_file <- tempfile(fileext = ".yml")
-#' writeLines("author:\n  - name: 'Your Name'", yaml_file)
+#' # Pre-populated YAML header, typically from generate_profile()
+#' profile_file <- tempfile(fileext = ".yml")
+#' writeLines("author:\n  - name: 'Your Name'", profile_file)
 #' create_qmd(path = tempdir(), filename = "analysis.qmd",
-#'            yaml_data = yaml_file, overwrite = TRUE)
+#'            header_defaults = profile_file, overwrite = TRUE)
 #' }
 create_qmd <- function(
         filename = NULL,
         path = ".",
-        yaml_data = NULL,
+        header_defaults = NULL,
         overwrite = FALSE,
         use_purl = FALSE,
         include_examples = TRUE,
-        use_style = FALSE) {
+        use_style = FALSE,
+        yaml_data = lifecycle::deprecated()) {
+
+    # -- 0. Handle the yaml_data -> header_defaults rename -----------------------
+    if (lifecycle::is_present(yaml_data)) {
+        lifecycle::deprecate_warn(
+            when = "0.5.1.9000",
+            what = "create_qmd(yaml_data = )",
+            with = "create_qmd(header_defaults = )"
+        )
+        if (is.null(header_defaults)) {
+            header_defaults <- yaml_data
+        }
+    }
 
     # -- 1. Validate filename ---------------------------------------------------
     if (is.null(filename)) {
@@ -243,27 +278,48 @@ create_qmd <- function(
             )
         }
 
-        # assets/ with placeholder logo.png -- deliberately exempt from
-        # overwrite. An existing logo (e.g. from init_project(branding = ))
-        # is assumed to be intentional branding, and silently replacing it
-        # with the generic placeholder would be surprising.
-        assets_dir <- fs::path(path, "assets")
-        fs::dir_create(assets_dir)
+        # assets/ with placeholder logo.png -- but only when the project's
+        # own _toolero.yml (if any) actually declares assets as part of its
+        # structure. A project scaffolded with branding = "none" declares
+        # no assets/ folder at all, and writing a logo into it anyway would
+        # leave the project with an undeclared folder containing a file
+        # nothing else in the project asked for. No _toolero.yml at all
+        # (a bare .qmd, not part of a toolero-scaffolded project) means
+        # there's no project-level branding decision to defer to, so the
+        # logo is written as before.
+        project_yml  <- .read_project_yml(path)
+        has_manifest <- !is.null(project_yml) && !is.null(project_yml$folders)
+        branding_off <- has_manifest && !("assets" %in% unlist(project_yml$folders))
 
-        logo_src <- system.file(
-            "assets", "generic-logo.png",
-            package = "toolero",
-            mustWork = TRUE
-        )
-        logo_dst <- fs::path(assets_dir, "logo.png")
-
-        if (!fs::file_exists(logo_dst)) {
-            fs::file_copy(logo_src, logo_dst)
-            cli::cli_alert_success("Created {.path {logo_dst}}")
-        } else {
+        if (branding_off) {
+            config_name <- .project_yml_name()
             cli::cli_alert_info(
-                "Skipping {.path {logo_dst}} -- existing logo left in place."
+                "Skipping {.path {fs::path(path, 'assets', 'logo.png')}} -- {.path {config_name}}
+         does not declare {.val assets} among this project's folders."
             )
+        } else {
+            # Deliberately exempt from overwrite. An existing logo (e.g.
+            # from init_project(branding = )) is assumed to be intentional
+            # branding, and silently replacing it with the generic
+            # placeholder would be surprising.
+            assets_dir <- fs::path(path, "assets")
+            fs::dir_create(assets_dir)
+
+            logo_src <- system.file(
+                "assets", "generic-logo.png",
+                package = "toolero",
+                mustWork = TRUE
+            )
+            logo_dst <- fs::path(assets_dir, "logo.png")
+
+            if (!fs::file_exists(logo_dst)) {
+                fs::file_copy(logo_src, logo_dst)
+                cli::cli_alert_success("Created {.path {logo_dst}}")
+            } else {
+                cli::cli_alert_info(
+                    "Skipping {.path {logo_dst}} -- existing logo left in place."
+                )
+            }
         }
     }
 
@@ -352,18 +408,18 @@ create_qmd <- function(
     # candidates.
     qmd_content <- .inject_purl_yaml(qmd_content, purl = use_purl)
 
-    # -- 7. Substitute YAML if yaml_data is provided -----------------------------
-    # Runs after style injection and the purl stamp, so a user's own
-    # config can still override either -- including purl itself, if they
-    # really want to hand-author that key.
-    if (!is.null(yaml_data)) {
-        if (!fs::file_exists(yaml_data)) {
+    # -- 7. Substitute YAML if header_defaults is provided -----------------------
+    # Runs after style injection and the purl stamp, so header_defaults can
+    # still override either -- including purl itself, if the file really
+    # does set that key.
+    if (!is.null(header_defaults)) {
+        if (!fs::file_exists(header_defaults)) {
             cli::cli_abort(
-                "yaml_data file {.path {yaml_data}} does not exist."
+                "header_defaults file {.path {header_defaults}} does not exist."
             )
         }
 
-        user_yaml <- yaml::read_yaml(yaml_data)
+        user_yaml <- yaml::read_yaml(header_defaults)
         qmd_content <- .substitute_yaml(qmd_content, user_yaml)
     }
 
@@ -575,19 +631,59 @@ create_qmd <- function(
 }
 
 
+# -- Helper: flatten nested YAML into leaf-level (path, value) entries ------
+#
+# A YAML *mapping* (a block of `key: value` pairs -- read.yaml() gives it
+# names) is a settings block whose individual keys should each be set on
+# their own, leaving sibling keys the caller didn't mention untouched. A
+# YAML *sequence* (a list, like `categories:` or `author:` -- read_yaml()
+# gives it no names, even when its elements are themselves mappings) is a
+# single value to replace wholesale: merging a list of authors element by
+# element against whatever the template happened to have makes no sense,
+# and neither does merging a list of category strings.
+#
+# `is_mapping()` is the test that tells the two apart: a list is a mapping
+# only when it has names and every one of them is non-empty. An empty list
+# (`list()`) has no names either way and is treated as a leaf, which is the
+# conservative choice -- there is nothing to descend into.
+
+.is_yaml_mapping <- function(x) {
+    is.list(x) && length(x) > 0L && !is.null(names(x)) && all(nzchar(names(x)))
+}
+
+.flatten_yaml_keys <- function(user_yaml, prefix = character(0)) {
+    entries <- list()
+
+    for (key in names(user_yaml)) {
+        value    <- user_yaml[[key]]
+        this_path <- c(prefix, key)
+
+        if (.is_yaml_mapping(value)) {
+            entries <- c(entries, .flatten_yaml_keys(value, this_path))
+        } else {
+            entries[[length(entries) + 1L]] <- list(path = this_path, value = value)
+        }
+    }
+
+    entries
+}
+
 # -- Helper: substitute YAML values into template ----------------------------
 #
-# Each top-level key the user supplies replaces the template's key of the
-# same name, which is the precedence the previous implementation had. The
-# difference is that keys the user does not mention are no longer
-# reserialized on the way past: they stay exactly as the template wrote
-# them, comments, quoting and all.
+# Each key the user supplies replaces the template's key of the same name,
+# descending into nested mappings (like `format: html: ...`) so that a
+# sibling key the user did not mention -- css/include-before-body/
+# include-after-body from use_style, say -- survives rather than being
+# discarded along with the rest of the block it lives in. A sequence
+# (`author:`, `categories:`) is still replaced wholesale, as a single unit,
+# since merging a list element by element against the template's own list
+# is not a meaningful operation. Keys the user does not mention at all,
+# at any level, are no longer reserialized on the way past: they stay
+# exactly as the template wrote them, comments, quoting and all.
 
 .substitute_yaml <- function(qmd_content, user_yaml) {
 
-    keys <- lapply(names(user_yaml), function(key) {
-        list(path = key, value = user_yaml[[key]])
-    })
+    keys <- .flatten_yaml_keys(user_yaml)
 
     .set_yaml_keys(qmd_content, keys, what = "substitution")
 }

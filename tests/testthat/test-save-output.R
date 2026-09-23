@@ -448,3 +448,73 @@ test_that("save_output() round-trips a file path containing a comma", {
 
     expect_equal(read_accumulator_file(root)$file_path, as.character(dest))
 })
+
+# -- config argument (T-I2) ------------------------------------------------------
+
+make_toolero_config <- function(root, output_dir, filename = "_toolero.yml") {
+    config_path <- fs::path(root, filename)
+    yaml::write_yaml(
+        list(
+            schema_version = 1L,
+            folders        = list("data"),
+            conventions    = list(output_dir = output_dir)
+        ),
+        config_path
+    )
+    config_path
+}
+
+test_that("output_dir defaults to \"output\" when neither output_dir nor config is supplied", {
+    root <- withr::local_tempdir()
+    withr::local_dir(root)
+
+    save_output(mtcars, "x.rds", .f = saveRDS)
+
+    expect_true(fs::file_exists(fs::path(root, "output", "accumulator.csv")))
+})
+
+test_that("config resolves output_dir from the config's output_dir convention", {
+    root       <- withr::local_tempdir()
+    output_dir <- fs::path(root, "results")
+    config     <- make_toolero_config(root, output_dir = as.character(output_dir))
+
+    suppressMessages(
+        save_output(mtcars, fs::path(root, "x.rds"), .f = saveRDS, config = config)
+    )
+
+    expect_true(fs::file_exists(fs::path(output_dir, "accumulator.csv")))
+})
+
+test_that("an explicit output_dir wins over config", {
+    root      <- withr::local_tempdir()
+    from_conf <- fs::path(root, "from-config")
+    explicit  <- fs::path(root, "explicit")
+    config    <- make_toolero_config(root, output_dir = as.character(from_conf))
+
+    save_output(mtcars, fs::path(root, "x.rds"), .f = saveRDS,
+                output_dir = explicit, config = config)
+
+    expect_true(fs::file_exists(fs::path(explicit, "accumulator.csv")))
+    expect_false(fs::dir_exists(from_conf))
+})
+
+test_that("config reports which convention it used", {
+    root       <- withr::local_tempdir()
+    output_dir <- fs::path(root, "results")
+    config     <- make_toolero_config(root, output_dir = as.character(output_dir))
+
+    expect_message(
+        save_output(mtcars, fs::path(root, "x.rds"), .f = saveRDS, config = config),
+        "output_dir"
+    )
+})
+
+test_that("an unreadable config aborts rather than silently falling back to \"output\"", {
+    root   <- withr::local_tempdir()
+    config <- fs::path(root, "_toolero.yml")
+    writeLines("not: [valid", config)
+
+    expect_error(
+        save_output(mtcars, fs::path(root, "x.rds"), .f = saveRDS, config = config)
+    )
+})

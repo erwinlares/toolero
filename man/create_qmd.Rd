@@ -7,11 +7,12 @@
 create_qmd(
   filename = NULL,
   path = ".",
-  yaml_data = NULL,
+  header_defaults = NULL,
   overwrite = FALSE,
   use_purl = FALSE,
   include_examples = TRUE,
-  use_style = FALSE
+  use_style = FALSE,
+  yaml_data = lifecycle::deprecated()
 )
 }
 \arguments{
@@ -21,12 +22,19 @@ Must be supplied explicitly, e.g. \code{"analysis.qmd"}.}
 \item{path}{A string. Path to the directory where the document will be
 created. Defaults to \code{"."} (the current working directory).}
 
-\item{yaml_data}{A string or \code{NULL}. Path to a YAML file containing
-metadata to pre-populate the document header. If \code{NULL} (the default),
-the template is copied as-is with placeholder prompts intact. Each
-top-level key in the file replaces the template's key of the same
-name; keys the file does not mention are left exactly as the template
-wrote them.}
+\item{header_defaults}{A string or \code{NULL}. Path to a YAML file supplying
+values to pre-populate the document header -- typically a profile
+written by \code{\link[=generate_profile]{generate_profile()}}, but any YAML file following the same
+shape works. If \code{NULL} (the default), the template is copied as-is
+with placeholder prompts intact. Every key in the file, at any depth,
+replaces the template's key of the same name; keys the file does not
+mention are left exactly as the template wrote them. A key whose value
+is itself a mapping (\code{format: html: ...}) is descended into and merged
+key by key, so a sibling the file doesn't mention -- \verb{css:} from
+\code{use_style}, say -- survives; a key whose value is a sequence
+(\verb{author:}, \verb{categories:}) is replaced as a whole, not merged element
+by element. Named \code{yaml_data} before v0.5.1.9000; that name still
+works but is deprecated (see below).}
 
 \item{overwrite}{A logical. Whether to overwrite existing files. Defaults
 to \code{FALSE}. Note two exceptions: \code{assets/logo.png} is never
@@ -82,16 +90,25 @@ a filename in different directories (e.g. a directory-per-post
 convention using \code{index.qmd}) do not overwrite each other's output.}
 
 \item{include_examples}{Logical. If \code{TRUE} (the default), copies a sample
-dataset (\code{sample.csv}) into \verb{data-raw/}, a placeholder logo
-(\code{generic-logo.png}, copied as \code{logo.png}) into \verb{assets/}, and uses a
-template \code{.qmd} pre-populated with a worked analysis example. If
-\code{assets/logo.png} already exists (e.g. from a prior \code{\link[=init_project]{init_project()}}
-call with \code{branding} set), it is always left untouched -- an existing
-logo takes precedence over the generic placeholder even when
-\code{overwrite = TRUE}. The YAML header includes a \code{params} block
-referencing the sample data. If \code{FALSE}, creates a blank \code{.qmd} with
-only the YAML header and no example content, and skips copying the
-sample dataset and logo.}
+dataset (\code{sample.csv}) into \verb{data-raw/} and uses a template \code{.qmd}
+pre-populated with a worked analysis example. The YAML header includes
+a \code{params} block referencing the sample data. If \code{FALSE}, creates a
+blank \code{.qmd} with only the YAML header and no example content, and
+skips copying the sample dataset.
+
+A placeholder logo (\code{generic-logo.png}, copied as \code{logo.png}) is also
+copied into \verb{assets/}, but only when branding is actually part of the
+project: if \code{path} carries a \verb{_toolero.yml} (as written by
+\code{\link[=init_project]{init_project()}}) whose \verb{folders:} list does not include \code{assets}
+(i.e. the project was scaffolded with \code{branding = "none"}), the logo
+is skipped along with it, so a project that declared no branding does
+not end up with an undeclared \code{assets/logo.png} anyway. A \code{.qmd}
+created outside any toolero-scaffolded project (no \verb{_toolero.yml} at
+\code{path}) always gets the logo, since there is no project-level branding
+decision to defer to. If \code{assets/logo.png} already exists (e.g. from a
+prior \code{\link[=init_project]{init_project()}} call with \code{branding} set), it is always left
+untouched -- an existing logo takes precedence over the generic
+placeholder even when \code{overwrite = TRUE}.}
 
 \item{use_style}{Logical or character. Controls whether custom branding
 assets are wired into the YAML.
@@ -116,6 +133,11 @@ injection is skipped. Note that \code{favicon.png}, though shipped with
 the branding asset set, is not wired into the document YAML --
 favicons are a Quarto website-project option rather than an HTML
 format option, so set it in \verb{_quarto.yml} if you need one.}
+
+\item{yaml_data}{\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}} A string or \code{NULL}.
+Renamed to \code{header_defaults} in v0.5.1.9000 -- the argument still
+works, and its value is used when \code{header_defaults} is not also
+supplied, but new code should use \code{header_defaults}.}
 }
 \value{
 Invisibly returns \code{path}.
@@ -141,10 +163,12 @@ exists there. Uses the example template for the \code{.qmd}.
 whichever are present into the YAML header.
 \item Stamps \code{purl: true} or \code{purl: false} into the document's own YAML
 header, reflecting \code{use_purl}.
-\item If \code{yaml_data} is provided, reads the YAML file and substitutes
-values into the document header. This runs after style injection
-and the purl stamp, so \code{yaml_data} can override any auto-generated
-YAML key, including \code{purl} itself.
+\item If \code{header_defaults} (or the deprecated \code{yaml_data}) is provided,
+reads the YAML file and substitutes its values into the document
+header, descending into nested mappings so a sibling key it doesn't
+mention survives. This runs after style injection and the purl
+stamp, so \code{header_defaults} can override any auto-generated YAML
+key, including \code{purl} itself.
 \item If \code{use_purl = TRUE}, ensures \code{R/purl.R} exists. Then, unless
 \verb{_quarto.yml} already exists and declares \verb{project: type:} as
 \code{website}, \code{book}, or \code{manuscript} (in which case wiring is
@@ -215,10 +239,10 @@ create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = "my-branding/",
            overwrite = TRUE)
 
-# Pre-populated YAML overrides
-yaml_file <- tempfile(fileext = ".yml")
-writeLines("author:\n  - name: 'Your Name'", yaml_file)
+# Pre-populated YAML header, typically from generate_profile()
+profile_file <- tempfile(fileext = ".yml")
+writeLines("author:\n  - name: 'Your Name'", profile_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
-           yaml_data = yaml_file, overwrite = TRUE)
+           header_defaults = profile_file, overwrite = TRUE)
 }
 }
