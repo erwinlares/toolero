@@ -57,7 +57,13 @@ generate_citation(path = tempdir())
 
 profile_file <- tempfile(fileext = ".yml")
 writeLines(
-  'author:\n  - name: "Erwin Lares"\n    affiliation: "RCI, UW-Madison"\n    orcid: "0000-0002-3284-828X"',
+  paste(
+    'author:',
+    '  - name: "Erwin Lares"',
+    '    affiliation: "RCI, UW-Madison"',
+    '    orcid: "0000-0002-3284-828X"',
+    sep = "\n"
+  ),
   profile_file
 )
 generate_citation(path = tempdir(), profile = profile_file, overwrite = TRUE)

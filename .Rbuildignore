@@ -18,3 +18,4 @@
 ^PLAN\.md$
 ^codecov\.yml$
 toolero-audit.*
+^CONVENTIONS\.md$

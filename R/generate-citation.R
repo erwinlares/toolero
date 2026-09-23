@@ -134,7 +134,13 @@
 #'
 #' profile_file <- tempfile(fileext = ".yml")
 #' writeLines(
-#'   'author:\n  - name: "Erwin Lares"\n    affiliation: "RCI, UW-Madison"\n    orcid: "0000-0002-3284-828X"',
+#'   paste(
+#'     'author:',
+#'     '  - name: "Erwin Lares"',
+#'     '    affiliation: "RCI, UW-Madison"',
+#'     '    orcid: "0000-0002-3284-828X"',
+#'     sep = "\n"
+#'   ),
 #'   profile_file
 #' )
 #' generate_citation(path = tempdir(), profile = profile_file, overwrite = TRUE)
@@ -197,7 +203,7 @@ generate_citation <- function(filename = "CITATION.cff",
 
     author_lines <- unlist(lapply(authors, .cff_author_block))
 
-    template <- readLines(.package_template("CITATION.cff"), warn = FALSE)
+    template <- readLines(.package_template("citation-template.cff"), warn = FALSE)
 
     # {{authors}} occupies a line of its own, like _toolero.yml's own
     # {{folders}}/{{conventions}} placeholders, so .substitute_block() (a

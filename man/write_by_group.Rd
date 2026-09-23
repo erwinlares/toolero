@@ -177,8 +177,21 @@ data2 <- data.frame(
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
 
-# Let a project's own _toolero.yml supply output_dir via split_dir
-write_by_group(data, group_col = "species", config = "_toolero.yml")
+# Let a project's own _toolero.yml supply output_dir via split_dir.
+# generate_project_config() writes the default conventions, including
+# split_dir = "data/jobs" -- a relative path meant to be resolved against
+# a project's own root, so this example runs from config_dir via
+# withr::with_dir() rather than writing into the working directory.
+config_dir <- tempfile()
+dir.create(config_dir)
+generate_project_config("_toolero.yml", path = config_dir)
+withr::with_dir(config_dir, {
+  write_by_group(
+    data,
+    group_col = "species",
+    config    = file.path(config_dir, "_toolero.yml")
+  )
+})
 }
 }
 \seealso{
