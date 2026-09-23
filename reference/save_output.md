@@ -19,7 +19,8 @@ save_output(
   ...,
   manifest = TRUE,
   note = NULL,
-  output_dir = "output"
+  output_dir = NULL,
+  config = NULL
 )
 ```
 
@@ -62,8 +63,20 @@ save_output(
 
 - output_dir:
 
-  Character. Directory containing (or to contain) the accumulator.
-  Defaults to `"output"`.
+  Character or `NULL`. Directory containing (or to contain) the
+  accumulator. If `NULL` (the default) and `config` is supplied,
+  resolved from the config's `output_dir` convention; if `config` is
+  also `NULL`, falls back to `"output"`, the family-wide convention,
+  unchanged from earlier versions.
+
+- config:
+
+  Character or `NULL`. Path to a project configuration file (typically a
+  project's own `_toolero.yml`, as written by
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)).
+  Only consulted when `output_dir` is not supplied; an explicit
+  `output_dir` always wins. Defaults to `NULL`, which leaves pre-0.5.1
+  behavior unchanged.
 
 ## Value
 
@@ -90,6 +103,18 @@ precision so that they sort lexicographically –
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
 relies on this when keeping the latest row per `file_path`.
 
+## Project conventions
+
+`config` is entirely opt-in. Nothing changes for a project never
+scaffolded by
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+pass `output_dir` (or rely on the `"output"` default) exactly as before.
+When `config` is supplied but cannot be read, this aborts with the same
+message
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+gives for a bad `config`, rather than silently falling back to
+`"output"`.
+
 ## See also
 
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
@@ -106,5 +131,5 @@ save_output(
   note = "Unmodified example data.",
   output_dir = output_dir
 )
-#> ℹ Created the directory /tmp/RtmprEtJYE/file199135f29fc3 to hold mtcars.rds.
+#> ℹ Created the directory /tmp/RtmpM07ZPn/file1abdfc1c5a5 to hold mtcars.rds.
 ```

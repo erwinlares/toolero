@@ -1,8 +1,163 @@
 # Changelog
 
+## toolero 0.6.0
+
+### New features
+
+- Added
+  [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md),
+  which writes a YAML skeleton – pre-filled with placeholders and
+  explanatory comments – covering the author information and formatting
+  preferences that tend to be identical across every document created
+  with
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md).
+  The written file has two sections: personal information (`name`,
+  `affiliation`, `orcid`, `email`, `url`), which becomes the document’s
+  `author:` block, and document settings (`date`/`date-modified`,
+  `categories`, `lang`, `execute` options for quiet and reproducible
+  rendering, and a `format: html:` block of layout preferences). A phone
+  number and mailing address are deliberately not among the
+  placeholders, since documents built from this file tend to get
+  rendered to HTML and published. The file also deliberately does not
+  touch `css`, `include-before-body`, or `include-after-body` – those
+  remain
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)’s
+  `use_style` argument’s job, reading from a project’s own `assets/`
+  folder, and a profile that also tried to set them would collide with a
+  specific project’s branding rather than complementing it. `filename`
+  has no default and must be supplied explicitly, so keeping more than
+  one profile – a personal one and a work one, say – under different
+  filenames is a normal thing to do, not a workaround. `path` defaults
+  to the user’s home directory
+  ([`fs::path_home()`](https://fs.r-lib.org/reference/path_expand.html))
+  rather than `"."`, since unlike
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
+  this file’s whole purpose is being reusable across every project
+  rather than tied to one.
+
+- Added
+  [`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md),
+  which writes a `CITATION.cff` skeleton, optionally pre-filled with
+  author information from a profile written by
+  [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md),
+  so a project’s citation metadata doesn’t mean retyping the same name,
+  affiliation, and ORCID a third time. `title`, `version`,
+  `repository-code`, `url`, and `license` are project facts a personal
+  profile has no way to know, so they are left as placeholders (some
+  commented out) regardless of whether `profile` is supplied;
+  `date-released` is filled in with today’s date. The given-names/
+  family-names split the Citation File Format requires is done by
+  splitting a profile’s single `name` field on its last space, which is
+  right for the ordinary case and wrong for some real names – multi-word
+  family names, single-word names, and family-name-first orderings all
+  defeat it. Review the generated file’s `given-names`/`family-names`
+  fields before relying on them.
+
+- [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md),
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md),
+  and
+  [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
+  gain a new `config` argument: a path to a project configuration file,
+  typically a project’s own `_toolero.yml` as written by
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md).
+  When supplied, and `output_dir` is not, `output_dir` is resolved from
+  the config’s `output_dir` convention (`split_dir`, for
+  [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)).
+  An explicit `output_dir` always wins over `config`, which only fills
+  in what was not supplied directly. `config` is entirely opt-in: a
+  project never scaffolded by
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  behaves exactly as before, and when `config` is supplied but cannot be
+  read, each function aborts with the same message
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  gives for a bad `config`, rather than silently falling back to a
+  built-in default.
+
+- [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+  gains a new `git_root` argument (default `"."`) and now records
+  `commit` in `project-manifest.json`: the git commit checked out in
+  `git_root` at the moment the manifest was written. This is
+  deliberately the one piece of “which version of the code produced
+  this” that package versions cannot supply – `renv.lock` already
+  answers which package versions were in play, but nothing else records
+  which revision of the analysis script itself ran. `commit` is recorded
+  once at the top level alongside `execution_context` and
+  `generated_at`, not repeated per artifact, and is `null` when the
+  project is not a git repository, has no commits yet, or `git` is not
+  installed. Detection shells out to `git rev-parse HEAD` rather than
+  adding a git R package as a dependency, since this is the only place
+  in toolero that needs git at all.
+
+- [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
+  gains a new stale purled scripts check. Every `.qmd` under the project
+  whose header declares `purl: true` (see
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)’s
+  `use_purl` argument) gets its own row, comparing it against the `.R`
+  script `R/purl.R` is expected to have derived from it. Missing
+  entirely, or older than the `.qmd` it was purled from, is reported as
+  `"warn"`: the `.qmd` is the source of truth, so an `R/` script older
+  than the document it came from means an edit was made and not yet
+  re-rendered, and a container or cluster job that bakes in the `.R`
+  file would run the old analysis without any error to say so. Documents
+  never opted into purl produce no row. The scan covers the project root
+  and the project’s declared folders, the same shape the existing
+  `renv.lock` checks use, so `renv/library` is neither walked nor
+  mistaken for the project’s own documents.
+
+### Bug fixes
+
+- `create_qmd(include_examples = TRUE)`: no longer copies the
+  placeholder logo into `assets/` when the project’s own `_toolero.yml`
+  declares a `folders:` list that does not include `assets` – the
+  arrangement `init_project(branding = "none")` produces. Previously
+  every call with `include_examples = TRUE` copied `logo.png`
+  regardless, leaving a project that declared no branding with an
+  undeclared `assets/` folder holding a file nothing else in the project
+  asked for. A `.qmd` created outside any toolero-scaffolded project (no
+  `_toolero.yml` at `path`) is unaffected and still gets the logo, since
+  there is no project-level branding decision to defer to. An existing
+  `assets/logo.png` continues to be left in place either way.
+
+- `create_qmd(header_defaults = )`: fixed a case where a profile’s
+  `format:` block could silently delete sibling keys `use_style` had
+  just injected into the same block. `.substitute_yaml()` built one
+  `.set_yaml_key()` entry per top-level key in the supplied file, and
+  `.set_yaml_key()` replaces whatever nested structure exists at a path
+  wholesale, so a file setting `format: html: toc: false` would
+  overwrite the entire `format: html:` mapping, discarding `css`,
+  `include-before-body`, or `include-after-body` if `use_style` had set
+  any of them – silently, since substitution runs after style injection
+  so it can override it. `.substitute_yaml()` now flattens a mapping (a
+  named block like `format: html: ...`) into leaf-level path/value pairs
+  before substituting, so a sibling key the file doesn’t mention
+  survives at any depth; a sequence (`author:`, `categories:`) is still
+  replaced as a whole, since merging a list element by element against
+  the template’s own list is not a meaningful operation.
+
+### Deprecated features
+
+- [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
+  the `yaml_data` argument is renamed to `header_defaults`, which better
+  reflects what it does now that
+  [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md)
+  gives it a natural counterpart to write from. `yaml_data` is
+  deprecated rather than removed: the old name still works, and its
+  value is used when `header_defaults` is not also supplied, but a
+  [`lifecycle::deprecate_warn()`](https://lifecycle.r-lib.org/reference/deprecate_soft.html)
+  fires when it is. Removal planned for v0.7.0 alongside `uw_branding`
+  and `check_project(error)`.
+
+### Internal changes
+
+- [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)’s
+  internal `sanitize_filename()` helper is renamed to
+  [`.sanitize_filename()`](https://erwinlares.github.io/toolero/reference/dot-sanitize_filename.md),
+  confirmed against the package’s own `NAMESPACE` as internal-only
+  before the rename.
+
 ## toolero 0.5.0
 
-#### Breaking changes
+### Breaking changes
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   both bundled templates now set `format: html: embed-resources: true`
@@ -148,7 +303,7 @@
   generic placeholder assets); `uw_branding = FALSE` maps to
   `branding = "none"`. A
   [`lifecycle::deprecate_warn()`](https://lifecycle.r-lib.org/reference/deprecate_soft.html)
-  fires when `uw_branding` is supplied. Removal planned for v0.6.0
+  fires when `uw_branding` is supplied. Removal planned for v0.7.0
   alongside `check_project(error)`.
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
@@ -172,7 +327,7 @@
   exist – will now produce one. Pass `use_readme = FALSE` to opt out and
   preserve the old behavior.
 
-#### New features
+### New features
 
 - [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md):
   new `prefix` argument, a namespace prepended to every output filename.
@@ -375,7 +530,7 @@
   with no arguments and the path is written once, in the header, rather
   than there and again in a chunk that has to be kept in step with it.
 
-#### Bug fixes
+### Bug fixes
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   the YAML header was matched with a regular expression whose match
@@ -530,7 +685,7 @@
 
   Closes [\#16](https://github.com/erwinlares/toolero/issues/16).
 
-#### Internal changes
+### Internal changes
 
 - New `R/utils-yaml.R` holds the line-oriented header helpers:
   `.split_yaml_header()`, `.join_yaml_header()`, `.set_yaml_key()` and
@@ -577,12 +732,11 @@
   produces. The first lists inputs to a computation that has not
   happened; the second records outputs from one that has.
 
-- [`sanitize_filename()`](https://erwinlares.github.io/toolero/reference/sanitize_filename.md)
-  gained roxygen explaining the invariant the filename scheme depends
-  on: because a run of non-alphanumeric characters collapses to exactly
-  one dash, a sanitized value can contain a single `-` but never two
-  consecutive ones, which is what leaves `--` free to mark a column
-  boundary.
+- `sanitize_filename()` gained roxygen explaining the invariant the
+  filename scheme depends on: because a run of non-alphanumeric
+  characters collapses to exactly one dash, a sanitized value can
+  contain a single `-` but never two consecutive ones, which is what
+  leaves `--` free to mark a column boundary.
 
 - Added
   [`.renv_lock_is_bare()`](https://erwinlares.github.io/toolero/reference/dot-renv_lock_is_bare.md),
@@ -687,7 +841,7 @@
   tests moved with it into the new
   `tests/testthat/test-utils-project.R`.
 
-#### New features (continued)
+### New features (continued)
 
 - Added
   [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
@@ -720,7 +874,7 @@
   accumulator is an error; an accumulator with no rows produces an empty
   manifest with a warning.
 
-#### Improvements
+### Improvements
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   every edit to a document’s YAML header is now made line by line rather
@@ -831,10 +985,10 @@
   above all, which was absent from the list while being required by step
   4 of the first workflow.
 
-#### Deprecated features
+### Deprecated features
 
 - `check_project(error)`: the `error` argument is deprecated and will be
-  removed in v0.6.0. The cli report now always prints and the tibble is
+  removed in v0.7.0. The cli report now always prints and the tibble is
   always returned invisibly. To access results programmatically, assign
   the output directly: `out <- check_project()`. Passing `error = FALSE`
   continues to work but triggers a deprecation warning.
@@ -843,7 +997,7 @@
 
 CRAN release: 2026-07-16
 
-#### New features
+### New features
 
 - Added
   [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md),
@@ -903,7 +1057,7 @@ CRAN release: 2026-07-16
   [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
   roxygen `@details` section, and a provenance note in `inst/extdata/`.
 
-#### Breaking changes
+### Breaking changes
 
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
   the standard folder structure has been revised to better reflect
@@ -936,7 +1090,7 @@ CRAN release: 2026-07-16
   [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)’s
   folder structure.
 
-#### New features (continued from above)
+### New features (continued from above)
 
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
   added `config` argument. When supplied, the folder list in the YAML
@@ -985,7 +1139,7 @@ CRAN release: 2026-07-16
   to instead treat missing values as their own group rather than
   dropping them.
 
-#### Bug fixes
+### Bug fixes
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   `use_style = TRUE` now correctly copies `rci-banner.png` from
@@ -1011,7 +1165,7 @@ CRAN release: 2026-07-16
 
 CRAN release: 2026-04-27
 
-#### Breaking changes
+### Breaking changes
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   `filename` is now the first argument and has no default – it must be
@@ -1029,7 +1183,7 @@ CRAN release: 2026-04-27
   and the broader package API. Calls using `file_path =` by name will
   error; positional calls are unaffected.
 
-#### New features
+### New features
 
 - Added
   [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)
@@ -1041,7 +1195,7 @@ CRAN release: 2026-04-27
   `_quarto.yml` post-render hook and a `purl.R` script for extracting R
   code from rendered documents into `R/`.
 
-#### Bug fixes
+### Bug fixes
 
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
   now runs
@@ -1072,7 +1226,7 @@ CRAN release: 2026-04-27
 
 CRAN release: 2026-04-24
 
-#### Breaking changes
+### Breaking changes
 
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   `path` is now a required argument with no default. Passing `NULL` or
@@ -1088,7 +1242,7 @@ CRAN release: 2026-04-24
   `open` now defaults to `FALSE` instead of `TRUE` to avoid disrupting
   the current RStudio session in non-interactive contexts.
 
-#### New features
+### New features
 
 - Added
   [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
@@ -1112,7 +1266,7 @@ CRAN release: 2026-04-24
 
 ## toolero 0.1.1
 
-#### New features
+### New features
 
 - Added `uw_branding` argument to
   [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md).

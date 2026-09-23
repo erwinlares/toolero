@@ -25,7 +25,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">toolero</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,7 +67,7 @@
 Lares</h4>
             
             <h4 data-toc-skip class="date">Created 2026-04-30 | Last
-updated 2026-09-16</h4>
+updated 2026-09-23</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/vignettes/toolero-intro.Rmd" class="external-link"><code>vignettes/toolero-intro.Rmd</code></a></small>
       <div class="d-none name"><code>toolero-intro.Rmd</code></div>
@@ -389,17 +389,20 @@ independently of the document. <code>use_purl</code> defaults to
 <div class="section level4">
 <h4 id="pre-populating-the-yaml-header">Pre-populating the YAML header<a class="anchor" aria-label="anchor" href="#pre-populating-the-yaml-header"></a>
 </h4>
-<p>The <code>yaml_data</code> argument accepts a path to a YAML file
-whose top-level keys overwrite the corresponding keys in the template.
-Keys not present in the file are left exactly as the template wrote them
-– including their quoting, indentation, and any comments, since every
-header edit <code><a href="../reference/create_qmd.html">create_qmd()</a></code> makes is line-based rather than a
-parse-and-rewrite:</p>
+<p>The <code>header_defaults</code> argument accepts a path to a YAML
+file whose top-level keys overwrite the corresponding keys in the
+template. Keys not present in the file are left exactly as the template
+wrote them – including their quoting, indentation, and any comments,
+since every header edit <code><a href="../reference/create_qmd.html">create_qmd()</a></code> makes is line-based
+rather than a parse-and-rewrite. (This argument was named
+<code>yaml_data</code> before v0.6.0; the old name still works but is
+deprecated and will be removed in v0.7.0 – update to
+<code>header_defaults</code>.)</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/create_qmd.html">create_qmd</a></span><span class="op">(</span></span>
 <span>  <span class="st">"analysis.qmd"</span>,</span>
-<span>  path      <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
-<span>  yaml_data <span class="op">=</span> <span class="st">"~/my-metadata.yml"</span></span>
+<span>  path             <span class="op">=</span> <span class="st">"~/Documents/my-project"</span>,</span>
+<span>  header_defaults <span class="op">=</span> <span class="st">"~/my-metadata.yml"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Where <code>my-metadata.yml</code> might look like:</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">title</span><span class="kw">:</span><span class="at"> </span><span class="st">"My Analysis"</span></span>
@@ -407,6 +410,18 @@ parse-and-rewrite:</p>
 <span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> </span><span class="st">"Your Name"</span></span>
 <span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="at">    </span><span class="fu">affiliation</span><span class="kw">:</span><span class="at"> </span><span class="st">"UW-Madison"</span></span>
 <span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="at">    </span><span class="fu">email</span><span class="kw">:</span><span class="at"> </span><span class="st">"you@wisc.edu"</span></span></code></pre></div>
+<p>Rather than hand-writing that file for every project,
+<code><a href="../reference/generate_profile.html">generate_profile()</a></code> writes a starting-point YAML skeleton –
+pre-filled with placeholders and explanatory comments for the personal
+information and formatting preferences that tend to stay identical
+across every document you create:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_profile.html">generate_profile</a></span><span class="op">(</span>filename <span class="op">=</span> <span class="st">"~/my-metadata.yml"</span><span class="op">)</span></span></code></pre></div>
+<p>Fill in the placeholders once, and reuse the same file as
+<code>header_defaults</code> across projects; <code>filename</code> has
+no default, so keeping more than one profile – a personal one and a work
+one, say – under different filenames is a normal thing to do, not a
+workaround.</p>
 <p>This works with both <code>include_examples = TRUE</code> and
 <code>FALSE</code>, and composes with <code>use_style</code> and
 <code>use_purl</code>.</p>
@@ -482,7 +497,7 @@ in any R project, not just ones set up with <code>toolero</code>.</p>
 <code><a href="https://readr.tidyverse.org/reference/read_delim.html" class="external-link">readr::read_csv()</a></code>, <code><a href="https://sfirke.github.io/janitor/reference/clean_names.html" class="external-link">janitor::clean_names()</a></code>, and
 optionally <code><a href="https://tidyr.tidyverse.org/reference/drop_na.html" class="external-link">tidyr::drop_na()</a></code> into a single call. The goal is
 to get from a raw CSV to a clean, analysis-ready tibble in one step.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span></span>
 <span>  <span class="st">"data-raw/my-file.csv"</span>,</span>
 <span>  na      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">""</span>, <span class="st">"NA"</span>, <span class="st">"N/A"</span>, <span class="st">"."</span><span class="op">)</span>,</span>
@@ -503,7 +518,7 @@ inputs and <code>data/</code> holds analysis-ready outputs. If the data
 frame’s names are not already clean, it applies
 <code><a href="https://sfirke.github.io/janitor/reference/clean_names.html" class="external-link">janitor::clean_names()</a></code> before writing and warns about the
 affected columns, so the output file always has consistent names:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/write_clean_csv.html">write_clean_csv</a></span><span class="op">(</span><span class="va">data</span>, <span class="st">"data/clean.csv"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
@@ -520,7 +535,7 @@ data each time.</p>
 grouping columns, writes one CSV per group with sanitized filenames, and
 optionally writes a job manifest recording each group’s value, row
 count, and file path:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
 <span>  data       <span class="op">=</span> <span class="va">penguins</span>,</span>
 <span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
@@ -534,10 +549,25 @@ prepends a namespace to every filename – useful before a high-throughput
 run, where <code>submitr</code> reduces the manifest to
 <code><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename()</a></code> and short group names from two different
 datasets could otherwise collide in one flat directory.</p>
+<p>If a project was scaffolded with <code><a href="../reference/init_project.html">init_project()</a></code>,
+<code>output_dir</code> does not need to be typed out at all.
+<code><a href="../reference/write_by_group.html">write_by_group()</a></code> accepts a <code>config</code> argument – a
+path to the project’s own <code>_toolero.yml</code> – and resolves
+<code>output_dir</code> from its <code>split_dir</code> convention when
+<code>output_dir</code> is not supplied directly. An explicit
+<code>output_dir</code> always wins; <code>config</code> only fills in
+what you didn’t already specify:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
+<span>  data      <span class="op">=</span> <span class="va">penguins</span>,</span>
+<span>  group_col <span class="op">=</span> <span class="st">"species"</span>,</span>
+<span>  config    <span class="op">=</span> <span class="st">"_toolero.yml"</span>,</span>
+<span>  manifest  <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/run_by_group.html">run_by_group()</a></code> reads that manifest (or a named list of
 data frames already in memory), applies your function to each subset,
 and assembles the results into a single tibble:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summarise_species</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span></span>
 <span>    <span class="va">data</span>,</span>
@@ -571,7 +601,7 @@ means something inside the data has nothing to serialize.</p>
 object to disk via a function you supply, and appends a row to a
 project-level accumulator recording the path, the object’s class, the
 function used, and whether the write succeeded:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/save_output.html">save_output</a></span><span class="op">(</span></span>
 <span>  <span class="va">results</span>,</span>
 <span>  <span class="st">"output/results.rds"</span>,</span>
@@ -582,8 +612,24 @@ accumulator, collapses it to one row per output file, and writes
 <code>output/project-manifest.json</code> – a record of what the
 analysis actually produced, which is useful on its own and becomes
 essential once a job is running unattended on a cluster.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="st">"output"</span><span class="op">)</span></span></code></pre></div>
+<p>Like <code><a href="../reference/write_by_group.html">write_by_group()</a></code>, both <code><a href="../reference/save_output.html">save_output()</a></code>
+and <code><a href="../reference/generate_manifest.html">generate_manifest()</a></code> accept a <code>config</code>
+argument that resolves <code>output_dir</code> from a project’s
+<code>_toolero.yml</code> when you don’t supply it directly.</p>
+<p><code><a href="../reference/generate_manifest.html">generate_manifest()</a></code> also records <code>commit</code> in
+<code>project-manifest.json</code>: the git commit checked out in
+<code>git_root</code> (default <code>"."</code>) at the moment the
+manifest was written. <code>renv.lock</code> already answers which
+package versions were in play; <code>commit</code> answers which
+revision of the analysis script produced this particular set of outputs
+– the one piece of provenance package versions alone can’t supply:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="st">"output"</span>, git_root <span class="op">=</span> <span class="st">"."</span><span class="op">)</span></span></code></pre></div>
+<p><code>commit</code> comes back <code>NULL</code> when the project
+isn’t a git repository, has no commits yet, or <code>git</code> isn’t
+installed, so recording it is always safe to leave on.</p>
 </div>
 <div class="section level3">
 <h3 id="auditing-a-project-check_project">Auditing a project: <code>check_project()</code><a class="anchor" aria-label="anchor" href="#auditing-a-project-check_project"></a>
@@ -595,8 +641,17 @@ against the expected folder structure, an <code>.Rproj</code> file,
 reproducibility checks. It reads the project’s own
 <code>_toolero.yml</code> when one exists, so a customized project does
 not need to be handed the same configuration again:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/check_project.html">check_project</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Among those checks is a stale-purled-script check: every
+<code>.qmd</code> whose header declares <code>purl: true</code> (see <a href="#the-purl-hook">The purl hook</a> above) gets its own row
+comparing it against the <code>.R</code> script it should have derived.
+A <code>.qmd</code> is the source of truth for its purled script, so a
+script missing entirely, or older than the document it came from, is
+reported as a warning – it means an edit was made and not yet
+re-rendered, and a container or cluster job that bakes in the stale
+<code>.R</code> file would run the old analysis with nothing to say
+so.</p>
 <hr>
 </div>
 </div>
@@ -614,7 +669,7 @@ environments is active and returns one of <code>"interactive"</code>,
 <code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> builds on it directly: it picks the
 branch that matches the current context, checks that the result is
 usable, and explains what to fix when it is not.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resolve_input_path.html">resolve_input_path</a></span><span class="op">(</span></span>
 <span>  interactive <span class="op">=</span> <span class="st">"data-raw/sample.csv"</span>,</span>
 <span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
@@ -647,7 +702,7 @@ it.</p>
 <p>The UW-Madison Knowledge Base requires content to be submitted as XML
 with all visual assets embedded in the HTML body.
 <code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code> automates this process entirely.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
 <span>  html_path  <span class="op">=</span> <span class="st">"docs/analysis.html"</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="st">"exports"</span></span>
@@ -673,6 +728,32 @@ work.</p>
 <p><strong>When importing into the KB</strong>, check the <em>Decode
 HTML entity in body content</em> option.</p>
 </blockquote>
+<hr>
+</div>
+<div class="section level2">
+<h2 id="citation-metadata-generate_citation">Citation metadata: <code>generate_citation()</code><a class="anchor" aria-label="anchor" href="#citation-metadata-generate_citation"></a>
+</h2>
+<p>A repository’s citation metadata tends to get retyped by hand, and
+drifts from a person’s actual name, affiliation, and ORCID as a result.
+<code><a href="../reference/generate_citation.html">generate_citation()</a></code> writes a <code>CITATION.cff</code>
+skeleton – the <a href="https://citation-file-format.github.io/" class="external-link">Citation File Format</a>
+GitHub and other tools use to render a “Cite this repository” button –
+optionally pre-filled from a profile written by
+<code><a href="../reference/generate_profile.html">generate_profile()</a></code> (see <a href="#pre-populating-the-yaml-header">Pre-populating the YAML
+header</a> above):</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_citation.html">generate_citation</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"~/my-metadata.yml"</span><span class="op">)</span></span></code></pre></div>
+<p><code>title</code>, <code>version</code>,
+<code>repository-code</code>, <code>url</code>, and <code>license</code>
+are facts about the project rather than the person, so they are left as
+placeholders (some commented out) regardless of whether
+<code>profile</code> is supplied; <code>date-released</code> is filled
+in with today’s date. The given-names/family-names split the Citation
+File Format requires is done by breaking a profile’s <code>name</code>
+field on its last space, which handles the ordinary two-word case but
+not multi-word family names, single-word names, or family-name-first
+orderings – review the generated file’s <code>given-names</code> and
+<code>family-names</code> fields before relying on them.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -714,21 +795,29 @@ be reused or shared.</td>
 </tr>
 <tr class="odd">
 <td><code><a href="../reference/check_project.html">check_project()</a></code></td>
-<td>Audits an existing project against the expected folder structure and
-common reproducibility hygiene checks.</td>
+<td>Audits an existing project against the expected folder structure,
+common reproducibility hygiene checks, and stale purled <code>.R</code>
+scripts.</td>
 </tr>
 <tr class="even">
 <td><code><a href="../reference/create_qmd.html">create_qmd()</a></code></td>
 <td>Creates a Quarto document scaffold. Can generate a full worked
-example or a minimal skeleton, pre-fill YAML metadata, add styling, and
-opt into the purl post-render hook.</td>
+example or a minimal skeleton, pre-fill YAML metadata via
+<code>header_defaults</code>, add styling, and opt into the purl
+post-render hook.</td>
 </tr>
 <tr class="odd">
+<td><code><a href="../reference/generate_profile.html">generate_profile()</a></code></td>
+<td>Writes a reusable YAML skeleton of personal information and document
+formatting preferences, meant to be passed as
+<code>create_qmd(header_defaults = )</code>.</td>
+</tr>
+<tr class="even">
 <td><code><a href="../reference/qmd_to_r.html">qmd_to_r()</a></code></td>
 <td>Extracts the R code from a rendered Quarto document into a
 standalone <code>.R</code> script.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>
 <code><a href="../reference/read_clean_csv.html">read_clean_csv()</a></code> / <code><a href="../reference/write_clean_csv.html">write_clean_csv()</a></code>
 </td>
@@ -736,42 +825,52 @@ standalone <code>.R</code> script.</td>
 column names, optional missing-value handling, and an optional ingest
 summary.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code><a href="../reference/write_by_group.html">write_by_group()</a></code></td>
 <td>Splits a data frame by one or more grouping columns and writes one
-CSV file per group, optionally with a job manifest.</td>
+CSV file per group, optionally with a job manifest.
+<code>output_dir</code> can be resolved from <code>_toolero.yml</code>
+via <code>config</code>.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code><a href="../reference/run_by_group.html">run_by_group()</a></code></td>
 <td>Applies a function to each group from a job manifest or a named
 list, sequentially or in parallel.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code><a href="../reference/save_output.html">save_output()</a></code></td>
 <td>Writes an object to disk via a user-supplied function and records
-the write in a project-level accumulator.</td>
+the write in a project-level accumulator. <code>output_dir</code> can be
+resolved from <code>_toolero.yml</code> via <code>config</code>.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code><a href="../reference/generate_manifest.html">generate_manifest()</a></code></td>
 <td>Reads the accumulator and writes a deduplicated
 <code>project-manifest.json</code> describing everything the analysis
-produced.</td>
+produced, including the git commit checked out at the time (when
+available).</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code><a href="../reference/detect_execution_context.html">detect_execution_context()</a></code></td>
 <td>Detects whether code is running interactively, during
 <code>quarto render</code>, or as an <code>Rscript</code> job.</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code></td>
 <td>Resolves the input data path for the current execution context, and
 explains what went wrong when it cannot.</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code><a href="../reference/generate_kb_xml.html">generate_kb_xml()</a></code></td>
 <td>Converts a rendered Quarto HTML document into UW-Madison Knowledge
 Base-ready XML with embedded resources and metadata extracted from the
 source <code>.qmd</code>.</td>
+</tr>
+<tr class="odd">
+<td><code><a href="../reference/generate_citation.html">generate_citation()</a></code></td>
+<td>Writes a <code>CITATION.cff</code> skeleton, optionally pre-filled
+with author information from a <code><a href="../reference/generate_profile.html">generate_profile()</a></code>
+file.</td>
 </tr>
 <tr class="even">
 <td><code><a href="../reference/arborize.html">arborize()</a></code></td>
@@ -786,7 +885,7 @@ Quarto’s Typst engine.</td>
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
 <p>If you use <code>toolero</code> in your work, please cite it:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

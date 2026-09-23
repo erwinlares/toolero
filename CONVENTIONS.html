@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">toolero</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -155,6 +155,7 @@ R/analysis.R                derived from it, executed by a machine</code></pre>
 <hr></div>
 <div class="section level2">
 <h2 id="version-history">Version history<a class="anchor" aria-label="anchor" href="#version-history"></a></h2>
+<p><strong>2026-09 (toolero 0.6.0).</strong> No changes to the conventions themselves. <code>toolero</code> added <code><a href="reference/generate_profile.html">generate_profile()</a></code> and <code><a href="reference/generate_citation.html">generate_citation()</a></code>, a <code>config</code> argument to <code><a href="reference/write_by_group.html">write_by_group()</a></code>, <code><a href="reference/save_output.html">save_output()</a></code>, and <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> for reading <code>output_dir</code>/<code>split_dir</code> out of <code>_toolero.yml</code>, and a <code>commit</code> field on the project manifest – all additive, and all already consistent with what this file describes.</p>
 <p><strong>2026-09.</strong> First version, written after the <code>toolero</code> 0.5.0 remediation settled the conventions in sections 1 through 6. The decisions recorded here supersede: <code>results/</code> as an output folder name, <code>scripts/</code> as the home of derived scripts, the hand-written <code><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch()</a></code> on <code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code> as the way to resolve an input path, and the stamped <code>params:</code> block that an earlier draft of <code><a href="reference/create_qmd.html">create_qmd()</a></code> briefly wrote.</p>
 </div>
 </div>

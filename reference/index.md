@@ -10,10 +10,14 @@
   : Create a new Quarto document from a template
 - [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md)
   : Detect the current execution context
+- [`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md)
+  : Generate a CITATION.cff file
 - [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)
   : Generate a KB-importable XML file from a Quarto document
 - [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
   : Write the project manifest
+- [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md)
+  : Generate a personal defaults file for create_qmd()
 - [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
   : Generate a project configuration file
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)

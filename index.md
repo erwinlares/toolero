@@ -88,14 +88,6 @@ and you can adopt them one at a time as your project’s needs grow.
 `submitr`. The dependencies run in one direction only: each package
 prepares cleanly for the next, but none reaches backward.
 
-The three packages also share a single source of truth for the
-conventions that let them hand work to one another – folder names, file
-paths, terminology – so a question like “where does the derived script
-live” has one answer that can be cited rather than three that have to be
-reconciled. See
-[CONVENTIONS.md](https://erwinlares.github.io/toolero/CONVENTIONS.md)
-for the full account.
-
 What the later packages read, rather than guess, is recorded in the
 project manifest.
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
@@ -226,18 +218,20 @@ execution later, and scalable computing when needed.
 |----|----|
 | [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new R project with a standard research-oriented folder structure and records that structure in `_toolero.yml` at the project root. Can set up `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding), and create a README via `use_readme` (`README.md` by default, `"plain"` for `README.txt`, or `FALSE` to skip it). |
 | [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md) | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure and conventions. Edit to define a custom layout and pass to [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) via `config`. Same schema, template and writer as the `_toolero.yml` a project carries. |
-| [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project for common reproducibility scaffolding: the expected folders, an `.Rproj` file, `renv.lock` and whether it actually records anything, `.renvignore` entries that would hide your source from `renv`, git, README, `.gitignore`, the project manifest, and hidden files such as `.RData` or `.Rhistory`. Audits against the project’s own `_toolero.yml` when it has one. |
-| [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata, wire in custom styling from a standardized `assets/` folder, and (opt-in via `use_purl`, `FALSE` by default) stamp `purl: true`/`false` into the document’s header and set up a post-render purl hook, merged into an existing `_quarto.yml` where possible and skipped with a warning for website, book and manuscript projects. |
+| [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project for common reproducibility scaffolding: the expected folders, an `.Rproj` file, `renv.lock` and whether it actually records anything, `.renvignore` entries that would hide your source from `renv`, git, README, `.gitignore`, the project manifest, stale purled `.R` scripts, and hidden files such as `.RData` or `.Rhistory`. Audits against the project’s own `_toolero.yml` when it has one. |
+| [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata via `header_defaults`, wire in custom styling from a standardized `assets/` folder, and (opt-in via `use_purl`, `FALSE` by default) stamp `purl: true`/`false` into the document’s header and set up a post-render purl hook, merged into an existing `_quarto.yml` where possible and skipped with a warning for website, book and manuscript projects. |
+| [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md) | Writes a YAML skeleton of author information and document formatting preferences, meant to be edited once and reused across projects via `create_qmd(header_defaults = )`. |
 | [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md) | Extracts R code chunks from a Quarto document into a standalone `.R` script, creating the output directory if it does not exist. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
 | [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md) | Reads a CSV file, cleans column names, handles missing values, optionally drops incomplete rows, and can print a short ingest summary. |
 | [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md) | Writes a data frame to CSV with clean column names and command-line feedback. Reinforces the pattern of keeping raw inputs in `data-raw/` and analysis-ready outputs in `data/`. |
-| [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) | Splits a data frame by one or more grouping columns and writes one CSV per group, optionally prefixed via `prefix`. Can also create a job manifest for parallel or high-throughput workflows. |
+| [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) | Splits a data frame by one or more grouping columns and writes one CSV per group, optionally prefixed via `prefix`. Can also create a job manifest for parallel or high-throughput workflows. `output_dir` can be resolved from a project’s `_toolero.yml` via `config`. |
 | [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md) | Applies a function to each group subset and collects the results. Accepts a job manifest from [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns. |
-| [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md) | Writes an object to disk via a user-supplied function and appends a row to the project accumulator recording the path, class, function used, and whether the write succeeded. |
-| [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md) | Reads the project accumulator, deduplicates by path, and writes `project-manifest.json` describing every artifact the analysis produced. |
+| [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md) | Writes an object to disk via a user-supplied function and appends a row to the project accumulator recording the path, class, function used, and whether the write succeeded. `output_dir` can be resolved from a project’s `_toolero.yml` via `config`. |
+| [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md) | Reads the project accumulator, deduplicates by path, and writes `project-manifest.json` describing every artifact the analysis produced, along with the git commit checked out at the time (when available). |
 | [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md) | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
 | [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md) | Resolves where the input data lives for the current execution context, and says what to fix when it cannot. The companion to [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md) for the specific case of finding your data. |
 | [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md) | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
+| [`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md) | Writes a `CITATION.cff` skeleton, optionally pulling author information from a profile written by [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md). |
 | [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md) | Renders syntactic trees as PNG images using Quarto’s Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later. |
 
 ------------------------------------------------------------------------
@@ -433,6 +427,19 @@ Naming conventions are reported only when they differ from the defaults,
 so a conventions row in the output always means something in this
 project resolves differently from every other one.
 
+[`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
+also reports on stale purled scripts. Every `.qmd` whose header declares
+`purl: true` (see
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)’s
+`use_purl` argument below) gets its own row, comparing it against the
+`.R` script `R/purl.R` is expected to have derived from it. A script
+that is missing entirely, or older than the `.qmd` it was purled from,
+is a `"warn"`: the `.qmd` is the source of truth, so an out-of-date `R/`
+script means an edit was made and not yet re-rendered, and a container
+or cluster job that bakes in that script would run the old analysis
+without any error to say so. A document never opted into purl produces
+no row.
+
 README detection is case-insensitive and extension-agnostic: any file
 whose stem matches `readme`, in any capitalization, counts regardless of
 extension or the absence of one. `README.md`, `readme`, `Readme.pdf`,
@@ -462,9 +469,13 @@ rendered document into a companion `.R` file automatically.
 The function has two main motivations. First, it reduces repetitive
 setup work. If you regularly create Quarto documents with the same
 author information, institutional metadata, or preferred format
-settings, the `yaml_data` argument lets you pre-populate the YAML header
-from a personal configuration file instead of rebuilding the same header
-by hand.
+settings, the `header_defaults` argument lets you pre-populate the YAML
+header from a personal configuration file instead of rebuilding the same
+header by hand.
+[`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md)
+is the natural way to create that file: it scaffolds a personal
+configuration template in your home directory, ready to fill in once and
+reuse across every document you create.
 
 Second, it helps reduce code drift, when you opt in. In a literate
 programming workflow, the `.qmd` document can serve as the source of
@@ -487,10 +498,19 @@ for.
 
 - `filename` – name of the `.qmd` file. Must be supplied explicitly.
 - `path` – directory where the document is created. Defaults to `"."`.
-- `yaml_data` – path to a YAML file for pre-populating the header. Each
-  top-level key in the file replaces the template’s key of the same
-  name; keys the file does not mention are left exactly as the template
-  wrote them.
+- `header_defaults` – path to a YAML file for pre-populating the header.
+  The merge is applied key by key rather than as a wholesale
+  replacement: when a top-level key holds a mapping (a nested set of
+  `key: value` pairs, as `author:` typically does), the file’s mapping
+  is merged into the template’s mapping one leaf at a time, so a config
+  file that only sets `author: name:` does not clobber an
+  `author: affiliation:` the template already supplied. A key whose
+  value is a sequence (a YAML list, such as a list of keywords) is
+  replaced wholesale rather than merged item by item. Keys the file does
+  not mention are left exactly as the template wrote them. (This
+  argument was named `yaml_data` before v0.6.0; the old name still works
+  but is deprecated and will be removed in v0.7.0 – update to
+  `header_defaults`.)
 - `overwrite` – whether to overwrite existing files. Defaults to
   `FALSE`. Note two exceptions: `assets/logo.png` is always exempt from
   overwrite, so an existing logo is assumed to be deliberate branding
@@ -529,7 +549,13 @@ for.
 - `include_examples` – if `TRUE` (default), copies a sample dataset into
   `data-raw/`, a placeholder logo into `assets/` (skipped if a logo
   already exists), and uses a worked example template. If `FALSE`,
-  creates a blank skeleton.
+  creates a blank skeleton. The placeholder logo is also skipped,
+  regardless of whether one already exists, when the project’s
+  `_toolero.yml` declares a `folders` list that does not include
+  `assets` – if the project was not set up to have an assets folder in
+  the first place,
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+  does not create one just to drop a logo into it.
 - `use_style` – controls custom styling. `FALSE` (default) produces
   plain Quarto output. `TRUE` scans `assets/` for `styles.css`,
   `header.html`, and `footer.html` by name and wires up whichever are
@@ -563,7 +589,7 @@ create_qmd(path = "my-project", filename = "report.qmd",
 
 # Pre-populate YAML from a personal config file
 create_qmd(path = "my-project", filename = "analysis.qmd",
-           yaml_data = "my-config.yml")
+           header_defaults = "my-config.yml")
 ```
 
 If `use_purl = TRUE` is used inside an existing website, book, or
@@ -581,6 +607,51 @@ file, and a rendered document committed next to its analysis quietly
 depends on a directory nobody thinks to copy. The cost of `true` is a
 larger file; the cost of `false` is an artifact that works only on the
 machine that made it.
+
+------------------------------------------------------------------------
+
+### `generate_profile()`
+
+Scaffolds a personal configuration template – author name, affiliation,
+ORCID, email, and a handful of common document format settings – meant
+to be filled in once and reused as the `header_defaults` argument to
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+or the `profile` argument to
+[`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md),
+rather than retyping the same author block into every new document or
+citation file.
+
+``` r
+
+generate_profile(filename = "toolero-profile.yml")
+```
+
+**Arguments:**
+
+- `filename` – name of the file to write. Must be supplied explicitly.
+- `path` – directory where the file is written. Defaults to
+  [`fs::path_home()`](https://fs.r-lib.org/reference/path_expand.html)
+  (the user’s home directory), not the working directory, since a
+  personal profile is meant to live in one place and be reused across
+  projects rather than be scoped to whichever project happens to be
+  current when it is created.
+- `overwrite` – whether to overwrite an existing file at the
+  destination. Defaults to `FALSE`.
+
+The written file has two sections: a personal information block
+(`author:`, with `name:`, `affiliation:`, `orcid:`, and `email:`
+sub-keys) and a document settings block (`format:` and related keys) for
+the format defaults you find yourself setting the same way across
+documents. Neither a phone number nor a mailing address placeholder is
+included – those are not things
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+or
+[`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md)
+make use of, so the template does not ask for them.
+
+Nothing about the filename or location is enforced beyond what you pass
+in: you can keep more than one profile (a `personal.yml` and a
+`work.yml`, say) and point different projects at whichever one applies.
 
 ------------------------------------------------------------------------
 
@@ -691,6 +762,19 @@ path, and row count. That job manifest is the input to
 Rows with a missing value in any grouping column are dropped by default
 (`drop_na = TRUE`), with a message reporting how many were dropped; set
 `drop_na = FALSE` to instead treat missing values as their own group.
+
+`output_dir` can be supplied explicitly, or resolved from a project’s
+own `_toolero.yml` by passing its path as `config`:
+[`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
+reads the config’s `split_dir` convention (the folder
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+set aside for split-by-group output) and uses that when `output_dir` is
+not supplied directly. An explicit `output_dir` always wins over
+`config`; `config` only fills in what you did not already say. This is
+opt-in – a project never scaffolded by
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md),
+or a call that supplies `output_dir` directly, behaves exactly as it
+always has.
 
 Groups are written, and manifest rows recorded, in order of first
 appearance in the data rather than in sort order. This is more than
@@ -909,6 +993,26 @@ followed by an `artifacts` array with one entry per output file. When an
 analysis re-runs within a session and overwrites an earlier output, the
 manifest keeps only the most recent write per path.
 
+Like
+[`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md),
+both functions accept a `config` argument: a path to a project’s
+`_toolero.yml`, from which `output_dir` is resolved (via the config’s
+`output_dir` convention) when not supplied directly. An explicit
+`output_dir` still wins, and a project without a config behaves exactly
+as before.
+
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+also accepts a `git_root` argument (default `"."`) and records a
+`commit` field in the manifest – the git commit checked out in
+`git_root` at the moment the manifest was written, recorded once at the
+top level alongside `execution_context` and `generated_at`. This is the
+one piece of provenance package versions cannot supply: `renv.lock`
+already records which package versions were in play, but nothing else
+records which revision of the analysis script itself produced a given
+set of outputs. `commit` is `null` when `git_root` is not a git
+repository, has no commits yet, or `git` is not installed, so its
+absence is informative rather than a failure.
+
 A missing accumulator at manifest time is an error, since no
 [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
 calls were ever recorded. An accumulator with no rows produces an empty
@@ -1036,6 +1140,52 @@ entity in body content* option.
 
 ------------------------------------------------------------------------
 
+### `generate_citation()`
+
+Writes a `CITATION.cff` skeleton – the [Citation File
+Format](https://citation-file-format.github.io/) GitHub and other tools
+use to render a “Cite this repository” button and machine-readable
+citation metadata – so a project’s citation file does not have to be
+built by hand.
+
+``` r
+
+generate_citation(profile = "~/toolero-profile.yml")
+```
+
+**Arguments:**
+
+- `filename` – name of the file to write. Defaults to `"CITATION.cff"`.
+- `path` – directory where the file is written. Defaults to `"."`.
+- `profile` – optional path to a profile written by
+  [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md)
+  (or any YAML file with the same `author:` shape). When supplied, each
+  author entry’s `name` is split into `given-names`/`family-names`, and
+  `affiliation`, `orcid`, and `email` are carried over wherever present.
+  When omitted, a single placeholder author is written instead.
+- `overwrite` – whether to overwrite an existing file at the
+  destination. Defaults to `FALSE`.
+
+`title`, `version`, `repository-code`, `url`, and `license` are facts
+about the project, not the person, so a profile has no way to supply
+them and they are left as placeholders (some commented out) regardless
+of whether `profile` is used. `date-released` is filled in with today’s
+date.
+
+The given-names/family-names split is done by breaking a profile
+author’s `name` on its last space – right for the ordinary two-word
+case, and wrong for some real names: multi-word family names,
+single-word names, and family-name-first orderings all defeat it. Review
+the generated file’s `given-names` and `family-names` fields before
+relying on them, especially for names that do not follow that pattern.
+
+If a supplied `profile` has no `author` field at all,
+[`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md)
+warns and falls back to the same placeholder author it would have
+written with no `profile` supplied.
+
+------------------------------------------------------------------------
+
 ### `arborize()`
 
 Renders a syntactic tree as a standalone PNG image using Quarto’s Typst
@@ -1128,6 +1278,13 @@ research workflows:
 Each package can be used independently. The shared design goal is to
 make good research-computing practices easier to adopt before a project
 becomes difficult to change.
+
+The folder names, path conventions, and shared vocabulary used
+consistently across all three packages are collected in one place,
+[CONVENTIONS.md](https://github.com/erwinlares/toolero/blob/main/CONVENTIONS.md),
+which lives in this repository since `toolero` is where those
+conventions are authored. `containr` and `submitr` link back to it
+rather than repeating it.
 
 ------------------------------------------------------------------------
 

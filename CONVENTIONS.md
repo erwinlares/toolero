@@ -313,6 +313,20 @@ time of writing, in section 2: `containr`’s `code_file` and `submitr`’s
 
 ## Version history
 
+**2026-09 (toolero 0.6.0).** No changes to the conventions themselves.
+`toolero` added
+[`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md)
+and
+[`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md),
+a `config` argument to
+[`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md),
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md),
+and
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+for reading `output_dir`/`split_dir` out of `_toolero.yml`, and a
+`commit` field on the project manifest – all additive, and all already
+consistent with what this file describes.
+
 **2026-09.** First version, written after the `toolero` 0.5.0
 remediation settled the conventions in sections 1 through 6. The
 decisions recorded here supersede: `results/` as an output folder name,

@@ -13,7 +13,7 @@ post-render purl hook for extracting R code."><meta property="og:image" content=
 
     <a class="navbar-brand me-2" href="../index.html">toolero</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,11 +56,12 @@ post-render purl hook for extracting R code.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">create_qmd</span><span class="op">(</span></span>
 <span>  filename <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  path <span class="op">=</span> <span class="st">"."</span>,</span>
-<span>  yaml_data <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  header_defaults <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  use_purl <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  include_examples <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  use_style <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  use_style <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  yaml_data <span class="op">=</span> <span class="fu">lifecycle</span><span class="fu">::</span><span class="fu"><a href="https://lifecycle.r-lib.org/reference/deprecated.html" class="external-link">deprecated</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -78,13 +79,20 @@ Must be supplied explicitly, e.g. <code>"analysis.qmd"</code>.</p></dd>
 created. Defaults to <code>"."</code> (the current working directory).</p></dd>
 
 
-<dt id="arg-yaml-data">yaml_data<a class="anchor" aria-label="anchor" href="#arg-yaml-data"></a></dt>
-<dd><p>A string or <code>NULL</code>. Path to a YAML file containing
-metadata to pre-populate the document header. If <code>NULL</code> (the default),
-the template is copied as-is with placeholder prompts intact. Each
-top-level key in the file replaces the template's key of the same
-name; keys the file does not mention are left exactly as the template
-wrote them.</p></dd>
+<dt id="arg-header-defaults">header_defaults<a class="anchor" aria-label="anchor" href="#arg-header-defaults"></a></dt>
+<dd><p>A string or <code>NULL</code>. Path to a YAML file supplying
+values to pre-populate the document header – typically a profile
+written by <code><a href="generate_profile.html">generate_profile()</a></code>, but any YAML file following the same
+shape works. If <code>NULL</code> (the default), the template is copied as-is
+with placeholder prompts intact. Every key in the file, at any depth,
+replaces the template's key of the same name; keys the file does not
+mention are left exactly as the template wrote them. A key whose value
+is itself a mapping (<code>format: html: ...</code>) is descended into and merged
+key by key, so a sibling the file doesn't mention – <code>css:</code> from
+<code>use_style</code>, say – survives; a key whose value is a sequence
+(<code>author:</code>, <code>categories:</code>) is replaced as a whole, not merged element
+by element. Named <code>yaml_data</code> before v0.5.1.9000; that name still
+works but is deprecated (see below).</p></dd>
 
 
 <dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
@@ -141,16 +149,24 @@ convention using <code>index.qmd</code>) do not overwrite each other's output.</
 
 <dt id="arg-include-examples">include_examples<a class="anchor" aria-label="anchor" href="#arg-include-examples"></a></dt>
 <dd><p>Logical. If <code>TRUE</code> (the default), copies a sample
-dataset (<code>sample.csv</code>) into <code>data-raw/</code>, a placeholder logo
-(<code>generic-logo.png</code>, copied as <code>logo.png</code>) into <code>assets/</code>, and uses a
-template <code>.qmd</code> pre-populated with a worked analysis example. If
-<code>assets/logo.png</code> already exists (e.g. from a prior <code><a href="init_project.html">init_project()</a></code>
-call with <code>branding</code> set), it is always left untouched – an existing
-logo takes precedence over the generic placeholder even when
-<code>overwrite = TRUE</code>. The YAML header includes a <code>params</code> block
-referencing the sample data. If <code>FALSE</code>, creates a blank <code>.qmd</code> with
-only the YAML header and no example content, and skips copying the
-sample dataset and logo.</p></dd>
+dataset (<code>sample.csv</code>) into <code>data-raw/</code> and uses a template <code>.qmd</code>
+pre-populated with a worked analysis example. The YAML header includes
+a <code>params</code> block referencing the sample data. If <code>FALSE</code>, creates a
+blank <code>.qmd</code> with only the YAML header and no example content, and
+skips copying the sample dataset.</p>
+<p>A placeholder logo (<code>generic-logo.png</code>, copied as <code>logo.png</code>) is also
+copied into <code>assets/</code>, but only when branding is actually part of the
+project: if <code>path</code> carries a <code>_toolero.yml</code> (as written by
+<code><a href="init_project.html">init_project()</a></code>) whose <code>folders:</code> list does not include <code>assets</code>
+(i.e. the project was scaffolded with <code>branding = "none"</code>), the logo
+is skipped along with it, so a project that declared no branding does
+not end up with an undeclared <code>assets/logo.png</code> anyway. A <code>.qmd</code>
+created outside any toolero-scaffolded project (no <code>_toolero.yml</code> at
+<code>path</code>) always gets the logo, since there is no project-level branding
+decision to defer to. If <code>assets/logo.png</code> already exists (e.g. from a
+prior <code><a href="init_project.html">init_project()</a></code> call with <code>branding</code> set), it is always left
+untouched – an existing logo takes precedence over the generic
+placeholder even when <code>overwrite = TRUE</code>.</p></dd>
 
 
 <dt id="arg-use-style">use_style<a class="anchor" aria-label="anchor" href="#arg-use-style"></a></dt>
@@ -174,6 +190,13 @@ the branding asset set, is not wired into the document YAML –
 favicons are a Quarto website-project option rather than an HTML
 format option, so set it in <code>_quarto.yml</code> if you need one.</p></dd>
 
+
+<dt id="arg-yaml-data">yaml_data<a class="anchor" aria-label="anchor" href="#arg-yaml-data"></a></dt>
+<dd><p><a href="https://lifecycle.r-lib.org/articles/stages.html#deprecated" class="external-link"><img src="figures/lifecycle-deprecated.svg" alt="[Deprecated]"></a> A string or <code>NULL</code>.
+Renamed to <code>header_defaults</code> in v0.5.1.9000 – the argument still
+works, and its value is used when <code>header_defaults</code> is not also
+supplied, but new code should use <code>header_defaults</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -193,10 +216,12 @@ exists there. Uses the example template for the <code>.qmd</code>.</p></li>
 whichever are present into the YAML header.</p></li>
 <li><p>Stamps <code>purl: true</code> or <code>purl: false</code> into the document's own YAML
 header, reflecting <code>use_purl</code>.</p></li>
-<li><p>If <code>yaml_data</code> is provided, reads the YAML file and substitutes
-values into the document header. This runs after style injection
-and the purl stamp, so <code>yaml_data</code> can override any auto-generated
-YAML key, including <code>purl</code> itself.</p></li>
+<li><p>If <code>header_defaults</code> (or the deprecated <code>yaml_data</code>) is provided,
+reads the YAML file and substitutes its values into the document
+header, descending into nested mappings so a sibling key it doesn't
+mention survives. This runs after style injection and the purl
+stamp, so <code>header_defaults</code> can override any auto-generated YAML
+key, including <code>purl</code> itself.</p></li>
 <li><p>If <code>use_purl = TRUE</code>, ensures <code>R/purl.R</code> exists. Then, unless
 <code>_quarto.yml</code> already exists and declares <code>project: type:</code> as
 <code>website</code>, <code>book</code>, or <code>manuscript</code> (in which case wiring is
@@ -244,34 +269,34 @@ exploration.</p>
 <span class="r-in"><span><span class="co"># Minimal blank document -- no examples, no styling, no purl</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
 <span class="r-in"><span>           include_examples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/analysis.qmd</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Full worked example with sample data and placeholder logo</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
 <span class="r-in"><span>           overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/data-raw/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/assets/logo.png</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/data-raw/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/assets/logo.png</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/analysis.qmd</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Opt this document into purl: stamps purl: true and wires up</span></span></span>
 <span class="r-in"><span><span class="co"># R/purl.R + the _quarto.yml post-render hook (merged if the file</span></span></span>
 <span class="r-in"><span><span class="co"># already exists, e.g. inside a larger Quarto website project)</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
 <span class="r-in"><span>           overwrite <span class="op">=</span> <span class="cn">TRUE</span>, use_purl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/data-raw/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Skipping <span style="color: #0000BB;">/tmp/RtmprEtJYE/assets/logo.png</span> -- existing logo left in place.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/analysis.qmd</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/R/purl.R</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/_quarto.yml</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/data-raw/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Skipping <span style="color: #0000BB;">/tmp/RtmpM07ZPn/assets/logo.png</span> -- existing logo left in place.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/R/purl.R</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/_quarto.yml</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Blank document wired to branding assets (assumes assets/ exists,</span></span></span>
 <span class="r-in"><span><span class="co"># e.g. from init_project(branding = "uw-madison"))</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span>,</span></span>
 <span class="r-in"><span>           include_examples <span class="op">=</span> <span class="cn">FALSE</span>, use_style <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>           overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No <span style="color: #0000BB;">styles.css</span>, <span style="color: #0000BB;">header.html</span>, or <span style="color: #0000BB;">footer.html</span> found in <span style="color: #0000BB;">/tmp/RtmprEtJYE/assets</span>.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No <span style="color: #0000BB;">styles.css</span>, <span style="color: #0000BB;">header.html</span>, or <span style="color: #0000BB;">footer.html</span> found in <span style="color: #0000BB;">/tmp/RtmpM07ZPn/assets</span>.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Skipping style injection.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/report.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/report.qmd</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Blank document with custom branding from a different directory</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span>,</span></span>
@@ -280,16 +305,16 @@ exploration.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Style directory <span style="color: #0000BB;">/home/runner/work/toolero/toolero/docs/reference/my-branding</span></span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> does not exist. Skipping style injection. Create the directory and add your</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> branding assets, or set `use_style = FALSE`.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/report.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/report.qmd</span></span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Pre-populated YAML overrides</span></span></span>
-<span class="r-in"><span><span class="va">yaml_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".yml"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"author:\n  - name: 'Your Name'"</span>, <span class="va">yaml_file</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="co"># Pre-populated YAML header, typically from generate_profile()</span></span></span>
+<span class="r-in"><span><span class="va">profile_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".yml"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"author:\n  - name: 'Your Name'"</span>, <span class="va">profile_file</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
-<span class="r-in"><span>           yaml_data <span class="op">=</span> <span class="va">yaml_file</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/data-raw/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Skipping <span style="color: #0000BB;">/tmp/RtmprEtJYE/assets/logo.png</span> -- existing logo left in place.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmprEtJYE/analysis.qmd</span></span>
+<span class="r-in"><span>           header_defaults <span class="op">=</span> <span class="va">profile_file</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/data-raw/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Skipping <span style="color: #0000BB;">/tmp/RtmpM07ZPn/assets/logo.png</span> -- existing logo left in place.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/analysis.qmd</span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

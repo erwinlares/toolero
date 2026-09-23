@@ -10,9 +10,11 @@ produced.
 
 ``` r
 generate_manifest(
-  output_dir = "output",
+  output_dir = NULL,
   filename = "project-manifest.json",
-  overwrite = FALSE
+  overwrite = FALSE,
+  config = NULL,
+  git_root = "."
 )
 ```
 
@@ -20,8 +22,11 @@ generate_manifest(
 
 - output_dir:
 
-  Character. Directory containing `accumulator.csv` and receiving the
-  manifest. Defaults to `"output"`.
+  Character or `NULL`. Directory containing `accumulator.csv` and
+  receiving the manifest. If `NULL` (the default) and `config` is
+  supplied, resolved from the config's `output_dir` convention; if
+  `config` is also `NULL`, falls back to `"output"`, unchanged from
+  earlier versions.
 
 - filename:
 
@@ -32,6 +37,19 @@ generate_manifest(
 
   Logical. When `FALSE` (default), an existing manifest at that path is
   an error rather than being replaced.
+
+- config:
+
+  Character or `NULL`. Path to a project configuration file (typically a
+  project's own `_toolero.yml`, as written by
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)).
+  Only consulted when `output_dir` is not supplied; an explicit
+  `output_dir` always wins. Defaults to `NULL`.
+
+- git_root:
+
+  Character. Directory to check for a git commit to record in the
+  manifest (see the Provenance section below). Defaults to `"."`.
 
 ## Value
 
@@ -61,6 +79,28 @@ empty manifest would present that as a finished result. An accumulator
 holding no rows is different – the file exists, so the machinery was
 wired up – and produces an empty manifest with a warning.
 
+## Provenance
+
+The manifest also records `commit`: the git commit checked out in
+`git_root` at the moment the manifest was written, or `null` when the
+project is not a git repository, has no commits yet, or `git` is not
+installed. This is deliberately the one piece of "which version of the
+code produced this" that package versions cannot supply – `renv.lock`
+already answers which package versions were in play, but nothing else
+records which revision of the analysis script itself ran. Like
+`execution_context` and `generated_at`, it describes the run as a whole
+and is not repeated per artifact.
+
+`config` is entirely opt-in and affects `output_dir` only, not `commit`.
+Nothing changes for a project never scaffolded by
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
+pass `output_dir` (or rely on the `"output"` default) exactly as before.
+When `config` is supplied but cannot be read, this aborts with the same
+message
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+gives for a bad `config`, rather than silently falling back to
+`"output"`.
+
 ## The project manifest and the job manifest
 
 This is the *project manifest*: a record of outputs from a computation
@@ -87,9 +127,9 @@ save_output(
   .f = saveRDS,
   output_dir = output_dir
 )
-#> ℹ Created the directory /tmp/RtmprEtJYE/file19914884159e to hold mtcars.rds.
+#> ℹ Created the directory /tmp/RtmpM07ZPn/file1abd6f76d30d to hold mtcars.rds.
 
 generate_manifest(output_dir = output_dir)
-#> ✔ Wrote /tmp/RtmprEtJYE/file19914884159e/project-manifest.json describing 1
+#> ✔ Wrote /tmp/RtmpM07ZPn/file1abd6f76d30d/project-manifest.json describing 1
 #>   artifact.
 ```

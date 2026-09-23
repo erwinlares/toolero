@@ -13,7 +13,8 @@ write_by_group(
   output_dir = NULL,
   manifest = FALSE,
   drop_na = TRUE,
-  prefix = NULL
+  prefix = NULL,
+  config = NULL
 )
 ```
 
@@ -33,8 +34,9 @@ write_by_group(
 - output_dir:
 
   A string or `NULL`. Path to the directory where output files will be
-  written. Created if it does not exist. If `NULL`, the user must supply
-  a path explicitly.
+  written. Created if it does not exist. If `NULL`, resolved from
+  `config`'s `split_dir` convention when `config` is supplied; otherwise
+  the user must supply a path explicitly.
 
 - manifest:
 
@@ -57,8 +59,20 @@ write_by_group(
   single `-`. `prefix = "data"` grouping on one column turns `a.csv`
   into `data-a.csv`; grouping on two turns `a--female.csv` into
   `data-a--female.csv`. Defaults to `NULL`, which leaves filenames
-  unchanged. Placed last in the signature so that adding it does not
-  shift any existing positional argument.
+  unchanged.
+
+- config:
+
+  A string or `NULL`. Path to a project configuration file (typically a
+  project's own `_toolero.yml`, as written by
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)).
+  When supplied, and `output_dir` is not, `output_dir` defaults to the
+  config's `split_dir` convention. An explicit `output_dir` always wins
+  over `config`; `config` only fills in what you didn't supply. Defaults
+  to `NULL`, which leaves today's behavior unchanged: `output_dir` must
+  be supplied directly, config or no config. Placed last in the
+  signature, along with `prefix`, so that adding either does not shift
+  any existing positional argument.
 
 ## Value
 
@@ -139,10 +153,22 @@ country code – would then have two semantically different groups
 collapse into one file. Rather than merge them, `write_by_group()`
 aborts and names the column.
 
-Note: `output_dir` has no default value. Always supply an explicit path
-to avoid writing files to unexpected locations. Use
-[`tempdir()`](https://rdrr.io/r/base/tempfile.html) for temporary output
-during testing or exploration.
+Note: `output_dir` has no default value of its own. Supply it directly,
+or supply `config` and let it resolve from the project's `split_dir`
+convention. Use [`tempdir()`](https://rdrr.io/r/base/tempfile.html) for
+temporary output during testing or exploration.
+
+## Project conventions
+
+`config` is entirely opt-in. A project never scaffolded by
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+behaves exactly as before: pass `output_dir` and nothing about `config`
+changes. When `config` is supplied but the file cannot be read, this
+aborts with the same message
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+gives for a bad `config`, rather than silently falling back to a
+built-in default – a config you asked for and didn't get should never
+look identical to not asking.
 
 ## See also
 
@@ -159,21 +185,21 @@ data <- data.frame(
   mass    = c(3750, 3800, 5000)
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmprEtJYE/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmprEtJYE/gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpM07ZPn/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpM07ZPn/gentoo.csv
 
 # Same but also write a job manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmprEtJYE/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmprEtJYE/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmprEtJYE/manifest.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpM07ZPn/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpM07ZPn/gentoo.csv
+#> ✔ Manifest written to /tmp/RtmpM07ZPn/manifest.csv
 
 # Namespace the filenames -- adelie.csv becomes penguins-adelie.csv
 write_by_group(data, group_col = "species", prefix = "penguins",
                output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmprEtJYE/penguins-adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmprEtJYE/penguins-gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpM07ZPn/penguins-adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpM07ZPn/penguins-gentoo.csv
 
 # Group by more than one column
 data2 <- data.frame(
@@ -183,9 +209,34 @@ data2 <- data.frame(
 )
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmprEtJYE/adelie--male.csv
-#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmprEtJYE/adelie--female.csv
-#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmprEtJYE/gentoo--male.csv
-#> ✔ Manifest written to /tmp/RtmprEtJYE/manifest.csv
+#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpM07ZPn/adelie--male.csv
+#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpM07ZPn/adelie--female.csv
+#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpM07ZPn/gentoo--male.csv
+#> ✔ Manifest written to /tmp/RtmpM07ZPn/manifest.csv
+
+# Let a project's own _toolero.yml supply output_dir via split_dir.
+# generate_project_config() writes the default conventions, including
+# split_dir = "data/jobs" -- a relative path meant to be resolved against
+# a project's own root, so this example runs from config_dir via
+# withr::with_dir() rather than writing into the working directory.
+config_dir <- tempfile()
+dir.create(config_dir)
+generate_project_config("_toolero.yml", path = config_dir)
+#> ✔ Created /tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml
+#> ℹ Edit /tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml to define your custom folder
+#>   structure,
+#>   then pass it to `init_project()` via `config =
+#>   "/tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml"`.
+#> ℹ For easy reuse across projects, consider moving this file to /home/runner.
+withr::with_dir(config_dir, {
+  write_by_group(
+    data,
+    group_col = "species",
+    config    = file.path(config_dir, "_toolero.yml")
+  )
+})
+#> Using split_dir ("data/jobs") from /tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml.
+#> ✔ Written "Adelie" (2 rows) to data/jobs/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to data/jobs/gentoo.csv
 # }
 ```

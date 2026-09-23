@@ -11,7 +11,7 @@ output files, their group values, and row counts."><meta property="og:image" con
 
     <a class="navbar-brand me-2" href="../index.html">toolero</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,7 +56,8 @@ output files, their group values, and row counts.</p>
 <span>  output_dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  manifest <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  drop_na <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  prefix <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  prefix <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  config <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -77,8 +78,9 @@ cross-product of possible values).</p></dd>
 
 <dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
 <dd><p>A string or <code>NULL</code>. Path to the directory where output
-files will be written. Created if it does not exist. If <code>NULL</code>, the
-user must supply a path explicitly.</p></dd>
+files will be written. Created if it does not exist. If <code>NULL</code>, resolved
+from <code>config</code>'s <code>split_dir</code> convention when <code>config</code> is supplied;
+otherwise the user must supply a path explicitly.</p></dd>
 
 
 <dt id="arg-manifest">manifest<a class="anchor" aria-label="anchor" href="#arg-manifest"></a></dt>
@@ -101,8 +103,19 @@ output filename, sanitized the same way group values are and joined with
 a single <code>-</code>. <code>prefix = "data"</code> grouping on one column turns <code>a.csv</code> into
 <code>data-a.csv</code>; grouping on two turns <code>a--female.csv</code> into
 <code>data-a--female.csv</code>. Defaults to <code>NULL</code>, which leaves filenames
-unchanged. Placed last in the signature so that adding it does not shift
-any existing positional argument.</p></dd>
+unchanged.</p></dd>
+
+
+<dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
+<dd><p>A string or <code>NULL</code>. Path to a project configuration file
+(typically a project's own <code>_toolero.yml</code>, as written by
+<code><a href="init_project.html">init_project()</a></code>). When supplied, and <code>output_dir</code> is not, <code>output_dir</code>
+defaults to the config's <code>split_dir</code> convention. An explicit <code>output_dir</code>
+always wins over <code>config</code>; <code>config</code> only fills in what you didn't
+supply. Defaults to <code>NULL</code>, which leaves today's behavior unchanged:
+<code>output_dir</code> must be supplied directly, config or no config. Placed last
+in the signature, along with <code>prefix</code>, so that adding either does not
+shift any existing positional argument.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -182,9 +195,21 @@ that they form their own group rather than being dropped silently by
 America, Not Applicable, a country code – would then have two
 semantically different groups collapse into one file. Rather than merge
 them, <code>write_by_group()</code> aborts and names the column.</p>
-<p>Note: <code>output_dir</code> has no default value. Always supply an explicit path
-to avoid writing files to unexpected locations. Use <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code> for
-temporary output during testing or exploration.</p>
+<p>Note: <code>output_dir</code> has no default value of its own. Supply it directly, or
+supply <code>config</code> and let it resolve from the project's <code>split_dir</code>
+convention. Use <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code> for temporary output during testing or
+exploration.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="project-conventions">Project conventions<a class="anchor" aria-label="anchor" href="#project-conventions"></a></h2>
+
+
+<p><code>config</code> is entirely opt-in. A project never scaffolded by <code><a href="init_project.html">init_project()</a></code>
+behaves exactly as before: pass <code>output_dir</code> and nothing about <code>config</code>
+changes. When <code>config</code> is supplied but the file cannot be read, this
+aborts with the same message <code><a href="init_project.html">init_project()</a></code> gives for a bad <code>config</code>,
+rather than silently falling back to a built-in default – a config you
+asked for and didn't get should never look identical to not asking.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -200,21 +225,21 @@ temporary output during testing or exploration.</p>
 <span class="r-in"><span>  mass    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3750</span>, <span class="fl">3800</span>, <span class="fl">5000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>, output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/gentoo.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Same but also write a job manifest</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/gentoo.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmprEtJYE/manifest.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/manifest.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Namespace the filenames -- adelie.csv becomes penguins-adelie.csv</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>, prefix <span class="op">=</span> <span class="st">"penguins"</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/penguins-adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/penguins-gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/penguins-adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/penguins-gentoo.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Group by more than one column</span></span></span>
 <span class="r-in"><span><span class="va">data2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
@@ -224,10 +249,35 @@ temporary output during testing or exploration.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data2</span>, group_col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="st">"sex"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie | male"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/adelie--male.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie | female"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/adelie--female.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo | male"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmprEtJYE/gentoo--male.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmprEtJYE/manifest.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie | male"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/adelie--male.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie | female"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/adelie--female.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo | male"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/gentoo--male.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpM07ZPn/manifest.csv</span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Let a project's own _toolero.yml supply output_dir via split_dir.</span></span></span>
+<span class="r-in"><span><span class="co"># generate_project_config() writes the default conventions, including</span></span></span>
+<span class="r-in"><span><span class="co"># split_dir = "data/jobs" -- a relative path meant to be resolved against</span></span></span>
+<span class="r-in"><span><span class="co"># a project's own root, so this example runs from config_dir via</span></span></span>
+<span class="r-in"><span><span class="co"># withr::with_dir() rather than writing into the working directory.</span></span></span>
+<span class="r-in"><span><span class="va">config_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">config_dir</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="generate_project_config.html">generate_project_config</a></span><span class="op">(</span><span class="st">"_toolero.yml"</span>, path <span class="op">=</span> <span class="va">config_dir</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Edit <span style="color: #0000BB;">/tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml</span> to define your custom folder</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   structure,</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   then pass it to `init_project()` via `config =</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   "<span style="color: #0000BB;">/tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml</span>"`.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> For easy reuse across projects, consider moving this file to <span style="color: #0000BB;">/home/runner</span>.</span>
+<span class="r-in"><span><span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_dir.html" class="external-link">with_dir</a></span><span class="op">(</span><span class="va">config_dir</span>, <span class="op">{</span></span></span>
+<span class="r-in"><span>  <span class="fu">write_by_group</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="va">data</span>,</span></span>
+<span class="r-in"><span>    group_col <span class="op">=</span> <span class="st">"species"</span>,</span></span>
+<span class="r-in"><span>    config    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">config_dir</span>, <span class="st">"_toolero.yml"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>  <span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Using <span style="color: #00BB00;">split_dir</span> (<span style="color: #0000BB;">"data/jobs"</span>) from <span style="color: #0000BB;">/tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">data/jobs/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">data/jobs/gentoo.csv</span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

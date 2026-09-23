@@ -107,6 +107,19 @@ legitimately has an empty lockfile –
 does no dependency discovery, because there is nothing yet to discover –
 so the pairing is what makes the observation worth printing.
 
+## Stale purled scripts
+
+Every `.qmd` under `path` whose header declares `purl: true` (see
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)'s
+`use_purl` argument) gets its own row, comparing it against the `.R`
+script `R/purl.R` is expected to have derived from it. Missing entirely,
+or older than the `.qmd` it was purled from, is reported as `"warn"`:
+the `.qmd` is the source of truth, so an `R/` script older than the
+document it came from means an edit was made and not yet re-rendered,
+and a container or cluster job that bakes in the `.R` file would run the
+old analysis without any error to say so. Documents never opted into
+purl produce no row – nothing to check.
+
 ## See also
 
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md),
@@ -139,7 +152,7 @@ check_project()
 # \donttest{
 project_dir <- withr::local_tempdir()
 check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/RtmprEtJYE/file1991592bfce0 does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/RtmpM07ZPn/file1abd24b464f6 does not exist.
 # }
 
 # Audit against a custom folder structure
@@ -147,19 +160,19 @@ check_project(path = project_dir)
 project_dir <- withr::local_tempdir()
 config_path <- file.path(tempdir(), "my-config.yml")
 generate_project_config("my-config.yml", path = tempdir())
-#> ✔ Created /tmp/RtmprEtJYE/my-config.yml
-#> ℹ Edit /tmp/RtmprEtJYE/my-config.yml to define your custom folder structure,
+#> ✔ Created /tmp/RtmpM07ZPn/my-config.yml
+#> ℹ Edit /tmp/RtmpM07ZPn/my-config.yml to define your custom folder structure,
 #>   then pass it to `init_project()` via `config =
-#>   "/tmp/RtmprEtJYE/my-config.yml"`.
+#>   "/tmp/RtmpM07ZPn/my-config.yml"`.
 #> ℹ For easy reuse across projects, consider moving this file to /home/runner.
 check_project(path = project_dir, config = config_path)
-#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/RtmprEtJYE/file19917816ca16 does not exist.
+#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/RtmpM07ZPn/file1abd34a6e279 does not exist.
 # }
 
 # Access results programmatically
 # \donttest{
 project_dir <- withr::local_tempdir()
 out <- check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/RtmprEtJYE/file199145317eeb does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/RtmpM07ZPn/file1abd52eeb5df does not exist.
 # }
 ```

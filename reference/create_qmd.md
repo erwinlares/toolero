@@ -11,11 +11,12 @@ post-render purl hook for extracting R code.
 create_qmd(
   filename = NULL,
   path = ".",
-  yaml_data = NULL,
+  header_defaults = NULL,
   overwrite = FALSE,
   use_purl = FALSE,
   include_examples = TRUE,
-  use_style = FALSE
+  use_style = FALSE,
+  yaml_data = lifecycle::deprecated()
 )
 ```
 
@@ -31,14 +32,22 @@ create_qmd(
   A string. Path to the directory where the document will be created.
   Defaults to `"."` (the current working directory).
 
-- yaml_data:
+- header_defaults:
 
-  A string or `NULL`. Path to a YAML file containing metadata to
-  pre-populate the document header. If `NULL` (the default), the
-  template is copied as-is with placeholder prompts intact. Each
-  top-level key in the file replaces the template's key of the same
-  name; keys the file does not mention are left exactly as the template
-  wrote them.
+  A string or `NULL`. Path to a YAML file supplying values to
+  pre-populate the document header – typically a profile written by
+  [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md),
+  but any YAML file following the same shape works. If `NULL` (the
+  default), the template is copied as-is with placeholder prompts
+  intact. Every key in the file, at any depth, replaces the template's
+  key of the same name; keys the file does not mention are left exactly
+  as the template wrote them. A key whose value is itself a mapping
+  (`format: html: ...`) is descended into and merged key by key, so a
+  sibling the file doesn't mention – `css:` from `use_style`, say –
+  survives; a key whose value is a sequence (`author:`, `categories:`)
+  is replaced as a whole, not merged element by element. Named
+  `yaml_data` before v0.5.1.9000; that name still works but is
+  deprecated (see below).
 
 - overwrite:
 
@@ -99,17 +108,27 @@ create_qmd(
 - include_examples:
 
   Logical. If `TRUE` (the default), copies a sample dataset
-  (`sample.csv`) into `data-raw/`, a placeholder logo
-  (`generic-logo.png`, copied as `logo.png`) into `assets/`, and uses a
-  template `.qmd` pre-populated with a worked analysis example. If
-  `assets/logo.png` already exists (e.g. from a prior
+  (`sample.csv`) into `data-raw/` and uses a template `.qmd`
+  pre-populated with a worked analysis example. The YAML header includes
+  a `params` block referencing the sample data. If `FALSE`, creates a
+  blank `.qmd` with only the YAML header and no example content, and
+  skips copying the sample dataset.
+
+  A placeholder logo (`generic-logo.png`, copied as `logo.png`) is also
+  copied into `assets/`, but only when branding is actually part of the
+  project: if `path` carries a `_toolero.yml` (as written by
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md))
+  whose `folders:` list does not include `assets` (i.e. the project was
+  scaffolded with `branding = "none"`), the logo is skipped along with
+  it, so a project that declared no branding does not end up with an
+  undeclared `assets/logo.png` anyway. A `.qmd` created outside any
+  toolero-scaffolded project (no `_toolero.yml` at `path`) always gets
+  the logo, since there is no project-level branding decision to defer
+  to. If `assets/logo.png` already exists (e.g. from a prior
   [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
   call with `branding` set), it is always left untouched – an existing
   logo takes precedence over the generic placeholder even when
-  `overwrite = TRUE`. The YAML header includes a `params` block
-  referencing the sample data. If `FALSE`, creates a blank `.qmd` with
-  only the YAML header and no example content, and skips copying the
-  sample dataset and logo.
+  `overwrite = TRUE`.
 
 - use_style:
 
@@ -138,6 +157,13 @@ create_qmd(
   a Quarto website-project option rather than an HTML format option, so
   set it in `_quarto.yml` if you need one.
 
+- yaml_data:
+
+  **\[deprecated\]** A string or `NULL`. Renamed to `header_defaults` in
+  v0.5.1.9000 – the argument still works, and its value is used when
+  `header_defaults` is not also supplied, but new code should use
+  `header_defaults`.
+
 ## Value
 
 Invisibly returns `path`.
@@ -163,9 +189,11 @@ Invisibly returns `path`.
 5.  Stamps `purl: true` or `purl: false` into the document's own YAML
     header, reflecting `use_purl`.
 
-6.  If `yaml_data` is provided, reads the YAML file and substitutes
-    values into the document header. This runs after style injection and
-    the purl stamp, so `yaml_data` can override any auto-generated YAML
+6.  If `header_defaults` (or the deprecated `yaml_data`) is provided,
+    reads the YAML file and substitutes its values into the document
+    header, descending into nested mappings so a sibling key it doesn't
+    mention survives. This runs after style injection and the purl
+    stamp, so `header_defaults` can override any auto-generated YAML
     key, including `purl` itself.
 
 7.  If `use_purl = TRUE`, ensures `R/purl.R` exists. Then, unless
@@ -221,34 +249,34 @@ temporary output during testing or exploration.
 # Minimal blank document -- no examples, no styling, no purl
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
-#> ✔ Created /tmp/RtmprEtJYE/analysis.qmd
+#> ✔ Created /tmp/RtmpM07ZPn/analysis.qmd
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
-#> ✔ Created /tmp/RtmprEtJYE/data-raw/sample.csv
-#> ✔ Created /tmp/RtmprEtJYE/assets/logo.png
-#> ✔ Created /tmp/RtmprEtJYE/analysis.qmd
+#> ✔ Created /tmp/RtmpM07ZPn/data-raw/sample.csv
+#> ✔ Created /tmp/RtmpM07ZPn/assets/logo.png
+#> ✔ Created /tmp/RtmpM07ZPn/analysis.qmd
 
 # Opt this document into purl: stamps purl: true and wires up
 # R/purl.R + the _quarto.yml post-render hook (merged if the file
 # already exists, e.g. inside a larger Quarto website project)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE, use_purl = TRUE)
-#> ✔ Created /tmp/RtmprEtJYE/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmprEtJYE/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmprEtJYE/analysis.qmd
-#> ✔ Created /tmp/RtmprEtJYE/R/purl.R
-#> ✔ Created /tmp/RtmprEtJYE/_quarto.yml
+#> ✔ Created /tmp/RtmpM07ZPn/data-raw/sample.csv
+#> ℹ Skipping /tmp/RtmpM07ZPn/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/RtmpM07ZPn/analysis.qmd
+#> ✔ Created /tmp/RtmpM07ZPn/R/purl.R
+#> ✔ Created /tmp/RtmpM07ZPn/_quarto.yml
 
 # Blank document wired to branding assets (assumes assets/ exists,
 # e.g. from init_project(branding = "uw-madison"))
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)
-#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmprEtJYE/assets.
+#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmpM07ZPn/assets.
 #> Skipping style injection.
-#> ✔ Created /tmp/RtmprEtJYE/report.qmd
+#> ✔ Created /tmp/RtmpM07ZPn/report.qmd
 
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
@@ -257,15 +285,15 @@ create_qmd(path = tempdir(), filename = "report.qmd",
 #> Warning: Style directory /home/runner/work/toolero/toolero/docs/reference/my-branding
 #> does not exist. Skipping style injection. Create the directory and add your
 #> branding assets, or set `use_style = FALSE`.
-#> ✔ Created /tmp/RtmprEtJYE/report.qmd
+#> ✔ Created /tmp/RtmpM07ZPn/report.qmd
 
-# Pre-populated YAML overrides
-yaml_file <- tempfile(fileext = ".yml")
-writeLines("author:\n  - name: 'Your Name'", yaml_file)
+# Pre-populated YAML header, typically from generate_profile()
+profile_file <- tempfile(fileext = ".yml")
+writeLines("author:\n  - name: 'Your Name'", profile_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
-           yaml_data = yaml_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmprEtJYE/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmprEtJYE/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmprEtJYE/analysis.qmd
+           header_defaults = profile_file, overwrite = TRUE)
+#> ✔ Created /tmp/RtmpM07ZPn/data-raw/sample.csv
+#> ℹ Skipping /tmp/RtmpM07ZPn/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/RtmpM07ZPn/analysis.qmd
 # }
 ```
