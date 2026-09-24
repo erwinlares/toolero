@@ -87,9 +87,9 @@ which can also draw on it.
 ``` r
 # \donttest{
 generate_profile("my-profile.yml", path = tempdir())
-#> ✔ Wrote /tmp/RtmpfO9XwF/my-profile.yml.
+#> ✔ Wrote /tmp/Rtmpkvf8B7/my-profile.yml.
 #> ℹ Open it and replace the placeholder values with your own.
 #> ℹ Then pass it to `create_qmd()` as `header_defaults =
-#>   "/tmp/RtmpfO9XwF/my-profile.yml"`.
+#>   "/tmp/Rtmpkvf8B7/my-profile.yml"`.
 # }
 ```

@@ -65,7 +65,9 @@ root.</p>
 <span>  open <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  branding <span class="op">=</span> <span class="st">"none"</span>,</span>
 <span>  uw_branding <span class="op">=</span> <span class="fu">deprecated</span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  use_readme <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span>  use_readme <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  use_rprofile <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  scaffold_fn <span class="op">=</span> <span class="fu">renv</span><span class="fu">::</span><span class="va"><a href="https://rstudio.github.io/renv/reference/scaffold.html" class="external-link">scaffold</a></span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -153,6 +155,30 @@ generalist toolero template. <code>FALSE</code> creates no README file. <code>"p
 creates <code>README.txt</code> with the same generalist content as <code>README.md</code> –
 only the extension differs, not the content. Defaults to <code>TRUE</code>.</p></dd>
 
+
+<dt id="arg-use-rprofile">use_rprofile<a class="anchor" aria-label="anchor" href="#arg-use-rprofile"></a></dt>
+<dd><p>Logical or character. Controls whether the project's
+<code>.Rprofile</code> also sources a personal one, so a project under <code>renv</code> does
+not silently shadow the user's own startup customizations. <code>TRUE</code>
+appends a guarded block that sources <code>~/.Rprofile</code> if it exists. A
+character string names a specific file to source instead – useful for
+a personal profile kept somewhere other than the platform default, such
+as one tracked in a dotfiles repository (e.g.
+<code>use_rprofile = "~/dotfiles/rprofile"</code>). <code>FALSE</code> adds nothing. If the
+named file does not exist yet, a warning is issued when <code>init_project()</code>
+runs, but the guard is still written – see the "Personal <code>.Rprofile</code>
+and renv" section below. Defaults to <code>FALSE</code>.</p></dd>
+
+
+<dt id="arg-scaffold-fn">scaffold_fn<a class="anchor" aria-label="anchor" href="#arg-scaffold-fn"></a></dt>
+<dd><p>A function. Called as <code>scaffold_fn(project = path)</code> when
+<code>use_renv = TRUE</code>, in place of calling <code><a href="https://rstudio.github.io/renv/reference/scaffold.html" class="external-link">renv::scaffold()</a></code> directly.
+Defaults to <code><a href="https://rstudio.github.io/renv/reference/scaffold.html" class="external-link">renv::scaffold</a></code>. Exists for the same reason
+<code><a href="detect_execution_context.html">detect_execution_context()</a></code>'s <code>interactive_fn</code> does: so tests can
+substitute a fake and exercise <code>use_renv = TRUE</code> without loading renv's
+namespace into the test process. Overriding it outside of tests is
+unsupported.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -217,6 +243,14 @@ in the calling session rather than the project just created.</p>
 creates <code>renv/library</code>, <code>renv/activate.R</code>, <code>renv/.gitignore</code>, an
 <code>.Rprofile</code> that activates the project in future sessions, and an initial
 <code>renv.lock</code>.</p>
+<p>The call is made through the injectable <code>scaffold_fn</code> argument rather
+than by name, purely so tests can substitute a stand-in and never load
+renv's namespace into the test process. Loading it there is what broke
+<code>covr::package_coverage()</code>: renv's load hook takes over <code><a href="https://rdrr.io/r/base/libPaths.html" class="external-link">.libPaths()</a></code>,
+and every package a test reaches with <code>::</code> afterwards (rather than one
+already loaded) becomes unresolvable. Two environment variables papered
+over the symptom before this argument existed; see
+<code>covr-renv-incident.md</code> for the incident this closes out.</p>
 <p>Three things changed here in v0.5.0, and they are worth understanding
 together.</p>
 <p><code><a href="https://rstudio.github.io/renv/reference/scaffold.html" class="external-link">renv::scaffold()</a></code> replaces <code><a href="https://rstudio.github.io/renv/reference/init.html" class="external-link">renv::init()</a></code>. <code>init()</code> loads the new project
@@ -243,6 +277,40 @@ created has no code in it, so there is nothing to discover and nothing
 worth recording. Take a snapshot yourself once the project has code, and
 before containerizing:</p>
 <p></p><div class="sourceCode r"><pre><code><span><span class="fu">renv</span><span class="fu">::</span><span class="fu"><a href="https://rstudio.github.io/renv/reference/snapshot.html" class="external-link">snapshot</a></span><span class="op">(</span><span class="op">)</span></span></code></pre><p></p></div>
+    </div>
+    <div class="section level2">
+    <h2 id="personal-rprofile-and-renv">Personal <code>.Rprofile</code> and renv<a class="anchor" aria-label="anchor" href="#personal-rprofile-and-renv"></a></h2>
+
+
+<p>R reads exactly one <code>.Rprofile</code> per session: the project's own if the
+working directory has one, a personal one only if it does not. When
+<code>use_renv = TRUE</code>, <code><a href="https://rstudio.github.io/renv/reference/scaffold.html" class="external-link">renv::scaffold()</a></code> writes a project <code>.Rprofile</code>
+containing <code>source("renv/activate.R")</code>, and from that point on a user's
+own startup customizations – aliases, options, personal helper functions
+– are shadowed for every session opened in this project. Nothing warns
+about this; it simply stops loading.</p>
+<p><code>use_rprofile = TRUE</code> appends a guarded block to the project's
+<code>.Rprofile</code>, after renv's own activation line, that sources
+<code>~/.Rprofile</code> if it exists. Pass a character string instead of <code>TRUE</code> to
+source a different file – for instance a profile tracked in a dotfiles
+repository rather than kept at the platform default location. Either
+way, the existence check happens inside the written block, at every
+session start, rather than being baked in once, so a file written or
+edited after the project is created is still picked up. If the named
+file does not exist yet when <code>init_project()</code> itself runs, a warning
+says so – most often a sign of a typo – but the guard is written
+regardless, since the file may simply not exist yet.</p>
+<p>Defaults to <code>FALSE</code> because it cuts against renv's own isolation goal: a
+project that automatically re-sources a personal environment is no
+longer fully isolated from it. The <code>TRUE</code> mode is also written
+generically – the block sources whichever file sits at <code>~/.Rprofile</code>
+for whoever opens the project, not a specific person's file – so a
+collaborator who clones the project gets the same behavior the
+project's original author chose, rather than one tied to a specific
+person's home directory. A character path is written into the guard
+exactly as given, so the same portability holds as long as the path
+itself is written portably (<code>~</code>-relative, say, rather than an absolute
+path tied to one machine).</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -280,6 +348,16 @@ before containerizing:</p>
 <span class="r-in"><span><span class="co"># Skip the README entirely</span></span></span>
 <span class="r-in"><span><span class="fu">init_project</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"project6"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>             use_readme <span class="op">=</span> <span class="cn">FALSE</span>, use_renv <span class="op">=</span> <span class="cn">FALSE</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Keep loading your own ~/.Rprofile customizations under renv (the</span></span></span>
+<span class="r-in"><span><span class="co"># scenario this argument exists for -- renv's own generated .Rprofile</span></span></span>
+<span class="r-in"><span><span class="co"># would otherwise shadow ~/.Rprofile entirely)</span></span></span>
+<span class="r-in"><span><span class="fu">init_project</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"project7"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>             use_rprofile <span class="op">=</span> <span class="cn">TRUE</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Source a personal profile kept somewhere other than ~/.Rprofile</span></span></span>
+<span class="r-in"><span><span class="fu">init_project</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"project8"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>             use_rprofile <span class="op">=</span> <span class="st">"~/dotfiles/rprofile"</span>, use_git <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

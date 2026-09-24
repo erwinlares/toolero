@@ -122,6 +122,32 @@
 
 ### Bug fixes
 
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  gains an injectable `scaffold_fn` argument, defaulting to
+  [`renv::scaffold`](https://rstudio.github.io/renv/reference/scaffold.html),
+  mirroring the `interactive_fn` pattern already used by
+  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md).
+  The test suite no longer mocks a binding inside renv’s own namespace
+  to exercise `use_renv = TRUE`, which removes the root cause of the
+  `covr::package_coverage()` incident documented in
+  `covr-renv-incident.md`: loading renv’s namespace mid-suite let its
+  sandbox silently repoint
+  [`.libPaths()`](https://rdrr.io/r/base/libPaths.html), dropping
+  packages several files away from the test that triggered it.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  gains an injectable `scaffold_fn` argument, defaulting to
+  [`renv::scaffold`](https://rstudio.github.io/renv/reference/scaffold.html),
+  mirroring the `interactive_fn` pattern already used by
+  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md).
+  The test suite no longer mocks a binding inside renv’s own namespace
+  to exercise `use_renv = TRUE`, which removes the root cause of the
+  `covr::package_coverage()` incident documented in
+  `covr-renv-incident.md`: loading renv’s namespace mid-suite let its
+  sandbox silently repoint
+  [`.libPaths()`](https://rdrr.io/r/base/libPaths.html), dropping
+  packages several files away from the test that triggered it .
+
 - `create_qmd(include_examples = TRUE)`: no longer copies the
   placeholder logo into `assets/` when the project’s own `_toolero.yml`
   declares a `folders:` list that does not include `assets` – the
@@ -149,6 +175,23 @@
   survives at any depth; a sequence (`author:`, `categories:`) is still
   replaced as a whole, since merging a list element by element against
   the template’s own list is not a meaningful operation.
+
+### Testing
+
+- Added `tests/testthat/setup.R::set_state_inspector()`, checking
+  [`.libPaths()`](https://rdrr.io/r/base/libPaths.html) before and after
+  every test. Any test that changes it without restoring the change now
+  fails immediately, naming the offending test, instead of surfacing
+  later as a misleading “package not installed” error. A permanent guard
+  against a repeat of the incident T34 fixes, rather than a rule that
+  everyone has to remember (T35).
+
+- Retired the `RENV_CONFIG_SANDBOX_ENABLED = "FALSE"` workaround from
+  `tests/testthat/setup.R` now that T34 removes the reason it existed.
+  Its CI counterpart, `RENV_CONFIG_AUTOLOADER_ENABLED: "FALSE"` in the
+  job-level `env:` block of `.github/workflows/test-coverage.yaml`,
+  should retire the same way – not included here since that file wasn’t
+  in hand.
 
 ### Deprecated features
 
@@ -1201,11 +1244,27 @@ CRAN release: 2026-04-27
 
 ### New features
 
+- Added generate_license(), which writes a plain-text LICENSE file at a
+  project’s root from one of three common templates (“MIT”, “CC0”,
+  “GPL-3”), with the copyright holder and year filled in. “GPL-3” writes
+  the FSF’s recommended short notice plus a link to the canonical full
+  text rather than reproducing the several-hundred-line license itself.
+  Mirrors generate_project_config()’s standalone-function design and
+  validation/overwrite conventions (#T-G3).
+
+- Added generate_data_doc(), which writes a Markdown documentation stub
+  for a single dataset (source, date obtained, license and usage terms,
+  collection method, a variables table, and known issues), with the
+  dataset’s file name and today’s date pre-filled and the rest left as
+  placeholders – the same “skeleton you complete by hand” approach
+  generate_citation() already uses for CITATION.cff (#T-G3).
+
 - Added
   [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)
   to produce UW-Madison KB-importable XML files from rendered Quarto
   documents. Extracts metadata from the `.qmd` YAML header and
   re-renders with embedded resources for self-contained import.
+
 - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md):
   added `use_purl` argument (default `TRUE`) that scaffolds a
   `_quarto.yml` post-render hook and a `purl.R` script for extracting R

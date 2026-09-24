@@ -12,8 +12,12 @@
   : Detect the current execution context
 - [`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md)
   : Generate a CITATION.cff file
+- [`generate_data_doc()`](https://erwinlares.github.io/toolero/reference/generate_data_doc.md)
+  : Generate a data documentation stub
 - [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)
   : Generate a KB-importable XML file from a Quarto document
+- [`generate_license()`](https://erwinlares.github.io/toolero/reference/generate_license.md)
+  : Generate a LICENSE file
 - [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
   : Write the project manifest
 - [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md)

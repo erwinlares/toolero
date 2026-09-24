@@ -73,8 +73,8 @@ the function that writes the file this one can read from.
 ``` r
 # \donttest{
 generate_citation(path = tempdir())
-#> ✔ Wrote /tmp/RtmpfO9XwF/CITATION.cff.
-#> ℹ Wrote a placeholder author -- edit /tmp/RtmpfO9XwF/CITATION.cff directly, or
+#> ✔ Wrote /tmp/Rtmpkvf8B7/CITATION.cff.
+#> ℹ Wrote a placeholder author -- edit /tmp/Rtmpkvf8B7/CITATION.cff directly, or
 #>   supply `profile`.
 #> ℹ Fill in title and, when they're true of this project, the commented-out
 #>   fields.
@@ -91,8 +91,8 @@ writeLines(
   profile_file
 )
 generate_citation(path = tempdir(), profile = profile_file, overwrite = TRUE)
-#> ✔ Wrote /tmp/RtmpfO9XwF/CITATION.cff.
-#> ℹ Author information came from /tmp/RtmpfO9XwF/file1ab7b3ebe1.yml --
+#> ✔ Wrote /tmp/Rtmpkvf8B7/CITATION.cff.
+#> ℹ Author information came from /tmp/Rtmpkvf8B7/file1ac7788bece0.yml --
 #>   double-check the given-names/family-names split.
 #> ℹ Fill in title and, when they're true of this project, the commented-out
 #>   fields.

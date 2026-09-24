@@ -108,17 +108,17 @@ not created by <code><a href="init_project.html">init_project()</a></code> would
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Default output path: same directory, .R extension</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpfO9XwF/file1ab7547b33a9.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpfO9XwF/file1ab7547b33a9.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/Rtmpkvf8B7/file1ac73f782cad.qmd</span> to <span style="color: #0000BB;">/tmp/Rtmpkvf8B7/file1ac73f782cad.R</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Explicit output path. R/ is where toolero expects derived scripts;</span></span></span>
 <span class="r-in"><span><span class="co"># the directory is created if it does not exist yet.</span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".R"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span>, output <span class="op">=</span> <span class="va">out</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpfO9XwF/file1ab7547b33a9.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpfO9XwF/file1ab743c1924d.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/Rtmpkvf8B7/file1ac73f782cad.qmd</span> to <span style="color: #0000BB;">/tmp/Rtmpkvf8B7/file1ac738981b7b.R</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Strip all documentation</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span>, output <span class="op">=</span> <span class="va">out</span>, documentation <span class="op">=</span> <span class="fl">0L</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpfO9XwF/file1ab7547b33a9.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpfO9XwF/file1ab743c1924d.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/Rtmpkvf8B7/file1ac73f782cad.qmd</span> to <span style="color: #0000BB;">/tmp/Rtmpkvf8B7/file1ac738981b7b.R</span>.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

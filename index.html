@@ -279,6 +279,14 @@
 <td>Writes a <code>CITATION.cff</code> skeleton, optionally pulling author information from a profile written by <code><a href="reference/generate_profile.html">generate_profile()</a></code>.</td>
 </tr>
 <tr>
+<td><code><a href="reference/generate_license.html">generate_license()</a></code></td>
+<td>Writes a plain-text <code>LICENSE</code> file from one of three common templates (<code>"MIT"</code>, <code>"CC0"</code>, <code>"GPL-3"</code>), with the copyright holder and year filled in. <code>"GPL-3"</code> links to the canonical full text rather than reproducing it.</td>
+</tr>
+<tr>
+<td><code><a href="reference/generate_data_doc.html">generate_data_doc()</a></code></td>
+<td>Writes a Markdown documentation stub for a single dataset – source, date obtained, license and usage terms, collection method, a variables table, and known issues – with the dataset’s file name and today’s date pre-filled.</td>
+</tr>
+<tr>
 <td><code><a href="reference/arborize.html">arborize()</a></code></td>
 <td>Renders syntactic trees as PNG images using Quarto’s Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later.</td>
 </tr>
@@ -696,11 +704,53 @@
 <hr>
 </div>
 <div class="section level3">
+<h3 id="generate_license">
+<code>generate_license()</code><a class="anchor" aria-label="anchor" href="#generate_license"></a>
+</h3>
+<p>Writes a plain-text <code>LICENSE</code> file at a project’s root from one of a small set of common license templates, with the copyright holder and year filled in.</p>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/generate_license.html">generate_license</a></span><span class="op">(</span>license <span class="op">=</span> <span class="st">"MIT"</span>, holder <span class="op">=</span> <span class="st">"Jane Researcher"</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li>
+<code>license</code> – one of <code>"MIT"</code>, <code>"CC0"</code>, or <code>"GPL-3"</code>. Defaults to <code>"MIT"</code>.</li>
+<li>
+<code>holder</code> – the copyright holder, a person or an institution. Must be supplied explicitly; there is no default, since guessing it wrong is worse than asking.</li>
+<li>
+<code>year</code> – the copyright year. Defaults to the current year.</li>
+<li>
+<code>path</code> – directory in which to write the file. Defaults to <code>"."</code>.</li>
+<li>
+<code>overwrite</code> – whether to overwrite an existing <code>LICENSE</code> file at the same location. Defaults to <code>FALSE</code>.</li>
+</ul>
+<p><code>"MIT"</code> and <code>"CC0"</code> are both short enough to reproduce in full. <code>"GPL-3"</code>’s full text runs to several hundred lines; rather than risk an inaccurate transcription, <code>license = "GPL-3"</code> writes the notice the Free Software Foundation itself recommends attaching to a program, together with a link to the canonical full text.</p>
+<p>This is different from how an R package normally carries a license – a package’s <code>DESCRIPTION</code> declares <code>License: MIT + file LICENSE</code> and pairs a two-line CRAN stub with the full text in <code>LICENSE.md</code>. The projects <code><a href="reference/init_project.html">init_project()</a></code> scaffolds are research compendia, not packages, so <code><a href="reference/generate_license.html">generate_license()</a></code> instead writes one self-contained file carrying the license text directly, the way a plain GitHub repository does.</p>
+<hr>
+</div>
+<div class="section level3">
+<h3 id="generate_data_doc">
+<code>generate_data_doc()</code><a class="anchor" aria-label="anchor" href="#generate_data_doc"></a>
+</h3>
+<p>Writes a Markdown documentation stub for a single dataset, with the sections a data-management plan typically asks for: source, date obtained, license and usage terms, collection method, a variables table, and known issues. The dataset’s file name and today’s date are pre-filled; everything else is left as a placeholder to complete by hand – the same skeleton-you-complete-yourself approach <code><a href="reference/generate_citation.html">generate_citation()</a></code> uses for <code>CITATION.cff</code>.</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/generate_data_doc.html">generate_data_doc</a></span><span class="op">(</span><span class="st">"survey_responses.csv"</span><span class="op">)</span></span></code></pre></div>
+<p><strong>Arguments:</strong></p>
+<ul>
+<li>
+<code>dataset</code> – the file name of the dataset this doc describes, e.g. <code>"survey_responses.csv"</code>. Used to name the output file (the extension is replaced with <code>.md</code>) and to fill in the doc’s title. Must be supplied explicitly; there is no reasonable default.</li>
+<li>
+<code>path</code> – directory in which to write the file. Defaults to <code>"data"</code>.</li>
+<li>
+<code>overwrite</code> – whether to overwrite an existing doc at the same location. Defaults to <code>FALSE</code>.</li>
+</ul>
+<hr>
+</div>
+<div class="section level3">
 <h3 id="arborize">
 <code>arborize()</code><a class="anchor" aria-label="anchor" href="#arborize"></a>
 </h3>
 <p>Renders a syntactic tree as a standalone PNG image using Quarto’s Typst engine. Accepts bracket notation for simple trees or structured notation for trees requiring movement arrows and per-node styling. A provenance <code>.yaml</code> file is written alongside the PNG by default, recording the tree string and render settings so the image can be reproduced or modified later.</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Simple bracket notation</span></span>
 <span><span class="fu"><a href="reference/arborize.html">arborize</a></span><span class="op">(</span></span>
 <span>  <span class="st">"[NP [Det the] [N cat]]"</span>,</span>
@@ -752,7 +802,7 @@ dplyr      used in the examples throughout this README</code></pre>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

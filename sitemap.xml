@@ -18,6 +18,7 @@
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-abort_parallel_dots.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-accumulator_columns.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-add_gitkeep.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-add_rprofile.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-append_accumulator_row.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-branding_asset_names.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-build_arborize_qmd.html</loc></url>
@@ -32,6 +33,7 @@
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-find_readme.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-flatten_field.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-git_commit.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/dot-license_text.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-normalize_orcid.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-package_template.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-project_has_sources.html</loc></url>
@@ -51,7 +53,9 @@
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-write_arborize_provenance.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/dot-write_project_yml.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/generate_citation.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/generate_data_doc.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/generate_kb_xml.html</loc></url>
+<url><loc>https://erwinlares.github.io/toolero/reference/generate_license.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/generate_manifest.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/generate_profile.html</loc></url>
 <url><loc>https://erwinlares.github.io/toolero/reference/generate_project_config.html</loc></url>
