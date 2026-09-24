@@ -13,7 +13,9 @@ init_project(
   open = FALSE,
   branding = "none",
   uw_branding = deprecated(),
-  use_readme = TRUE
+  use_readme = TRUE,
+  use_rprofile = FALSE,
+  scaffold_fn = renv::scaffold
 )
 }
 \arguments{
@@ -80,6 +82,26 @@ created at the project root. \code{TRUE} creates \code{README.md} from the
 generalist toolero template. \code{FALSE} creates no README file. \code{"plain"}
 creates \code{README.txt} with the same generalist content as \code{README.md} --
 only the extension differs, not the content. Defaults to \code{TRUE}.}
+
+\item{use_rprofile}{Logical or character. Controls whether the project's
+\code{.Rprofile} also sources a personal one, so a project under \code{renv} does
+not silently shadow the user's own startup customizations. \code{TRUE}
+appends a guarded block that sources \verb{~/.Rprofile} if it exists. A
+character string names a specific file to source instead -- useful for
+a personal profile kept somewhere other than the platform default, such
+as one tracked in a dotfiles repository (e.g.
+\code{use_rprofile = "~/dotfiles/rprofile"}). \code{FALSE} adds nothing. If the
+named file does not exist yet, a warning is issued when \code{init_project()}
+runs, but the guard is still written -- see the "Personal \code{.Rprofile}
+and renv" section below. Defaults to \code{FALSE}.}
+
+\item{scaffold_fn}{A function. Called as \code{scaffold_fn(project = path)} when
+\code{use_renv = TRUE}, in place of calling \code{\link[renv:scaffold]{renv::scaffold()}} directly.
+Defaults to \code{renv::scaffold}. Exists for the same reason
+\code{\link[=detect_execution_context]{detect_execution_context()}}'s \code{interactive_fn} does: so tests can
+substitute a fake and exercise \code{use_renv = TRUE} without loading renv's
+namespace into the test process. Overriding it outside of tests is
+unsupported.}
 }
 \value{
 Called for its side effects. Invisibly returns \code{path}.
@@ -152,6 +174,15 @@ creates \code{renv/library}, \code{renv/activate.R}, \code{renv/.gitignore}, an
 \code{.Rprofile} that activates the project in future sessions, and an initial
 \code{renv.lock}.
 
+The call is made through the injectable \code{scaffold_fn} argument rather
+than by name, purely so tests can substitute a stand-in and never load
+renv's namespace into the test process. Loading it there is what broke
+\code{covr::package_coverage()}: renv's load hook takes over \code{.libPaths()},
+and every package a test reaches with \code{::} afterwards (rather than one
+already loaded) becomes unresolvable. Two environment variables papered
+over the symptom before this argument existed; see
+\code{covr-renv-incident.md} for the incident this closes out.
+
 Three things changed here in v0.5.0, and they are worth understanding
 together.
 
@@ -185,6 +216,41 @@ before containerizing:
 }\if{html}{\out{</div>}}
 }
 
+\section{Personal \code{.Rprofile} and renv}{
+
+R reads exactly one \code{.Rprofile} per session: the project's own if the
+working directory has one, a personal one only if it does not. When
+\code{use_renv = TRUE}, \code{\link[renv:scaffold]{renv::scaffold()}} writes a project \code{.Rprofile}
+containing \code{source("renv/activate.R")}, and from that point on a user's
+own startup customizations -- aliases, options, personal helper functions
+-- are shadowed for every session opened in this project. Nothing warns
+about this; it simply stops loading.
+
+\code{use_rprofile = TRUE} appends a guarded block to the project's
+\code{.Rprofile}, after renv's own activation line, that sources
+\verb{~/.Rprofile} if it exists. Pass a character string instead of \code{TRUE} to
+source a different file -- for instance a profile tracked in a dotfiles
+repository rather than kept at the platform default location. Either
+way, the existence check happens inside the written block, at every
+session start, rather than being baked in once, so a file written or
+edited after the project is created is still picked up. If the named
+file does not exist yet when \code{init_project()} itself runs, a warning
+says so -- most often a sign of a typo -- but the guard is written
+regardless, since the file may simply not exist yet.
+
+Defaults to \code{FALSE} because it cuts against renv's own isolation goal: a
+project that automatically re-sources a personal environment is no
+longer fully isolated from it. The \code{TRUE} mode is also written
+generically -- the block sources whichever file sits at \verb{~/.Rprofile}
+for whoever opens the project, not a specific person's file -- so a
+collaborator who clones the project gets the same behavior the
+project's original author chose, rather than one tied to a specific
+person's home directory. A character path is written into the guard
+exactly as given, so the same portability holds as long as the path
+itself is written portably (\code{~}-relative, say, rather than an absolute
+path tied to one machine).
+}
+
 \examples{
 \dontrun{
 init_project(path = file.path(tempdir(), "project1"),
@@ -215,6 +281,16 @@ init_project(path = file.path(tempdir(), "project5"),
 # Skip the README entirely
 init_project(path = file.path(tempdir(), "project6"),
              use_readme = FALSE, use_renv = FALSE, use_git = FALSE)
+
+# Keep loading your own ~/.Rprofile customizations under renv (the
+# scenario this argument exists for -- renv's own generated .Rprofile
+# would otherwise shadow ~/.Rprofile entirely)
+init_project(path = file.path(tempdir(), "project7"),
+             use_rprofile = TRUE, use_git = FALSE)
+
+# Source a personal profile kept somewhere other than ~/.Rprofile
+init_project(path = file.path(tempdir(), "project8"),
+             use_rprofile = "~/dotfiles/rprofile", use_git = FALSE)
 }
 }
 \seealso{

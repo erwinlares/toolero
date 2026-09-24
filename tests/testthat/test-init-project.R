@@ -804,40 +804,49 @@ test_that("a rejected call leaves no scaffolding behind", {
 # -- 7. renv -------------------------------------------------------------------
 
 test_that("init_project() no longer writes a .renvignore", {
-    # renv::scaffold() is mocked so the test stays fast. What is being
-    # asserted is toolero's own behavior around the call, not renv's.
-    local_mocked_bindings(
-        scaffold = function(...) invisible(NULL),
-        .package = "renv"
-    )
-
+    # scaffold_fn is a fake here (see T34 in covr-renv-incident.md) so the
+    # test stays fast and never loads renv's namespace into the test
+    # process. What is being asserted is toolero's own behavior around the
+    # call, not renv's.
     proj <- fs::path(tmp, "renv-01")
-    init_project(proj, use_renv = TRUE, use_git = FALSE)
+    init_project(proj, use_renv = TRUE, use_git = FALSE,
+                 scaffold_fn = function(...) invisible(NULL))
 
     expect_false(fs::file_exists(fs::path(proj, ".renvignore")))
 })
 
-test_that("init_project() uses renv::scaffold(), not renv::init()", {
-    # renv::init() loads the new project into the CALLING session, repointing
-    # .libPaths() at an almost-empty library. scaffold() does not.
+test_that("init_project() calls scaffold_fn exactly once when use_renv = TRUE", {
+    # The regression this originally guarded against -- init_project()
+    # calling renv::init(), which loads the new project into the CALLING
+    # session and repoints .libPaths() at an almost-empty library -- can no
+    # longer happen: renv::init is not referenced anywhere in
+    # init-project.R (grep confirms it). What is still worth asserting is
+    # that scaffold_fn is the one and only thing init_project() calls to do
+    # the scaffolding.
     called <- character(0)
 
-    local_mocked_bindings(
-        scaffold = function(...) {
-            called <<- c(called, "scaffold")
-            invisible(NULL)
-        },
-        init = function(...) {
-            called <<- c(called, "init")
-            invisible(NULL)
-        },
-        .package = "renv"
-    )
-
     proj <- fs::path(tmp, "renv-04")
-    init_project(proj, use_renv = TRUE, use_git = FALSE)
+    init_project(proj, use_renv = TRUE, use_git = FALSE,
+                 scaffold_fn = function(...) {
+                     called <<- c(called, "scaffold")
+                     invisible(NULL)
+                 })
 
     expect_equal(called, "scaffold")
+})
+
+test_that("scaffold_fn defaults to renv::scaffold", {
+    expect_equal(formals(init_project)$scaffold_fn, quote(renv::scaffold))
+})
+
+test_that("scaffold_fn is not called when use_renv = FALSE", {
+    called <- FALSE
+
+    proj <- fs::path(tmp, "renv-05")
+    init_project(proj, use_renv = FALSE, use_git = FALSE,
+                 scaffold_fn = function(...) called <<- TRUE)
+
+    expect_false(called)
 })
 
 test_that("init_project() leaves the caller's library paths alone", {
@@ -884,22 +893,20 @@ test_that("use_rprofile = TRUE writes a guarded .Rprofile even without renv", {
 })
 
 test_that("use_rprofile = TRUE appends after renv's own activation line", {
-    # renv::scaffold() is mocked (as in the tests above) so this stays fast
-    # and does not depend on a real renv installation. The mock writes the
-    # same .Rprofile line the real scaffold() would, so the ordering this
-    # test checks -- renv's line first, the personal-profile block after --
-    # is the real contract between the two, not an artifact of the mock.
-    local_mocked_bindings(
-        scaffold = function(project, ...) {
-            writeLines('source("renv/activate.R")', fs::path(project, ".Rprofile"))
-            invisible(NULL)
-        },
-        .package = "renv"
-    )
+    # scaffold_fn is a fake (as in the renv tests above) so this stays fast,
+    # never loads renv's namespace, and does not depend on a real renv
+    # installation. The fake writes the same .Rprofile line the real
+    # scaffold() would, so the ordering this test checks -- renv's line
+    # first, the personal-profile block after -- is the real contract
+    # between the two, not an artifact of the fake.
+    fake_scaffold <- function(project, ...) {
+        writeLines('source("renv/activate.R")', fs::path(project, ".Rprofile"))
+        invisible(NULL)
+    }
 
     proj <- fs::path(tmp, "rprofile-03")
     init_project(proj, use_renv = TRUE, use_git = FALSE,
-                 use_rprofile = TRUE)
+                 use_rprofile = TRUE, scaffold_fn = fake_scaffold)
 
     rprofile   <- readLines(fs::path(proj, ".Rprofile"), warn = FALSE)
     renv_line  <- grep("renv/activate.R", rprofile, fixed = TRUE)
@@ -911,16 +918,14 @@ test_that("use_rprofile = TRUE appends after renv's own activation line", {
 })
 
 test_that("use_rprofile = FALSE leaves renv's .Rprofile untouched", {
-    local_mocked_bindings(
-        scaffold = function(project, ...) {
-            writeLines('source("renv/activate.R")', fs::path(project, ".Rprofile"))
-            invisible(NULL)
-        },
-        .package = "renv"
-    )
+    fake_scaffold <- function(project, ...) {
+        writeLines('source("renv/activate.R")', fs::path(project, ".Rprofile"))
+        invisible(NULL)
+    }
 
     proj <- fs::path(tmp, "rprofile-04")
-    init_project(proj, use_renv = TRUE, use_git = FALSE)
+    init_project(proj, use_renv = TRUE, use_git = FALSE,
+                 scaffold_fn = fake_scaffold)
 
     rprofile <- readLines(fs::path(proj, ".Rprofile"), warn = FALSE)
 

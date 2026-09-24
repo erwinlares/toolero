@@ -45,6 +45,7 @@ config's
 containerizable
 containr
 customizations
+dataset's
 deduplicated
 deduplicates
 der
@@ -61,6 +62,7 @@ hardcoded
 hardcodes
 hardcoding
 iD
+injectable
 knitr
 knitr's
 lexicographically
@@ -78,6 +80,7 @@ recursing
 renv
 renv's
 renvignore
+repoint
 repointing
 rethrown
 roxygen

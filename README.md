@@ -233,6 +233,8 @@ and scalable computing when needed.
 | `resolve_input_path()` | Resolves where the input data lives for the current execution context, and says what to fix when it cannot. The companion to `detect_execution_context()` for the specific case of finding your data. |
 | `generate_kb_xml()` | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
 | `generate_citation()` | Writes a `CITATION.cff` skeleton, optionally pulling author information from a profile written by `generate_profile()`. |
+| `generate_license()` | Writes a plain-text `LICENSE` file from one of three common templates (`"MIT"`, `"CC0"`, `"GPL-3"`), with the copyright holder and year filled in. `"GPL-3"` links to the canonical full text rather than reproducing it. |
+| `generate_data_doc()` | Writes a Markdown documentation stub for a single dataset -- source, date obtained, license and usage terms, collection method, a variables table, and known issues -- with the dataset's file name and today's date pre-filled. |
 | `arborize()` | Renders syntactic trees as PNG images using Quarto's Typst engine. Can also write a provenance YAML file so the tree image can be reproduced or modified later. |
 
 ---
@@ -1094,6 +1096,68 @@ for names that do not follow that pattern.
 If a supplied `profile` has no `author` field at all, `generate_citation()`
 warns and falls back to the same placeholder author it would have written
 with no `profile` supplied.
+
+---
+
+### `generate_license()`
+
+Writes a plain-text `LICENSE` file at a project's root from one of a small
+set of common license templates, with the copyright holder and year filled
+in.
+
+```r
+generate_license(license = "MIT", holder = "Jane Researcher")
+```
+
+**Arguments:**
+
+- `license` -- one of `"MIT"`, `"CC0"`, or `"GPL-3"`. Defaults to `"MIT"`.
+- `holder` -- the copyright holder, a person or an institution. Must be
+  supplied explicitly; there is no default, since guessing it wrong is
+  worse than asking.
+- `year` -- the copyright year. Defaults to the current year.
+- `path` -- directory in which to write the file. Defaults to `"."`.
+- `overwrite` -- whether to overwrite an existing `LICENSE` file at the
+  same location. Defaults to `FALSE`.
+
+`"MIT"` and `"CC0"` are both short enough to reproduce in full. `"GPL-3"`'s
+full text runs to several hundred lines; rather than risk an inaccurate
+transcription, `license = "GPL-3"` writes the notice the Free Software
+Foundation itself recommends attaching to a program, together with a link
+to the canonical full text.
+
+This is different from how an R package normally carries a license -- a
+package's `DESCRIPTION` declares `License: MIT + file LICENSE` and pairs a
+two-line CRAN stub with the full text in `LICENSE.md`. The projects
+`init_project()` scaffolds are research compendia, not packages, so
+`generate_license()` instead writes one self-contained file carrying the
+license text directly, the way a plain GitHub repository does.
+
+---
+
+### `generate_data_doc()`
+
+Writes a Markdown documentation stub for a single dataset, with the
+sections a data-management plan typically asks for: source, date obtained,
+license and usage terms, collection method, a variables table, and known
+issues. The dataset's file name and today's date are pre-filled; everything
+else is left as a placeholder to complete by hand -- the same
+skeleton-you-complete-yourself approach `generate_citation()` uses for
+`CITATION.cff`.
+
+```r
+generate_data_doc("survey_responses.csv")
+```
+
+**Arguments:**
+
+- `dataset` -- the file name of the dataset this doc describes, e.g.
+  `"survey_responses.csv"`. Used to name the output file (the extension is
+  replaced with `.md`) and to fill in the doc's title. Must be supplied
+  explicitly; there is no reasonable default.
+- `path` -- directory in which to write the file. Defaults to `"data"`.
+- `overwrite` -- whether to overwrite an existing doc at the same location.
+  Defaults to `FALSE`.
 
 ---
 

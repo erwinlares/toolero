@@ -72,6 +72,13 @@
 #'   named file does not exist yet, a warning is issued when `init_project()`
 #'   runs, but the guard is still written -- see the "Personal `.Rprofile`
 #'   and renv" section below. Defaults to `FALSE`.
+#' @param scaffold_fn A function. Called as `scaffold_fn(project = path)` when
+#'   `use_renv = TRUE`, in place of calling [renv::scaffold()] directly.
+#'   Defaults to `renv::scaffold`. Exists for the same reason
+#'   [detect_execution_context()]'s `interactive_fn` does: so tests can
+#'   substitute a fake and exercise `use_renv = TRUE` without loading renv's
+#'   namespace into the test process. Overriding it outside of tests is
+#'   unsupported.
 #'
 #' @section The project manifest:
 #' `r lifecycle::badge("experimental")`
@@ -126,6 +133,15 @@
 #' creates `renv/library`, `renv/activate.R`, `renv/.gitignore`, an
 #' `.Rprofile` that activates the project in future sessions, and an initial
 #' `renv.lock`.
+#'
+#' The call is made through the injectable `scaffold_fn` argument rather
+#' than by name, purely so tests can substitute a stand-in and never load
+#' renv's namespace into the test process. Loading it there is what broke
+#' `covr::package_coverage()`: renv's load hook takes over `.libPaths()`,
+#' and every package a test reaches with `::` afterwards (rather than one
+#' already loaded) becomes unresolvable. Two environment variables papered
+#' over the symptom before this argument existed; see
+#' `covr-renv-incident.md` for the incident this closes out.
 #'
 #' Three things changed here in v0.5.0, and they are worth understanding
 #' together.
@@ -250,7 +266,8 @@ init_project <- function(path,
                          branding       = "none",
                          uw_branding    = deprecated(),
                          use_readme     = TRUE,
-                         use_rprofile   = FALSE) {
+                         use_rprofile   = FALSE,
+                         scaffold_fn    = renv::scaffold) {
     # =======================================================================
     # Preconditions. Everything that can fail is checked before anything is
     # created, so a rejected call leaves no half-built project behind.
@@ -534,7 +551,7 @@ init_project <- function(path,
     # yet, so there is nothing to discover. See the "Dependency discovery and
     # renv" section of this function's documentation.
     if (use_renv) {
-        renv::scaffold(project = path)
+        scaffold_fn(project = path)
     }
 
     # -- 13b. Optionally preserve access to a personal .Rprofile -------------
