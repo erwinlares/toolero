@@ -152,7 +152,7 @@ check_project()
 # \donttest{
 project_dir <- withr::local_tempdir()
 check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/RtmpSbfULX/file1a88245a8e93 does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/RtmpfO9XwF/file1ab73ceb1608 does not exist.
 # }
 
 # Audit against a custom folder structure
@@ -160,19 +160,19 @@ check_project(path = project_dir)
 project_dir <- withr::local_tempdir()
 config_path <- file.path(tempdir(), "my-config.yml")
 generate_project_config("my-config.yml", path = tempdir())
-#> ✔ Created /tmp/RtmpSbfULX/my-config.yml
-#> ℹ Edit /tmp/RtmpSbfULX/my-config.yml to define your custom folder structure,
+#> ✔ Created /tmp/RtmpfO9XwF/my-config.yml
+#> ℹ Edit /tmp/RtmpfO9XwF/my-config.yml to define your custom folder structure,
 #>   then pass it to `init_project()` via `config =
-#>   "/tmp/RtmpSbfULX/my-config.yml"`.
+#>   "/tmp/RtmpfO9XwF/my-config.yml"`.
 #> ℹ For easy reuse across projects, consider moving this file to /home/runner.
 check_project(path = project_dir, config = config_path)
-#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/RtmpSbfULX/file1a883d50a18f does not exist.
+#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/RtmpfO9XwF/file1ab7144ad9b3 does not exist.
 # }
 
 # Access results programmatically
 # \donttest{
 project_dir <- withr::local_tempdir()
 out <- check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/RtmpSbfULX/file1a8817fa1aa7 does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/RtmpfO9XwF/file1ab7c39105d does not exist.
 # }
 ```
