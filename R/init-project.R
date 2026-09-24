@@ -61,11 +61,17 @@
 #'   generalist toolero template. `FALSE` creates no README file. `"plain"`
 #'   creates `README.txt` with the same generalist content as `README.md` --
 #'   only the extension differs, not the content. Defaults to `TRUE`.
-#' @param use_rprofile Logical. If `TRUE`, appends a block to the
-#'   project's `.Rprofile` that sources `~/.Rprofile` if it exists, so a
-#'   project under `renv` does not silently shadow the user's personal
-#'   startup customizations. See the "Personal `.Rprofile` and renv" section
-#'   below. Defaults to `FALSE`.
+#' @param use_rprofile Logical or character. Controls whether the project's
+#'   `.Rprofile` also sources a personal one, so a project under `renv` does
+#'   not silently shadow the user's own startup customizations. `TRUE`
+#'   appends a guarded block that sources `~/.Rprofile` if it exists. A
+#'   character string names a specific file to source instead -- useful for
+#'   a personal profile kept somewhere other than the platform default, such
+#'   as one tracked in a dotfiles repository (e.g.
+#'   `use_rprofile = "~/dotfiles/rprofile"`). `FALSE` adds nothing. If the
+#'   named file does not exist yet, a warning is issued when `init_project()`
+#'   runs, but the guard is still written -- see the "Personal `.Rprofile`
+#'   and renv" section below. Defaults to `FALSE`.
 #'
 #' @section The project manifest:
 #' `r lifecycle::badge("experimental")`
@@ -156,26 +162,36 @@
 #'
 #' @section Personal `.Rprofile` and renv:
 #' R reads exactly one `.Rprofile` per session: the project's own if the
-#' working directory has one, `~/.Rprofile` only if it does not. When
+#' working directory has one, a personal one only if it does not. When
 #' `use_renv = TRUE`, [renv::scaffold()] writes a project `.Rprofile`
-#' containing `source("renv/activate.R")`, and from that point on the
-#' user's own `~/.Rprofile` -- aliases, options, personal helper functions
-#' -- is shadowed for every session opened in this project. Nothing warns
+#' containing `source("renv/activate.R")`, and from that point on a user's
+#' own startup customizations -- aliases, options, personal helper functions
+#' -- are shadowed for every session opened in this project. Nothing warns
 #' about this; it simply stops loading.
 #'
 #' `use_rprofile = TRUE` appends a guarded block to the project's
 #' `.Rprofile`, after renv's own activation line, that sources
-#' `~/.Rprofile` if it exists. The check happens at every session start
-#' rather than being baked in once, so a `~/.Rprofile` written or edited
-#' after the project is created is still picked up.
+#' `~/.Rprofile` if it exists. Pass a character string instead of `TRUE` to
+#' source a different file -- for instance a profile tracked in a dotfiles
+#' repository rather than kept at the platform default location. Either
+#' way, the existence check happens inside the written block, at every
+#' session start, rather than being baked in once, so a file written or
+#' edited after the project is created is still picked up. If the named
+#' file does not exist yet when `init_project()` itself runs, a warning
+#' says so -- most often a sign of a typo -- but the guard is written
+#' regardless, since the file may simply not exist yet.
 #'
 #' Defaults to `FALSE` because it cuts against renv's own isolation goal: a
-#' project that automatically re-sources the user's personal environment is
-#' no longer fully isolated from it. It is also written generically -- the
-#' block sources whichever file is at `~/.Rprofile` for whoever opens the
-#' project, not a specific person's file -- so a collaborator who clones the
-#' project gets the same behavior a project's original author chose, rather
-#' than one tied to a specific person's home directory.
+#' project that automatically re-sources a personal environment is no
+#' longer fully isolated from it. The `TRUE` mode is also written
+#' generically -- the block sources whichever file sits at `~/.Rprofile`
+#' for whoever opens the project, not a specific person's file -- so a
+#' collaborator who clones the project gets the same behavior the
+#' project's original author chose, rather than one tied to a specific
+#' person's home directory. A character path is written into the guard
+#' exactly as given, so the same portability holds as long as the path
+#' itself is written portably (`~`-relative, say, rather than an absolute
+#' path tied to one machine).
 #'
 #' @importFrom yaml read_yaml
 #' @importFrom lifecycle deprecated is_present deprecate_warn
@@ -219,6 +235,10 @@
 #' # would otherwise shadow ~/.Rprofile entirely)
 #' init_project(path = file.path(tempdir(), "project7"),
 #'              use_rprofile = TRUE, use_git = FALSE)
+#'
+#' # Source a personal profile kept somewhere other than ~/.Rprofile
+#' init_project(path = file.path(tempdir(), "project8"),
+#'              use_rprofile = "~/dotfiles/rprofile", use_git = FALSE)
 #' }
 
 init_project <- function(path,
@@ -270,6 +290,51 @@ init_project <- function(path,
     }
 
     use_any_readme <- isTRUE(use_readme) || identical(use_readme, "plain")
+
+    # -- 4b. Validate use_rprofile and resolve what it will source -----------
+    # TRUE and FALSE behave as before; a character string is new -- it names
+    # a specific file to source instead of the default ~/.Rprofile. Until
+    # now this argument had no validation at all: a bad value (a path, say
+    # -- a plausible mistake given the argument's old logical-only contract)
+    # surfaced only much later, as a raw `if (use_rprofile)` error at step
+    # 13b, by which point the project directory, folders, README, manifest,
+    # and any renv scaffolding had already been written to disk. Checked
+    # here, with the other arguments, so a rejected call leaves nothing
+    # behind, same as branding and use_readme above.
+    if (!(is.logical(use_rprofile) || is.character(use_rprofile)) ||
+        length(use_rprofile) != 1L ||
+        is.na(use_rprofile) ||
+        (is.character(use_rprofile) && !nzchar(use_rprofile))) {
+        cli::cli_abort(
+            "{.arg use_rprofile} must be {.val TRUE}, {.val FALSE}, or a single file path, not {.val {use_rprofile}}."
+        )
+    }
+
+    # TRUE resolves to the generic ~/.Rprofile; a character value is used
+    # exactly as given; FALSE resolves to NULL, meaning nothing is added.
+    rprofile_source <- if (isTRUE(use_rprofile)) {
+        "~/.Rprofile"
+    } else if (is.character(use_rprofile)) {
+        use_rprofile
+    } else {
+        NULL
+    }
+
+    # The guard written into the project's .Rprofile checks for the file's
+    # existence at every session start (see .add_rprofile()), so a file that
+    # does not exist yet is not an error -- it may simply not have been
+    # created yet. But it is worth flagging now, since it is also how a typo
+    # in a hand-typed path would otherwise go unnoticed until a session
+    # silently does not pick up the profile the caller expected.
+    if (!is.null(rprofile_source) &&
+        !fs::file_exists(fs::path_expand(rprofile_source))) {
+        cli::cli_warn(c(
+            "{.arg use_rprofile} points at {.path {rprofile_source}}, which does not exist yet.",
+            "i" = "The guard is still written to this project's {.file .Rprofile} --
+                   if you create that file later, it will be sourced automatically
+                   the next time a session starts in this project."
+        ))
+    }
 
     # -- 5. Resolve the folder set and conventions ---------------------------
     # Done up front so a malformed config fails before the project directory
@@ -472,14 +537,15 @@ init_project <- function(path,
         renv::scaffold(project = path)
     }
 
-    # -- 13b. Optionally preserve access to the user's own .Rprofile ---------
+    # -- 13b. Optionally preserve access to a personal .Rprofile -------------
     # Meaningful once a project has its own .Rprofile -- which use_renv =
     # TRUE creates above, via renv::scaffold() -- since that file is the
-    # only one R reads for this project and otherwise shadows ~/.Rprofile
-    # entirely. See the "Personal .Rprofile and renv" section of this
-    # function's documentation.
-    if (use_rprofile) {
-        .add_rprofile(path)
+    # only one R reads for this project and otherwise shadows whichever file
+    # rprofile_source names. rprofile_source was resolved (and, if it does
+    # not exist yet, warned about) back in step 4b. See the "Personal
+    # .Rprofile and renv" section of this function's documentation.
+    if (!is.null(rprofile_source)) {
+        .add_rprofile(path, source = rprofile_source)
     }
 
     # -- 14. Initialize git --------------------------------------------------
@@ -587,44 +653,51 @@ init_project <- function(path,
 }
 
 
-# -- Helper: preserve access to the user's own .Rprofile ----------------------
+# -- Helper: preserve access to a personal .Rprofile --------------------------
 
-#' Preserve access to the user's own `.Rprofile`
+#' Preserve access to a personal `.Rprofile`
 #'
 #' Internal helper backing [init_project()]'s `use_rprofile`
 #' argument. R reads exactly one `.Rprofile` per session: the one in the
 #' current working directory if it exists, `~/.Rprofile` only if it does
 #' not. `renv::scaffold()` writes a project-level `.Rprofile` containing
 #' `source("renv/activate.R")`, so once a project is under renv, whatever
-#' aliases, options, or helper functions a user keeps in `~/.Rprofile` stop
-#' loading for that project -- silently, since nothing errors.
+#' aliases, options, or helper functions a user keeps in a personal
+#' `.Rprofile` stop loading for that project -- silently, since nothing
+#' errors.
 #'
 #' This appends a guarded block to the project's `.Rprofile` (creating the
-#' file if `use_renv = FALSE` left none behind) that sources `~/.Rprofile`
+#' file if `use_renv = FALSE` left none behind) that sources `source`
 #' if it exists, after renv's own activation line so the project library is
-#' set up first. The existence check happens at every session start rather
-#' than once at project-creation time, so a `~/.Rprofile` written or edited
-#' after the project is created is still picked up.
+#' set up first. `source` is written into the block exactly as given --
+#' never expanded or resolved to an absolute path here -- so a `~`-relative
+#' value stays portable across whoever opens the project, the same way the
+#' default `~/.Rprofile` already does. The existence check happens at every
+#' session start rather than once at project-creation time, so a file
+#' written or edited after the project is created is still picked up.
 #'
 #' @param path A character string. The project root.
+#' @param source A character string. The file to source, written into the
+#'   guard exactly as given (e.g. `"~/.Rprofile"` or `"~/dotfiles/rprofile"`).
+#'   Resolved by [init_project()] from its `use_rprofile` argument.
 #'
 #' @return Called for its side effects. Returns `invisible(NULL)`.
 #'
 #' @keywords internal
-.add_rprofile <- function(path) {
+.add_rprofile <- function(path, source = "~/.Rprofile") {
 
     rprofile_path <- fs::path(path, ".Rprofile")
 
     block <- c(
         "",
-        "# Load the user's own .Rprofile, if one exists. A project's own",
-        "# .Rprofile (written above by renv::scaffold(), when present) is the",
-        "# only one R reads for this project -- ~/.Rprofile is otherwise",
-        "# shadowed entirely. init_project(use_rprofile = TRUE) added",
-        "# this block so personal aliases, options, and helper functions are",
-        "# not silently lost.",
-        "if (file.exists(\"~/.Rprofile\")) {",
-        "  source(\"~/.Rprofile\")",
+        "# Load a personal .Rprofile, if one exists. A project's own",
+        "# .Rprofile (written above by renv::scaffold(), when present) is",
+        "# the only one R reads for this project -- the file named below",
+        "# is otherwise shadowed entirely. init_project(use_rprofile = )",
+        "# added this block so personal aliases, options, and helper",
+        "# functions are not silently lost.",
+        paste0("if (file.exists(\"", source, "\")) {"),
+        paste0("  source(\"", source, "\")"),
         "}"
     )
 

@@ -260,13 +260,43 @@ test_that("config suppresses the standard folders entirely", {
 
     init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
 
-    absent <- setdiff(standard_folders, "notebooks")
+    # R/ is the one standard folder init_project() does not create itself.
+    # usethis::create_project() calls use_directory("R") unconditionally, so
+    # it is present in every project whatever the config says. Covered by
+    # the test below rather than excluded silently here.
+    absent <- setdiff(standard_folders, c("notebooks", "R"))
     purrr::walk(absent, \(folder) {
         expect_false(
             fs::dir_exists(fs::path(proj, folder)),
             info = paste("should not exist:", folder)
         )
     })
+})
+
+test_that("R/ survives a config that does not list it", {
+    proj        <- fs::path(tmp, "cfg-02b")
+    config_path <- write_config(tmp, c("notebooks"), "cfg-02b.yml")
+
+    init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
+
+    # Created by usethis, not by toolero, so neither config nor
+    # custom_folders can suppress it.
+    expect_true(fs::dir_exists(fs::path(proj, "R")))
+
+    # It is not part of the resolved set, so it is not in the manifest and
+    # gets no .gitkeep. A reader comparing the manifest against the
+    # directory listing should find R/ in one and not the other.
+    expect_false("R" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
+    expect_false(fs::file_exists(fs::path(proj, "R", ".gitkeep")))
+})
+
+test_that("custom_folders cannot suppress R/ either", {
+    proj <- fs::path(tmp, "cfg-02c")
+
+    init_project(proj, custom_folders = "-R", use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::dir_exists(fs::path(proj, "R")))
+    expect_false("R" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
 })
 
 test_that("a missing config file raises an error", {
@@ -895,6 +925,97 @@ test_that("use_rprofile = FALSE leaves renv's .Rprofile untouched", {
     rprofile <- readLines(fs::path(proj, ".Rprofile"), warn = FALSE)
 
     expect_equal(rprofile, 'source("renv/activate.R")')
+})
+
+test_that("use_rprofile accepts a character path and sources it instead of ~/.Rprofile", {
+    proj    <- fs::path(tmp, "rprofile-05")
+    profile <- as.character(fs::path(tmp, "my-rprofile"))
+    writeLines("# personal profile", profile)
+
+    expect_no_warning(
+        init_project(proj, use_renv = FALSE, use_git = FALSE,
+                     use_rprofile = profile)
+    )
+
+    rprofile <- readLines(fs::path(proj, ".Rprofile"), warn = FALSE)
+
+    expect_true(any(grepl(
+        paste0('if (file.exists("', profile, '")) {'),
+        rprofile, fixed = TRUE
+    )))
+    expect_true(any(grepl(
+        paste0('source("', profile, '")'),
+        rprofile, fixed = TRUE
+    )))
+    expect_false(any(grepl("~/.Rprofile", rprofile, fixed = TRUE)))
+})
+
+test_that("use_rprofile warns at call time when the named file does not exist yet", {
+    proj <- fs::path(tmp, "rprofile-06")
+    expect_warning(
+        init_project(proj, use_renv = FALSE, use_git = FALSE,
+                     use_rprofile = as.character(fs::path(tmp, "no-such-rprofile"))),
+        regexp = "does not exist"
+    )
+})
+
+test_that("use_rprofile still writes the guard even when the named file does not exist yet", {
+    # The runtime check inside the written block (see .add_rprofile()) means
+    # a file created after init_project() runs is still picked up, so a
+    # missing file at scaffold time is a warning, not a reason to skip
+    # writing the guard.
+    proj    <- fs::path(tmp, "rprofile-07")
+    missing <- as.character(fs::path(tmp, "not-yet-created-rprofile"))
+
+    suppressWarnings(
+        init_project(proj, use_renv = FALSE, use_git = FALSE,
+                     use_rprofile = missing)
+    )
+
+    rprofile <- readLines(fs::path(proj, ".Rprofile"), warn = FALSE)
+    expect_true(any(grepl(missing, rprofile, fixed = TRUE)))
+})
+
+test_that("use_rprofile does not warn when the named file already exists", {
+    proj    <- fs::path(tmp, "rprofile-08")
+    profile <- as.character(fs::path(tmp, "existing-rprofile"))
+    writeLines("# exists", profile)
+
+    expect_no_warning(
+        init_project(proj, use_renv = FALSE, use_git = FALSE,
+                     use_rprofile = profile)
+    )
+})
+
+test_that("use_rprofile rejects a non-logical, non-character value with an informative error", {
+    proj <- fs::path(tmp, "rprofile-09")
+    expect_error(
+        init_project(proj, use_rprofile = 1, use_renv = FALSE, use_git = FALSE),
+        class = "rlang_error"
+    )
+})
+
+test_that("use_rprofile rejects an empty string", {
+    proj <- fs::path(tmp, "rprofile-10")
+    expect_error(
+        init_project(proj, use_rprofile = "", use_renv = FALSE, use_git = FALSE),
+        class = "rlang_error"
+    )
+})
+
+test_that("a rejected use_rprofile value leaves no scaffolding behind", {
+    # Regression guard: use_rprofile used to be checked only at step 13b,
+    # deep in the creation phase, so an invalid value crashed after the
+    # project directory, folders, README, manifest, and any renv scaffolding
+    # were already written. It is now validated alongside branding and
+    # use_readme, before anything is created.
+    proj <- fs::path(tmp, "rprofile-11")
+
+    expect_error(
+        init_project(proj, use_rprofile = 1, use_renv = FALSE, use_git = FALSE)
+    )
+
+    expect_false(fs::dir_exists(proj))
 })
 
 
