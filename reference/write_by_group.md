@@ -185,21 +185,21 @@ data <- data.frame(
   mass    = c(3750, 3800, 5000)
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpM07ZPn/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpM07ZPn/gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpSbfULX/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpSbfULX/gentoo.csv
 
 # Same but also write a job manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpM07ZPn/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpM07ZPn/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmpM07ZPn/manifest.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpSbfULX/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpSbfULX/gentoo.csv
+#> ✔ Manifest written to /tmp/RtmpSbfULX/manifest.csv
 
 # Namespace the filenames -- adelie.csv becomes penguins-adelie.csv
 write_by_group(data, group_col = "species", prefix = "penguins",
                output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpM07ZPn/penguins-adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpM07ZPn/penguins-gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpSbfULX/penguins-adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpSbfULX/penguins-gentoo.csv
 
 # Group by more than one column
 data2 <- data.frame(
@@ -209,10 +209,10 @@ data2 <- data.frame(
 )
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpM07ZPn/adelie--male.csv
-#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpM07ZPn/adelie--female.csv
-#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpM07ZPn/gentoo--male.csv
-#> ✔ Manifest written to /tmp/RtmpM07ZPn/manifest.csv
+#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpSbfULX/adelie--male.csv
+#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpSbfULX/adelie--female.csv
+#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpSbfULX/gentoo--male.csv
+#> ✔ Manifest written to /tmp/RtmpSbfULX/manifest.csv
 
 # Let a project's own _toolero.yml supply output_dir via split_dir.
 # generate_project_config() writes the default conventions, including
@@ -222,11 +222,11 @@ write_by_group(data2, group_col = c("species", "sex"),
 config_dir <- tempfile()
 dir.create(config_dir)
 generate_project_config("_toolero.yml", path = config_dir)
-#> ✔ Created /tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml
-#> ℹ Edit /tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml to define your custom folder
-#>   structure,
+#> ✔ Created /tmp/RtmpSbfULX/file1a885a259aaa/_toolero.yml
+#> ℹ Edit /tmp/RtmpSbfULX/file1a885a259aaa/_toolero.yml to define your custom
+#>   folder structure,
 #>   then pass it to `init_project()` via `config =
-#>   "/tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml"`.
+#>   "/tmp/RtmpSbfULX/file1a885a259aaa/_toolero.yml"`.
 #> ℹ For easy reuse across projects, consider moving this file to /home/runner.
 withr::with_dir(config_dir, {
   write_by_group(
@@ -235,7 +235,8 @@ withr::with_dir(config_dir, {
     config    = file.path(config_dir, "_toolero.yml")
   )
 })
-#> Using split_dir ("data/jobs") from /tmp/RtmpM07ZPn/file1abdd6055f/_toolero.yml.
+#> Using split_dir ("data/jobs") from
+#> /tmp/RtmpSbfULX/file1a885a259aaa/_toolero.yml.
 #> ✔ Written "Adelie" (2 rows) to data/jobs/adelie.csv
 #> ✔ Written "Gentoo" (1 rows) to data/jobs/gentoo.csv
 # }
