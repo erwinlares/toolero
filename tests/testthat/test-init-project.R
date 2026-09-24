@@ -1,7 +1,8 @@
 # Tests for init_project() and generate_project_config()
 # Organized by: standard structure, project manifest, config file,
 #               custom_folders, branding, use_readme, renv,
-#               generate_project_config(), internal helpers
+#               use_rprofile, generate_project_config(),
+#               internal helpers
 
 # -- Shared helpers ------------------------------------------------------------
 
@@ -259,43 +260,13 @@ test_that("config suppresses the standard folders entirely", {
 
     init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
 
-    # R/ is the one standard folder init_project() does not create itself.
-    # usethis::create_project() calls use_directory("R") unconditionally, so
-    # it is present in every project whatever the config says. Covered by
-    # the test below rather than excluded silently here.
-    absent <- setdiff(standard_folders, c("notebooks", "R"))
+    absent <- setdiff(standard_folders, "notebooks")
     purrr::walk(absent, \(folder) {
         expect_false(
             fs::dir_exists(fs::path(proj, folder)),
             info = paste("should not exist:", folder)
         )
     })
-})
-
-test_that("R/ survives a config that does not list it", {
-    proj        <- fs::path(tmp, "cfg-02b")
-    config_path <- write_config(tmp, c("notebooks"), "cfg-02b.yml")
-
-    init_project(proj, config = config_path, use_renv = FALSE, use_git = FALSE)
-
-    # Created by usethis, not by toolero, so neither config nor
-    # custom_folders can suppress it.
-    expect_true(fs::dir_exists(fs::path(proj, "R")))
-
-    # It is not part of the resolved set, so it is not in the manifest and
-    # gets no .gitkeep. A reader comparing the manifest against the
-    # directory listing should find R/ in one and not the other.
-    expect_false("R" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
-    expect_false(fs::file_exists(fs::path(proj, "R", ".gitkeep")))
-})
-
-test_that("custom_folders cannot suppress R/ either", {
-    proj <- fs::path(tmp, "cfg-02c")
-
-    init_project(proj, custom_folders = "-R", use_renv = FALSE, use_git = FALSE)
-
-    expect_true(fs::dir_exists(fs::path(proj, "R")))
-    expect_false("R" %in% as.character(unlist(read_manifest(proj)[["folders"]])))
 })
 
 test_that("a missing config file raises an error", {
@@ -859,6 +830,71 @@ test_that("use_renv = FALSE creates no renv scaffolding", {
 
     expect_false(fs::file_exists(fs::path(proj, ".renvignore")))
     expect_false(fs::dir_exists(fs::path(proj, "renv")))
+})
+
+
+# -- 7b. use_rprofile ----------------------------------------------------------
+
+test_that("use_rprofile = FALSE (the default) writes no .Rprofile without renv", {
+    proj <- fs::path(tmp, "rprofile-01")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    expect_false(fs::file_exists(fs::path(proj, ".Rprofile")))
+})
+
+test_that("use_rprofile = TRUE writes a guarded .Rprofile even without renv", {
+    proj <- fs::path(tmp, "rprofile-02")
+    init_project(proj, use_renv = FALSE, use_git = FALSE,
+                 use_rprofile = TRUE)
+
+    rprofile <- readLines(fs::path(proj, ".Rprofile"), warn = FALSE)
+
+    expect_true(any(grepl('if \\(file\\.exists\\("~/\\.Rprofile"\\)\\)', rprofile)))
+    expect_true(any(grepl('source\\("~/\\.Rprofile"\\)', rprofile)))
+})
+
+test_that("use_rprofile = TRUE appends after renv's own activation line", {
+    # renv::scaffold() is mocked (as in the tests above) so this stays fast
+    # and does not depend on a real renv installation. The mock writes the
+    # same .Rprofile line the real scaffold() would, so the ordering this
+    # test checks -- renv's line first, the personal-profile block after --
+    # is the real contract between the two, not an artifact of the mock.
+    local_mocked_bindings(
+        scaffold = function(project, ...) {
+            writeLines('source("renv/activate.R")', fs::path(project, ".Rprofile"))
+            invisible(NULL)
+        },
+        .package = "renv"
+    )
+
+    proj <- fs::path(tmp, "rprofile-03")
+    init_project(proj, use_renv = TRUE, use_git = FALSE,
+                 use_rprofile = TRUE)
+
+    rprofile   <- readLines(fs::path(proj, ".Rprofile"), warn = FALSE)
+    renv_line  <- grep("renv/activate.R", rprofile, fixed = TRUE)
+    source_line <- grep('source\\("~/\\.Rprofile"\\)', rprofile)
+
+    expect_length(renv_line, 1L)
+    expect_length(source_line, 1L)
+    expect_true(renv_line < source_line)
+})
+
+test_that("use_rprofile = FALSE leaves renv's .Rprofile untouched", {
+    local_mocked_bindings(
+        scaffold = function(project, ...) {
+            writeLines('source("renv/activate.R")', fs::path(project, ".Rprofile"))
+            invisible(NULL)
+        },
+        .package = "renv"
+    )
+
+    proj <- fs::path(tmp, "rprofile-04")
+    init_project(proj, use_renv = TRUE, use_git = FALSE)
+
+    rprofile <- readLines(fs::path(proj, ".Rprofile"), warn = FALSE)
+
+    expect_equal(rprofile, 'source("renv/activate.R")')
 })
 
 

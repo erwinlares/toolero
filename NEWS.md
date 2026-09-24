@@ -79,6 +79,20 @@
   `renv/library` is neither walked nor mistaken for the project's own
   documents.
 
+* `init_project()` gains a new `use_rprofile` argument (default
+  `FALSE`). R reads exactly one `.Rprofile` per session -- the project's
+  own if the working directory has one, `~/.Rprofile` only if it does not
+  -- so once `use_renv = TRUE` writes a project `.Rprofile` via
+  `renv::scaffold()`, a user's personal aliases, options, and helper
+  functions in `~/.Rprofile` silently stop loading for that project.
+  `use_rprofile = TRUE` appends a guarded block to the project's
+  `.Rprofile`, after renv's own activation line, that sources
+  `~/.Rprofile` if it exists, checked at every session start rather than
+  once at creation time. Opt-in, and defaults to `FALSE`, since it cuts
+  against renv's own isolation goal: a project that automatically
+  re-sources the user's personal environment is no longer fully isolated
+  from it.
+
 ## Bug fixes
 
 * `create_qmd(include_examples = TRUE)`: no longer copies the placeholder

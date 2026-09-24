@@ -156,6 +156,25 @@ project is reproducible and version-controlled from the first commit.
 > -- a brand-new project has no code in it yet -- so run `renv::snapshot()`
 > yourself once the analysis exists and before containerizing.
 
+Setting up `renv` this way has a quieter side effect. R reads only one
+`.Rprofile` per session -- the project's own if the working directory has
+one, `~/.Rprofile` otherwise -- and the `.Rprofile` `renv::scaffold()`
+writes becomes that one. Whatever you keep in your personal `~/.Rprofile`
+(a handful of options, a favorite helper function) stops loading for this
+project, with nothing telling you it happened. `use_rprofile = TRUE`
+appends a guarded block to the project's `.Rprofile`, after renv's own
+activation line, that sources `~/.Rprofile` if it exists:
+
+```{r}
+#| eval: false
+init_project(path = "~/Documents/my-project", use_rprofile = TRUE)
+```
+
+It defaults to `FALSE`, because it is genuinely in tension with what `renv`
+is for: a project that quietly re-sources your personal environment is not
+fully isolated from it anymore. Turn it on when losing your own `.Rprofile`
+would cost you more than that isolation is worth.
+
 If your project needs folders beyond the defaults, or you want to drop one
 of them, `custom_folders` adds and removes without having to restate the
 whole set. A `"-"` prefix removes a folder from the standard set:

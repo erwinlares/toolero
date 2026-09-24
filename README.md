@@ -217,7 +217,7 @@ and scalable computing when needed.
 
 | Function | What it does |
 |---|---|
-| `init_project()` | Creates a new R project with a standard research-oriented folder structure and records that structure in `_toolero.yml` at the project root. Can set up `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding), and create a README via `use_readme` (`README.md` by default, `"plain"` for `README.txt`, or `FALSE` to skip it). |
+| `init_project()` | Creates a new R project with a standard research-oriented folder structure and records that structure in `_toolero.yml` at the project root. Can set up `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding), create a README via `use_readme` (`README.md` by default, `"plain"` for `README.txt`, or `FALSE` to skip it), and, via `use_rprofile`, keep loading your own `~/.Rprofile` customizations in a project that renv would otherwise shadow them in. |
 | `generate_project_config()` | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure and conventions. Edit to define a custom layout and pass to `init_project()` via `config`. Same schema, template and writer as the `_toolero.yml` a project carries. |
 | `check_project()` | Audits an existing project for common reproducibility scaffolding: the expected folders, an `.Rproj` file, `renv.lock` and whether it actually records anything, `.renvignore` entries that would hide your source from `renv`, git, README, `.gitignore`, the project manifest, stale purled `.R` scripts, and hidden files such as `.RData` or `.Rhistory`. Audits against the project's own `_toolero.yml` when it has one. |
 | `create_qmd()` | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata via `header_defaults`, wire in custom styling from a standardized `assets/` folder, and (opt-in via `use_purl`, `FALSE` by default) stamp `purl: true`/`false` into the document's header and set up a post-render purl hook, merged into an existing `_quarto.yml` where possible and skipped with a warning for website, book and manuscript projects. |
@@ -363,6 +363,28 @@ is already prepared, even if you never need it. If the project uses branding
 assets and is later containerized, pass `misc_file = "assets/"` to
 `containr::generate_dockerfile()` so the styling files are copied into the
 image alongside the `.qmd`.
+
+Setting up `renv` has a side effect worth knowing about: R reads exactly one
+`.Rprofile` per session, and `renv::scaffold()`'s own `.Rprofile` (the one
+that activates the project) becomes that one, so your personal
+`~/.Rprofile` -- aliases, options, helper functions -- silently stops
+loading the moment a project is under `renv`. `use_rprofile = TRUE`
+appends a guarded block to the project's `.Rprofile`, after renv's own
+activation line, that sources `~/.Rprofile` if it exists:
+
+```r
+init_project(path = "~/Documents/my-project", use_rprofile = TRUE)
+```
+
+The check happens every time a session starts, not just once at creation, so
+a `~/.Rprofile` you write or edit later is still picked up. It defaults to
+`FALSE` because it works against `renv`'s own point: a project that
+automatically re-sources your personal environment is no longer fully
+isolated from it. The block is also written generically -- it sources
+whichever file is at `~/.Rprofile` for whoever opens the project, not one
+person's file baked in -- so a collaborator who clones the project gets the
+same behavior, for their own home directory, that the project's author
+chose.
 
 ---
 

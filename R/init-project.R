@@ -61,6 +61,11 @@
 #'   generalist toolero template. `FALSE` creates no README file. `"plain"`
 #'   creates `README.txt` with the same generalist content as `README.md` --
 #'   only the extension differs, not the content. Defaults to `TRUE`.
+#' @param use_rprofile Logical. If `TRUE`, appends a block to the
+#'   project's `.Rprofile` that sources `~/.Rprofile` if it exists, so a
+#'   project under `renv` does not silently shadow the user's personal
+#'   startup customizations. See the "Personal `.Rprofile` and renv" section
+#'   below. Defaults to `FALSE`.
 #'
 #' @section The project manifest:
 #' `r lifecycle::badge("experimental")`
@@ -149,6 +154,29 @@
 #' renv::snapshot()
 #' ```
 #'
+#' @section Personal `.Rprofile` and renv:
+#' R reads exactly one `.Rprofile` per session: the project's own if the
+#' working directory has one, `~/.Rprofile` only if it does not. When
+#' `use_renv = TRUE`, [renv::scaffold()] writes a project `.Rprofile`
+#' containing `source("renv/activate.R")`, and from that point on the
+#' user's own `~/.Rprofile` -- aliases, options, personal helper functions
+#' -- is shadowed for every session opened in this project. Nothing warns
+#' about this; it simply stops loading.
+#'
+#' `use_rprofile = TRUE` appends a guarded block to the project's
+#' `.Rprofile`, after renv's own activation line, that sources
+#' `~/.Rprofile` if it exists. The check happens at every session start
+#' rather than being baked in once, so a `~/.Rprofile` written or edited
+#' after the project is created is still picked up.
+#'
+#' Defaults to `FALSE` because it cuts against renv's own isolation goal: a
+#' project that automatically re-sources the user's personal environment is
+#' no longer fully isolated from it. It is also written generically -- the
+#' block sources whichever file is at `~/.Rprofile` for whoever opens the
+#' project, not a specific person's file -- so a collaborator who clones the
+#' project gets the same behavior a project's original author chose, rather
+#' than one tied to a specific person's home directory.
+#'
 #' @importFrom yaml read_yaml
 #' @importFrom lifecycle deprecated is_present deprecate_warn
 #' @return Called for its side effects. Invisibly returns `path`.
@@ -185,6 +213,12 @@
 #' # Skip the README entirely
 #' init_project(path = file.path(tempdir(), "project6"),
 #'              use_readme = FALSE, use_renv = FALSE, use_git = FALSE)
+#'
+#' # Keep loading your own ~/.Rprofile customizations under renv (the
+#' # scenario this argument exists for -- renv's own generated .Rprofile
+#' # would otherwise shadow ~/.Rprofile entirely)
+#' init_project(path = file.path(tempdir(), "project7"),
+#'              use_rprofile = TRUE, use_git = FALSE)
 #' }
 
 init_project <- function(path,
@@ -195,8 +229,8 @@ init_project <- function(path,
                          open           = FALSE,
                          branding       = "none",
                          uw_branding    = deprecated(),
-                         use_readme     = TRUE) {
-
+                         use_readme     = TRUE,
+                         use_rprofile   = FALSE) {
     # =======================================================================
     # Preconditions. Everything that can fail is checked before anything is
     # created, so a rejected call leaves no half-built project behind.
@@ -438,6 +472,16 @@ init_project <- function(path,
         renv::scaffold(project = path)
     }
 
+    # -- 13b. Optionally preserve access to the user's own .Rprofile ---------
+    # Meaningful once a project has its own .Rprofile -- which use_renv =
+    # TRUE creates above, via renv::scaffold() -- since that file is the
+    # only one R reads for this project and otherwise shadows ~/.Rprofile
+    # entirely. See the "Personal .Rprofile and renv" section of this
+    # function's documentation.
+    if (use_rprofile) {
+        .add_rprofile(path)
+    }
+
     # -- 14. Initialize git --------------------------------------------------
     # Targets the project set by local_project() above, not the caller's.
     if (use_git) usethis::use_git(message = "initial commit")
@@ -540,6 +584,59 @@ init_project <- function(path,
     # Apply additions, excluding duplicates
     new_additions <- setdiff(additions, result)
     c(result, new_additions)
+}
+
+
+# -- Helper: preserve access to the user's own .Rprofile ----------------------
+
+#' Preserve access to the user's own `.Rprofile`
+#'
+#' Internal helper backing [init_project()]'s `use_rprofile`
+#' argument. R reads exactly one `.Rprofile` per session: the one in the
+#' current working directory if it exists, `~/.Rprofile` only if it does
+#' not. `renv::scaffold()` writes a project-level `.Rprofile` containing
+#' `source("renv/activate.R")`, so once a project is under renv, whatever
+#' aliases, options, or helper functions a user keeps in `~/.Rprofile` stop
+#' loading for that project -- silently, since nothing errors.
+#'
+#' This appends a guarded block to the project's `.Rprofile` (creating the
+#' file if `use_renv = FALSE` left none behind) that sources `~/.Rprofile`
+#' if it exists, after renv's own activation line so the project library is
+#' set up first. The existence check happens at every session start rather
+#' than once at project-creation time, so a `~/.Rprofile` written or edited
+#' after the project is created is still picked up.
+#'
+#' @param path A character string. The project root.
+#'
+#' @return Called for its side effects. Returns `invisible(NULL)`.
+#'
+#' @keywords internal
+.add_rprofile <- function(path) {
+
+    rprofile_path <- fs::path(path, ".Rprofile")
+
+    block <- c(
+        "",
+        "# Load the user's own .Rprofile, if one exists. A project's own",
+        "# .Rprofile (written above by renv::scaffold(), when present) is the",
+        "# only one R reads for this project -- ~/.Rprofile is otherwise",
+        "# shadowed entirely. init_project(use_rprofile = TRUE) added",
+        "# this block so personal aliases, options, and helper functions are",
+        "# not silently lost.",
+        "if (file.exists(\"~/.Rprofile\")) {",
+        "  source(\"~/.Rprofile\")",
+        "}"
+    )
+
+    existing <- if (fs::file_exists(rprofile_path)) {
+        readLines(rprofile_path, warn = FALSE)
+    } else {
+        character(0)
+    }
+
+    writeLines(c(existing, block), rprofile_path)
+
+    invisible(NULL)
 }
 
 
