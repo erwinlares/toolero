@@ -15,11 +15,11 @@ A single character string (the full 40-character commit SHA), or
 }
 \description{
 Internal helper used by \code{\link[=generate_manifest]{generate_manifest()}} to record which version of
-the project's code was checked out when the manifest was written. Best
-effort and silent: returns \code{NULL} whenever \code{git} is not installed, \code{path}
-is not inside a git repository, or the repository has no commits yet,
-rather than aborting a manifest write over a fact that is genuinely
-optional.
+the project's code was checked out when the output record was written.
+Best effort and silent: returns \code{NULL} whenever \code{git} is not installed,
+\code{path} is not inside a git repository, or the repository has no commits
+yet, rather than aborting the output record over a fact that is
+genuinely optional.
 }
 \details{
 Shells out to \verb{git rev-parse HEAD} rather than depending on a git R

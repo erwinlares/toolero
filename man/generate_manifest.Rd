@@ -2,7 +2,7 @@
 % Please edit documentation in R/generate-manifest.R
 \name{generate_manifest}
 \alias{generate_manifest}
-\title{Write the project manifest}
+\title{Write the output record}
 \usage{
 generate_manifest(
   output_dir = NULL,
@@ -14,15 +14,15 @@ generate_manifest(
 }
 \arguments{
 \item{output_dir}{Character or \code{NULL}. Directory containing
-\code{accumulator.csv} and receiving the manifest. If \code{NULL} (the default)
-and \code{config} is supplied, resolved from the config's \code{output_dir}
+\code{accumulator.csv} and receiving the output record. If \code{NULL} (the
+default) and \code{config} is supplied, resolved from the config's \code{output_dir}
 convention; if \code{config} is also \code{NULL}, falls back to \code{"output"},
 unchanged from earlier versions.}
 
-\item{filename}{Character. Name of the manifest file. Defaults to
+\item{filename}{Character. Name of the output record file. Defaults to
 \code{"project-manifest.json"}.}
 
-\item{overwrite}{Logical. When \code{FALSE} (default), an existing manifest
+\item{overwrite}{Logical. When \code{FALSE} (default), an existing output record
 at that path is an error rather than being replaced.}
 
 \item{config}{Character or \code{NULL}. Path to a project configuration file
@@ -31,23 +31,25 @@ at that path is an error rather than being replaced.}
 an explicit \code{output_dir} always wins. Defaults to \code{NULL}.}
 
 \item{git_root}{Character. Directory to check for a git commit to record
-in the manifest (see the Provenance section below). Defaults to \code{"."}.}
+in the output record (see the Provenance section below). Defaults to
+\code{"."}.}
 }
 \value{
-The path to the manifest, invisibly.
+The path to the output record, invisibly.
 }
 \description{
 \code{generate_manifest()} reads the accumulator written by \code{\link[=save_output]{save_output()}}
 over the course of an analysis, collapses it to one row per output file,
-and writes \code{project-manifest.json} describing every artifact the project
-produced.
+and writes the output record, \code{project-manifest.json}, describing every
+artifact the project produced.
 }
 \details{
-The manifest records \code{execution_context} and \code{generated_at} once at the
-top level, followed by an \code{artifacts} array with one entry per output
-file, ordered chronologically. Context and generation time are facts
-about the run as a whole rather than about any individual artifact, so
-they are not repeated per entry. Package and R versions are deliberately
+The output record opens with \code{schema_version}, then holds
+\code{execution_context}, \code{generated_at}, and \code{commit} once at the top level,
+followed by an \code{artifacts} array with one entry per output file, ordered
+chronologically. Context, generation time, and commit are facts about the
+run as a whole rather than about any individual artifact, so they are not
+repeated per entry. Package and R versions are deliberately
 absent: that is \code{renv}'s job, and duplicating it here would create a
 second record to keep in sync.
 
@@ -61,14 +63,15 @@ OCFL, and \code{rocrateR::bag_rocrate()} computes \code{manifest-sha512.txt}
 automatically at bagging time.
 
 A missing accumulator is an error: no save was ever recorded, and an
-empty manifest would present that as a finished result. An accumulator
-holding no rows is different -- the file exists, so the machinery was
-wired up -- and produces an empty manifest with a warning.
+empty output record would present that as a finished result. An
+accumulator holding no rows is different -- the file exists, so the
+machinery was wired up -- and produces an empty output record with a
+warning.
 }
 \section{Provenance}{
 
-The manifest also records \code{commit}: the git commit checked out in
-\code{git_root} at the moment the manifest was written, or \code{null} when the
+The output record also holds \code{commit}: the git commit checked out in
+\code{git_root} at the moment the record was written, or \code{null} when the
 project is not a git repository, has no commits yet, or \code{git} is not
 installed. This is deliberately the one piece of "which version of the
 code produced this" that package versions cannot supply -- \code{renv.lock}
@@ -85,15 +88,46 @@ message \code{\link[=init_project]{init_project()}} gives for a bad \code{config
 falling back to \code{"output"}.
 }
 
-\section{The project manifest and the job manifest}{
+\section{Format}{
 
-This is the \emph{project manifest}: a record of outputs from a computation
+The output record is a single JSON object with these keys, in this
+order:
+\itemize{
+\item \code{schema_version} -- integer, currently \code{1}.
+\item \code{execution_context} -- \code{"interactive"}, \code{"quarto"}, or \code{"rscript"}, as
+returned by \code{\link[=detect_execution_context]{detect_execution_context()}}.
+\item \code{generated_at} -- when the record was written, in UTC with millisecond
+precision (\code{"2026-09-29T18:04:12.345Z"}).
+\item \code{commit} -- a 40-character git commit SHA, or \code{null}.
+\item \code{artifacts} -- an array, empty rather than absent when nothing was
+saved. Each entry carries the seven accumulator fields: \code{file_path}
+(the path as passed to \code{\link[=save_output]{save_output()}}), \code{r_class} (the object's
+classes joined with \code{"|"}), \code{timestamp} (same format as
+\code{generated_at}), \code{function_used}, \code{status} (\code{"success"} or
+\code{"failure"}), \code{error_message}, and \code{note}. A field with no value is
+written as \code{null}, never as an empty string.
+}
+
+\code{schema_version} increments only when an existing key is removed,
+renamed, or changes meaning or type. A record with no \code{schema_version}
+was written by toolero 0.5.x and has the version 1 shape without the
+key. The full specification, including the rules for readers, is in the
+family's \code{CONVENTIONS.md}.
+
+The output record is toolero's own format. Other packages should treat
+it as an opaque file rather than parse it.
+}
+
+\section{The output record and the job manifest}{
+
+This is the \emph{output record}: a record of outputs from a computation
 that has already happened. It is distinct from the \emph{job manifest}
 produced by \code{\link[=write_by_group]{write_by_group()}} and consumed by
 \code{submitr::htc_gen_submit()}, which lists inputs to a computation about
-to happen. The two are structurally different documents that happen to
-share a word, which is why this one defaults to
-\code{project-manifest.json} rather than \code{manifest.json}.
+to happen. The file name, \code{project-manifest.json}, and this function's
+name predate the family's vocabulary and are kept for compatibility;
+the file defaults to \code{project-manifest.json} rather than
+\code{manifest.json} so the two documents cannot be confused on disk.
 }
 
 \examples{

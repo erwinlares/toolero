@@ -98,12 +98,12 @@ If \code{manifest = TRUE}, a \code{manifest.csv} is written to \code{output_dir}
 the \emph{job manifest}: a list of inputs to a computation that has not
 happened yet, and the file consumed by \code{\link[=run_by_group]{run_by_group()}} and by
 \code{submitr::htc_gen_submit()} in multiple-job mode. It is a different
-document from the \emph{project manifest} that \code{\link[=generate_manifest]{generate_manifest()}} writes,
+document from the \emph{output record} that \code{\link[=generate_manifest]{generate_manifest()}} writes,
 which records outputs from a computation that already has.
 
 The schema is one column per grouping variable, holding the raw
 unsanitized value, followed by \code{group_value}, \code{n_rows}, and \code{file_path}.
-Grouping on one column therefore produces a manifest whose first column
+Grouping on one column therefore produces a job manifest whose first column
 repeats \code{group_value} exactly. That redundancy is deliberate: one schema
 with a varying column count is easier to read, validate and rely on than
 two schemas selected by how many columns you happened to group on.
@@ -115,11 +115,11 @@ one.
 
 \section{Row order}{
 
-Groups are written, and manifest rows recorded, in order of first
+Groups are written, and job manifest rows recorded, in order of first
 appearance in \code{data}. This matters downstream: \code{submitr} writes its
-\code{subdatasets.csv} in manifest order, HTCondor assigns \code{ProcId} in that
-order, and log filenames are reconstructed from position, so manifest row
-order is the mapping from a job number back to a group.
+\code{subdatasets.csv} in job manifest order, HTCondor assigns \code{ProcId} in
+that order, and log filenames are reconstructed from position, so job
+manifest row order is the mapping from a job number back to a group.
 }
 
 \section{Missing values}{

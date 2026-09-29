@@ -12,7 +12,8 @@ A character vector of column names.
 \description{
 Internal helper returning the canonical column names of
 \code{accumulator.csv}, in order. Single source of truth shared by
-\code{\link[=.append_accumulator_row]{.append_accumulator_row()}} and the manifest reader, so that schema
-drift surfaces as an error rather than as silently misaligned rows.
+\code{\link[=.append_accumulator_row]{.append_accumulator_row()}} and the accumulator reader behind
+\code{\link[=generate_manifest]{generate_manifest()}}, so that schema drift surfaces as an error rather
+than as silently misaligned rows.
 }
 \keyword{internal}

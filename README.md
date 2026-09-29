@@ -883,7 +883,7 @@ happen. The file is named `project-manifest.json`, and the function that
 writes it `generate_manifest()`, for compatibility; the family calls it the
 output record so that the word "manifest" is not doing two jobs. The
 [vocabulary section of
-CONVENTIONS.md](https://github.com/erwinlares/toolero/blob/main/CONVENTIONS.md#7-vocabulary)
+CONVENTIONS.md](https://github.com/erwinlares/toolero/blob/main/CONVENTIONS.md#8-vocabulary)
 lists all four terms.
 
 `save_output()` wraps any write function behind a narrowly-scoped

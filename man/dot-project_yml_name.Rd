@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils-project.R
 \name{.project_yml_name}
 \alias{.project_yml_name}
-\title{Name of the project manifest file}
+\title{Name of the project config file}
 \usage{
 .project_yml_name()
 }

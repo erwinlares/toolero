@@ -61,8 +61,8 @@ pre-0.5.1 behavior unchanged.}
 default) -- appends a row to the project-level accumulator at
 \code{output_dir/accumulator.csv} recording what was saved, how, and whether
 the write succeeded. The accumulator is the working file later consumed
-by \code{\link[=generate_manifest]{generate_manifest()}}, which deduplicates it and reshapes it into
-\code{project-manifest.json}.
+by \code{\link[=generate_manifest]{generate_manifest()}}, which deduplicates it and reshapes it into the
+output record, \code{project-manifest.json}.
 }
 \details{
 The call to \code{.f} is wrapped in a narrowly-scoped \code{tryCatch()} -- only the

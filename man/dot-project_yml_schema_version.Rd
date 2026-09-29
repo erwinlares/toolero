@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils-project.R
 \name{.project_yml_schema_version}
 \alias{.project_yml_schema_version}
-\title{Schema version of the project manifest}
+\title{Schema version of the project config}
 \usage{
 .project_yml_schema_version()
 }

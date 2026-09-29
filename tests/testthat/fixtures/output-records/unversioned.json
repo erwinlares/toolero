@@ -1,0 +1,16 @@
+{
+  "execution_context": "quarto",
+  "generated_at": "2026-09-20T15:30:00.000Z",
+  "commit": null,
+  "artifacts": [
+    {
+      "file_path": "output/model.rds",
+      "r_class": "lm",
+      "timestamp": "2026-09-20T15:29:58.500Z",
+      "function_used": "saveRDS",
+      "status": "success",
+      "error_message": null,
+      "note": null
+    }
+  ]
+}

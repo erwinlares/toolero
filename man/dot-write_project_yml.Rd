@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils-project.R
 \name{.write_project_yml}
 \alias{.write_project_yml}
-\title{Write a project manifest}
+\title{Write a project config}
 \usage{
 .write_project_yml(
   dest,

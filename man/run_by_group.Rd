@@ -2,7 +2,7 @@
 % Please edit documentation in R/run-by-group.R
 \name{run_by_group}
 \alias{run_by_group}
-\title{Apply a function to each group in a manifest or named list}
+\title{Apply a function to each group in a job manifest or named list}
 \usage{
 run_by_group(
   manifest = NULL,
@@ -18,7 +18,7 @@ run_by_group(
 }
 \arguments{
 \item{manifest}{A character string, data frame, or \code{NULL}. If a
-string, the path to a manifest CSV produced by
+string, the path to a job manifest (\code{manifest.csv}) produced by
 \code{write_by_group(manifest = TRUE)}. Must contain a \code{group_value}
 and a \code{file_path} column. If a data frame, used directly. If
 \code{groups} is supplied, \code{manifest} is ignored with a warning and
@@ -78,7 +78,7 @@ the tibble has two columns: \code{.id} and \code{results} (a list-column).
 \description{
 \code{run_by_group()} applies a function to each subset of a dataset and
 collects the results. Subsets can be supplied in two ways: as files
-listed in a manifest produced by \code{\link[=write_by_group]{write_by_group()}}, or as a named
+listed in a job manifest produced by \code{\link[=write_by_group]{write_by_group()}}, or as a named
 list of data frames already in memory. When the function returns
 tabular output (a data frame or tibble), the results are automatically
 unnested into a flat tibble with a group-id column. When the function
@@ -91,13 +91,13 @@ list-column.
 \code{run_by_group()} is the apply half of the split-apply workflow in
 toolero. The split half is \code{\link[=write_by_group]{write_by_group()}}, which partitions a
 data frame by a grouping column and writes one file per group along
-with a manifest.
+with a job manifest.
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{# Split to disk
 write_by_group(penguins, group_col = "species",
                output_dir = "data/jobs", manifest = TRUE)
 
-# Apply from disk via manifest
+# Apply from disk via the job manifest
 results <- run_by_group(
   manifest = "data/jobs/manifest.csv",
   .f       = my_analysis
@@ -239,7 +239,7 @@ summarise_species <- function(data) {
   )
 }
 
-# Apply via manifest -- returns a flat tibble
+# Apply via the job manifest -- returns a flat tibble
 results <- run_by_group(
   manifest = file.path(tmp, "manifest.csv"),
   .f       = summarise_species

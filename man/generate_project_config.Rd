@@ -29,9 +29,9 @@ argument.
 }
 \details{
 The file uses the same schema as the \verb{_toolero.yml} that \code{\link[=init_project]{init_project()}}
-writes into a project, so a config you author by hand and a manifest a
-project carries are the same kind of document. The only difference is who
-wrote it.
+writes into a project, so a config you author by hand and the project
+config a project carries are the same kind of document. The only
+difference is who wrote it.
 }
 \examples{
 \dontrun{

@@ -1,0 +1,19 @@
+{
+  "schema_version": 99,
+  "execution_context": "rscript",
+  "generated_at": "2027-01-01T00:00:00.000Z",
+  "commit": null,
+  "platform": "x86_64-pc-linux-gnu",
+  "artifacts": [
+    {
+      "file_path": "output/model.rds",
+      "r_class": "lm",
+      "timestamp": "2026-12-31T23:59:59.000Z",
+      "function_used": "saveRDS",
+      "status": "success",
+      "error_message": null,
+      "note": null,
+      "bytes": 2048
+    }
+  ]
+}

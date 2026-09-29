@@ -29,8 +29,8 @@ resolve in append order.
 
 Note that the surviving row for a path may record a failure: if a save
 succeeded and a later re-run of the same path failed, the failure is
-what the manifest reports. This is the intended reading. The manifest
-describes the state of the project at the end of the run, not the best
-outcome observed along the way.
+what the output record reports. This is the intended reading. The
+output record describes the state of the project at the end of the run,
+not the best outcome observed along the way.
 }
 \keyword{internal}

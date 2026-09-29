@@ -569,3 +569,127 @@ test_that("commit is recorded once at the top level, not per artifact", {
     artifact <- read_manifest(root)$artifacts[[1L]]
     expect_false("commit" %in% names(artifact))
 })
+
+# -- schema_version and the documented format (T36) ------------------------------
+
+# The fixtures under fixtures/output-records/ are the reference examples of
+# the output record. good.json and empty.json are what generate_manifest()
+# writes today; unversioned.json (toolero 0.5.x), future-version.json,
+# malformed.json, and accumulator-only/ are the cases a reader has to
+# handle.
+
+read_output_record_fixture <- function(name) {
+    jsonlite::fromJSON(
+        testthat::test_path("fixtures", "output-records", name),
+        simplifyVector = FALSE
+    )
+}
+
+# Rebuilds accumulator rows from a fixture's artifacts, so generate_manifest()
+# can be asked to reproduce the fixture. JSON null becomes NA, which the
+# accumulator writes as an empty field.
+fixture_rows <- function(fixture) {
+    rows <- lapply(fixture$artifacts, function(artifact) {
+        artifact[vapply(artifact, is.null, logical(1L))] <- NA_character_
+        as.data.frame(artifact, stringsAsFactors = FALSE)
+    })
+    do.call(rbind, rows)
+}
+
+output_record_keys <- c(
+    "schema_version", "execution_context", "generated_at", "commit",
+    "artifacts"
+)
+
+test_that(".output_record_schema_version() is the integer 1", {
+    expect_identical(.output_record_schema_version(), 1L)
+})
+
+test_that("generate_manifest() writes schema_version as the first key", {
+    root <- withr::local_tempdir()
+    make_accumulator(root, make_row())
+
+    suppressMessages(generate_manifest(output_dir = root))
+
+    manifest <- read_manifest(root)
+
+    expect_identical(names(manifest)[[1L]], "schema_version")
+    expect_identical(manifest$schema_version, 1L)
+})
+
+test_that("generate_manifest() writes schema_version as a bare JSON integer", {
+    root <- withr::local_tempdir()
+    make_accumulator(root, make_row())
+
+    suppressMessages(generate_manifest(output_dir = root))
+
+    raw <- paste(readLines(fs::path(root, "project-manifest.json")), collapse = "")
+
+    # Not "1" (a string) and not 1.0 (a double written with a decimal).
+    expect_match(raw, "\"schema_version\"\\s*:\\s*1\\s*,")
+})
+
+test_that("generate_manifest() writes the top-level keys in the documented order", {
+    root <- withr::local_tempdir()
+    make_accumulator(root, make_row())
+
+    suppressMessages(generate_manifest(output_dir = root))
+
+    expect_identical(names(read_manifest(root)), output_record_keys)
+})
+
+test_that("the good and empty fixtures follow the documented key order", {
+    expect_identical(names(read_output_record_fixture("good.json")), output_record_keys)
+    expect_identical(names(read_output_record_fixture("empty.json")), output_record_keys)
+})
+
+test_that("generate_manifest() reproduces the good fixture", {
+    fixture <- read_output_record_fixture("good.json")
+    root    <- withr::local_tempdir()
+    make_accumulator(root, fixture_rows(fixture))
+
+    # generated_at comes from the clock, so it is checked by format below;
+    # the two other run-level facts are pinned to the fixture's values.
+    local_mocked_bindings(
+        detect_execution_context = function(...) fixture$execution_context,
+        .git_commit              = function(...) fixture$commit
+    )
+
+    suppressMessages(generate_manifest(output_dir = root))
+
+    written <- read_manifest(root)
+    stable  <- setdiff(output_record_keys, "generated_at")
+
+    expect_identical(names(written), names(fixture))
+    expect_identical(written[stable], fixture[stable])
+    expect_match(
+        written$generated_at,
+        "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
+    )
+})
+
+test_that("generate_manifest() reproduces the empty fixture", {
+    fixture <- read_output_record_fixture("empty.json")
+    root    <- withr::local_tempdir()
+    make_accumulator(root, make_row()[0L, , drop = FALSE])
+
+    local_mocked_bindings(
+        detect_execution_context = function(...) fixture$execution_context,
+        .git_commit              = function(...) fixture$commit
+    )
+
+    suppressWarnings(suppressMessages(generate_manifest(output_dir = root)))
+
+    written <- read_manifest(root)
+    stable  <- setdiff(output_record_keys, "generated_at")
+
+    expect_identical(written[stable], fixture[stable])
+})
+
+test_that("every artifact in the good fixture carries exactly the accumulator fields", {
+    fixture <- read_output_record_fixture("good.json")
+
+    for (artifact in fixture$artifacts) {
+        expect_identical(names(artifact), .accumulator_columns())
+    }
+})

@@ -1,5 +1,23 @@
 # R/generate-manifest.R
 
+#' Schema version of the output record
+#'
+#' Internal helper returning the schema version [generate_manifest()]
+#' writes as the first key of the output record. Like
+#' [.project_yml_schema_version()] for the project config, this is a schema
+#' version, not a package version: it increments only when an existing key
+#' is removed, renamed, or changes meaning or type, so a reader can decide
+#' whether it understands a file without guessing from the toolero version
+#' that wrote it. Output records written before the key existed (toolero
+#' 0.5.x) carry no `schema_version` and are read as version 1.
+#'
+#' @return A single integer.
+#'
+#' @keywords internal
+.output_record_schema_version <- function() {
+    1L
+}
+
 #' Read the current git commit, if any
 #'
 #' Internal helper used by [generate_manifest()] to record which version of
@@ -186,11 +204,12 @@
 #' @return The path to the output record, invisibly.
 #'
 #' @details
-#' The output record holds `execution_context` and `generated_at` once at the
-#' top level, followed by an `artifacts` array with one entry per output
-#' file, ordered chronologically. Context and generation time are facts
-#' about the run as a whole rather than about any individual artifact, so
-#' they are not repeated per entry. Package and R versions are deliberately
+#' The output record opens with `schema_version`, then holds
+#' `execution_context`, `generated_at`, and `commit` once at the top level,
+#' followed by an `artifacts` array with one entry per output file, ordered
+#' chronologically. Context, generation time, and commit are facts about the
+#' run as a whole rather than about any individual artifact, so they are not
+#' repeated per entry. Package and R versions are deliberately
 #' absent: that is `renv`'s job, and duplicating it here would create a
 #' second record to keep in sync.
 #'
@@ -226,6 +245,33 @@
 #' `config` is supplied but cannot be read, this aborts with the same
 #' message [init_project()] gives for a bad `config`, rather than silently
 #' falling back to `"output"`.
+#'
+#' @section Format:
+#' The output record is a single JSON object with these keys, in this
+#' order:
+#'
+#' * `schema_version` -- integer, currently `1`.
+#' * `execution_context` -- `"interactive"`, `"quarto"`, or `"rscript"`, as
+#'   returned by [detect_execution_context()].
+#' * `generated_at` -- when the record was written, in UTC with millisecond
+#'   precision (`"2026-09-29T18:04:12.345Z"`).
+#' * `commit` -- a 40-character git commit SHA, or `null`.
+#' * `artifacts` -- an array, empty rather than absent when nothing was
+#'   saved. Each entry carries the seven accumulator fields: `file_path`
+#'   (the path as passed to [save_output()]), `r_class` (the object's
+#'   classes joined with `"|"`), `timestamp` (same format as
+#'   `generated_at`), `function_used`, `status` (`"success"` or
+#'   `"failure"`), `error_message`, and `note`. A field with no value is
+#'   written as `null`, never as an empty string.
+#'
+#' `schema_version` increments only when an existing key is removed,
+#' renamed, or changes meaning or type. A record with no `schema_version`
+#' was written by toolero 0.5.x and has the version 1 shape without the
+#' key. The full specification, including the rules for readers, is in the
+#' family's `CONVENTIONS.md`.
+#'
+#' The output record is toolero's own format. Other packages should treat
+#' it as an opaque file rather than parse it.
 #'
 #' @section The output record and the job manifest:
 #' This is the *output record*: a record of outputs from a computation
@@ -305,7 +351,12 @@ generate_manifest <- function(output_dir = NULL,
         ))
     }
 
+    # schema_version comes first, so a reader can decide whether it
+    # understands the file before looking at anything else in it.
+    schema_version <- .output_record_schema_version()
+
     manifest <- list(
+        schema_version = schema_version,
         execution_context = detect_execution_context(),
         generated_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%OS3Z", tz = "UTC"),
         commit = .git_commit(git_root),

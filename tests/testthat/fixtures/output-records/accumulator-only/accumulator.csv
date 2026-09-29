@@ -1,0 +1,3 @@
+"file_path","r_class","timestamp","function_used","status","error_message","note"
+"output/model.rds","lm","2026-09-29T18:04:10.101Z","saveRDS","success",,
+"output/model.rds","lm","2026-09-29T18:05:10.101Z","saveRDS","success",,"Re-run after fixing the formula."

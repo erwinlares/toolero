@@ -226,7 +226,98 @@ see is the kind of invisible input this family exists to eliminate.
 The surface is marked experimental in `toolero`'s documentation. The schema may
 gain keys; existing keys will not change meaning without a version bump.
 
-## 7. Vocabulary
+## 7. The output record: `project-manifest.json`
+
+`toolero::generate_manifest()` writes the output record at the end of an
+analysis, from the rows `save_output()` appended to `output/accumulator.csv`
+along the way. It records what the analysis produced, once per file, and the
+few facts about the run that apply to all of it. This section is its
+specification.
+
+It is `toolero`'s own format. Unlike `_toolero.yml` and the `file_path`
+column of the job manifest, it is not a contract between packages: `toolero`
+writes it, and `toolero` is the package that reads it. Other packages should
+treat it as an opaque file, noting that it exists if they need to, but not
+parsing it; `submitr::htc_collect()`, for example, reports whether each job
+brought one back without opening it. The reason is practical: every
+package that parses a format carries its own copy of the schema, and copies
+drift. One parser, in the package that writes the file, cannot disagree with
+itself.
+
+A version 1 output record looks like this:
+
+```json
+{
+  "schema_version": 1,
+  "execution_context": "rscript",
+  "generated_at": "2026-09-29T18:04:12.345Z",
+  "commit": "3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39",
+  "artifacts": [
+    {
+      "file_path": "output/tables/summary.csv",
+      "r_class": "tbl_df|tbl|data.frame",
+      "timestamp": "2026-09-29T18:04:10.101Z",
+      "function_used": "readr::write_csv",
+      "status": "success",
+      "error_message": null,
+      "note": "Per-species summary."
+    }
+  ]
+}
+```
+
+**Top-level keys**, always present, in this order:
+
+| Key | Type | Value |
+|---|---|---|
+| `schema_version` | integer | `1` |
+| `execution_context` | string | `"interactive"`, `"quarto"`, or `"rscript"`, from `detect_execution_context()` |
+| `generated_at` | string | When the record was written, UTC, millisecond precision: `YYYY-MM-DDTHH:MM:SS.sssZ` |
+| `commit` | string or null | The 40-character git commit checked out in `git_root`; null when there is no repository, no commit yet, or no `git` |
+| `artifacts` | array | One object per output file; an empty array, never absent, when nothing was saved |
+
+**Artifact fields**, always present, in this order:
+
+| Field | Type | Value |
+|---|---|---|
+| `file_path` | string | The path exactly as passed to `save_output()` |
+| `r_class` | string | `class(object)` joined with `"\|"`, captured before the write |
+| `timestamp` | string | When the save was attempted, same format as `generated_at` |
+| `function_used` | string | The writer as named at the call site, e.g. `"saveRDS"` or `"ggplot2::ggsave"` |
+| `status` | string | `"success"` or `"failure"` |
+| `error_message` | string or null | The writer's error message on failure; null on success |
+| `note` | string or null | The `note` given to `save_output()`, if any |
+
+Three rules apply to the values. A field with no value is written as `null`,
+never as an empty string. Artifacts appear once per `file_path`, keeping the
+latest attempt, so a later failure supersedes an earlier success for the same
+file; they are ordered by `timestamp`. And `file_path` is recorded as given,
+so it is relative to the working directory the analysis ran in when the call
+used a relative path. Relative paths are the ones to use: an absolute path
+does not resolve on another machine, and it records local directory names in
+a file that may be shared.
+
+**Versioning.** `schema_version` changes only when an existing key or field
+is removed, renamed, or changes meaning or type. A reader of the output
+record follows three rules:
+
+- A record with no `schema_version` is version 1. Output records written by
+  `toolero` 0.5.x have exactly the version 1 shape without the key.
+- A record with a version the reader does not know is read as far as
+  possible, with a warning, not rejected. The same rule governs
+  `_toolero.yml` (section 6).
+- Keys and fields the reader does not recognize are ignored.
+
+When `generate_manifest()` fails, or is never reached, the accumulator is
+still on disk. It holds the same seven fields, one row per save attempt
+rather than one per file, and is the fallback when no output record exists.
+
+Reference examples live in `toolero`'s tests, under
+`tests/testthat/fixtures/output-records/`: a good record, an empty one, an
+unversioned one, one with a future version, a malformed one, and a folder
+holding only an accumulator.
+
+## 8. Vocabulary
 
 Several words drifted between the three packages, and each now has one
 meaning. Four of them name files. They are worth keeping straight, because
@@ -244,7 +335,8 @@ The **output record** is a record of outputs from a computation that has
 already happened. `generate_manifest()` writes it at
 `output/project-manifest.json`, from the rows `save_output()` appended to
 `output/accumulator.csv` along the way. The accumulator is the raw,
-append-only log; the output record is its deduplicated, end-of-run summary.
+append-only log; the output record is its deduplicated, end-of-run summary
+(section 7).
 
 The **submission state** is `submitr`'s working memory for the job in
 progress, kept in `htc-manifest.yaml`: which files were generated, where they
@@ -267,7 +359,7 @@ documentation also calls it a **submit node**. Both are correct. Introduce both
 once, then use **submit node** throughout, because it pairs with **execute
 node**, which has no competing name.
 
-## 8. What each package may assume
+## 9. What each package may assume
 
 `toolero` assumes nothing about the other two. It never reads `_toolero.yml`, it
 never checks for a `Dockerfile`, and it has no knowledge of HTCondor.
@@ -289,7 +381,7 @@ the containerized script calls `save_output()` or `resolve_input_path()`, then
 `toolero` is a runtime dependency of that analysis and has to be snapshotted
 like any other.
 
-## 9. Changing a convention
+## 10. Changing a convention
 
 A convention here is load-bearing across three CRAN packages, so changing one is
 not a refactor.
@@ -312,6 +404,17 @@ stopped being baked into the image.)
 ---
 
 ## Version history
+
+Section numbers in each entry are as they stood at the time.
+
+**2026-09 (the output record specified).** A new section 7 specifies the
+output record, `project-manifest.json`: its keys, types, allowed values, and
+the rules for reading it across versions. `generate_manifest()` now writes
+`schema_version: 1` as its first key (T36). The section also records that
+the output record is `toolero`'s own format rather than a contract between
+packages; `submitr::htc_collect()` stopped parsing it in the same round
+(S27). The vocabulary section and the two after it moved down one
+number, to 8, 9 and 10.
 
 **2026-09 (vocabulary and the uploaded script).** Section 7 now defines four
 file terms instead of two: the *project manifest* is renamed the *output

@@ -23,8 +23,8 @@ A missing accumulator is an error rather than an empty result. The file
 is created by the first \code{\link[=save_output]{save_output()}} call, so its absence means no
 save was ever recorded -- most often because \code{save_output()} was called
 with a different \code{output_dir}, or with \code{manifest = FALSE}, or was never
-reached at all. Returning an empty manifest in that case would present a
-setup mistake as a finished record.
+reached at all. Returning an empty output record in that case would
+present a setup mistake as a finished record.
 
 Every column is read as character. Timestamps in particular must not be
 coerced, since \code{\link[=.dedupe_accumulator]{.dedupe_accumulator()}} compares them lexicographically
@@ -34,6 +34,6 @@ Empty fields are read back as \code{NA} via \code{na.strings = ""}, matching the
 \code{na = ""} convention used when the accumulator is written. Without this
 the \code{error_message} column of every successful row would return as an
 empty string rather than \code{NA}, and that difference would surface in the
-manifest.
+output record.
 }
 \keyword{internal}

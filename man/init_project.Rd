@@ -53,7 +53,7 @@ One folder cannot be suppressed, by a config or by \code{custom_folders}:
 \verb{R/}. \code{\link[usethis:create_project]{usethis::create_project()}} creates it unconditionally, so it is
 present in every project \code{init_project()} makes. A structure that
 leaves it out is honored everywhere else -- \verb{R/} is absent from the
-project manifest, gets no \code{.gitkeep}, and is not audited by
+project config, gets no \code{.gitkeep}, and is not audited by
 \code{\link[=check_project]{check_project()}} -- but the directory itself is there.}
 
 \item{open}{Logical. If \code{TRUE}, opens the new project in RStudio after
@@ -66,7 +66,7 @@ placeholder branding files (\code{logo.png}, \code{favicon.png}, \code{header.ht
 UW-Madison RCI branding files under the same standardized names.
 \code{"none"} or \code{FALSE} creates no \verb{assets/} folder. Defaults to \code{"none"}.
 When branding is enabled, \verb{assets/} joins the project's folder set and is
-recorded in the project manifest alongside every other folder, so
+recorded in the project config alongside every other folder, so
 downstream packages can find the branding files without being told about
 them separately. Note that \code{favicon.png} is included in the asset set but
 is not automatically wired into Quarto output -- favicons are a
@@ -110,10 +110,10 @@ Called for its side effects. Invisibly returns \code{path}.
 \code{init_project()} creates a new R project at the given path with an
 opinionated folder structure suited for research workflows. It optionally
 initializes \code{renv} for package management and git for version control, and
-records the structure it resolved in a project manifest at the project
-root.
+records the structure it resolved in a project config, \verb{_toolero.yml}, at
+the project root.
 }
-\section{The project manifest}{
+\section{The project config}{
 
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 

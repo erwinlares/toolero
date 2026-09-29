@@ -40,60 +40,139 @@
   the generated file's `given-names`/`family-names` fields before relying
   on them.
 
-* `save_output()`, `generate_manifest()`, and `write_by_group()` gain a new
-  `config` argument: a path to a project configuration file, typically a
-  project's own `_toolero.yml` as written by `init_project()`. When
-  supplied, and `output_dir` is not, `output_dir` is resolved from the
-  config's `output_dir` convention (`split_dir`, for `write_by_group()`).
-  An explicit `output_dir` always wins over `config`, which only fills in
-  what was not supplied directly. `config` is entirely opt-in: a project
-  never scaffolded by `init_project()` behaves exactly as before, and when
+* Added `generate_license()`, which writes a plain-text `LICENSE` file at a
+  project's root from one of three common templates (`"MIT"`, `"CC0"`,
+  `"GPL-3"`), with the copyright holder and year filled in. `"GPL-3"`
+  writes the Free Software Foundation's recommended short notice plus a
+  link to the canonical full text, rather than reproducing the
+  several-hundred-line license itself. It follows the same standalone
+  design and validation and overwrite conventions as
+  `generate_project_config()`.
+
+* Added `generate_data_doc()`, which writes a Markdown documentation stub
+  for a single dataset (source, date obtained, license and usage terms,
+  collection method, a variables table, and known issues), with the
+  dataset's file name and today's date pre-filled and the rest left as
+  placeholders -- the same skeleton-you-complete-by-hand approach
+  `generate_citation()` uses for `CITATION.cff`.
+
+* `save_output()`, `generate_manifest()`, and `write_by_group()` gain a
+  `config` argument: a path to a project config, typically a project's own
+  `_toolero.yml` as written by `init_project()`. When supplied, and
+  `output_dir` is not, `output_dir` is resolved from the config's
+  `output_dir` convention (`split_dir`, for `write_by_group()`). An
+  explicit `output_dir` always wins over `config`, which only fills in what
+  was not supplied directly. `config` is entirely opt-in: a project never
+  scaffolded by `init_project()` behaves exactly as before, and when
   `config` is supplied but cannot be read, each function aborts with the
   same message `init_project()` gives for a bad `config`, rather than
   silently falling back to a built-in default.
 
-* `generate_manifest()` gains a new `git_root` argument (default `"."`) and
-  now records `commit` in `project-manifest.json`: the git commit checked
-  out in `git_root` at the moment the manifest was written. This is
-  deliberately the one piece of "which version of the code produced this"
-  that package versions cannot supply -- `renv.lock` already answers which
-  package versions were in play, but nothing else records which revision of
-  the analysis script itself ran. `commit` is recorded once at the top
-  level alongside `execution_context` and `generated_at`, not repeated per
-  artifact, and is `null` when the project is not a git repository, has no
-  commits yet, or `git` is not installed. Detection shells out to
-  `git rev-parse HEAD` rather than adding a git R package as a dependency,
-  since this is the only place in toolero that needs git at all.
+* `generate_manifest()` gains a `git_root` argument (default `"."`) and now
+  records `commit` in the output record (`project-manifest.json`): the git
+  commit checked out in `git_root` at the moment the record was written.
+  This is deliberately the one piece of "which version of the code produced
+  this" that package versions cannot supply -- `renv.lock` already answers
+  which package versions were in play, but nothing else records which
+  revision of the analysis script itself ran. `commit` is recorded once at
+  the top level alongside `execution_context` and `generated_at`, not
+  repeated per artifact, and is `null` when the project is not a git
+  repository, has no commits yet, or `git` is not installed. Detection
+  shells out to `git rev-parse HEAD` rather than adding a git R package as
+  a dependency, since this is the only place in toolero that needs git at
+  all.
 
-* `check_project()` gains a new stale purled scripts check. Every `.qmd`
-  under the project whose header declares `purl: true` (see `create_qmd()`'s
+* `generate_manifest()` now writes `schema_version: 1` as the first key of
+  the output record, and the format is specified in full:
+  `?generate_manifest` gains a Format section, and the family's
+  `CONVENTIONS.md` gains a section covering every key, its type and
+  allowed values, and the rules for reading records across versions. A
+  record without `schema_version`, as written by toolero 0.5.x, has the
+  version 1 shape and is read as version 1. The version only changes when
+  an existing key is removed, renamed, or changes meaning or type.
+  Reference examples of the format live in
+  `tests/testthat/fixtures/output-records/`.
+
+* `check_project()` gains a stale purled scripts check. Every `.qmd` under
+  the project whose header declares `purl: true` (see `create_qmd()`'s
   `use_purl` argument) gets its own row, comparing it against the `.R`
   script `R/purl.R` is expected to have derived from it. Missing entirely,
-  or older than the `.qmd` it was purled from, is reported as `"warn"`:
-  the `.qmd` is the source of truth, so an `R/` script older than the
-  document it came from means an edit was made and not yet re-rendered,
-  and a container or cluster job that bakes in the `.R` file would run the
-  old analysis without any error to say so. Documents never opted into
-  purl produce no row. The scan covers the project root and the project's
+  or older than the `.qmd` it was purled from, is reported as `"warn"`: the
+  `.qmd` is the source of truth, so an `R/` script older than the document
+  it came from means an edit was made and not yet re-rendered, and a
+  container or cluster job that runs the `.R` file would run the old
+  analysis without any error to say so. Documents never opted into purl
+  produce no row. The scan covers the project root and the project's
   declared folders, the same shape the existing `renv.lock` checks use, so
   `renv/library` is neither walked nor mistaken for the project's own
   documents.
 
-* `init_project()` gains a new `use_rprofile` argument (default
-  `FALSE`). R reads exactly one `.Rprofile` per session -- the project's
-  own if the working directory has one, `~/.Rprofile` only if it does not
-  -- so once `use_renv = TRUE` writes a project `.Rprofile` via
-  `renv::scaffold()`, a user's personal aliases, options, and helper
-  functions in `~/.Rprofile` silently stop loading for that project.
-  `use_rprofile = TRUE` appends a guarded block to the project's
-  `.Rprofile`, after renv's own activation line, that sources
-  `~/.Rprofile` if it exists, checked at every session start rather than
-  once at creation time. Opt-in, and defaults to `FALSE`, since it cuts
-  against renv's own isolation goal: a project that automatically
-  re-sources the user's personal environment is no longer fully isolated
-  from it.
+* `init_project()` gains a `use_rprofile` argument (default `FALSE`). R
+  reads exactly one `.Rprofile` per session -- the project's own if the
+  working directory has one, `~/.Rprofile` only if it does not -- so once
+  `use_renv = TRUE` writes a project `.Rprofile` via `renv::scaffold()`, a
+  user's personal aliases, options, and helper functions in `~/.Rprofile`
+  silently stop loading for that project. `use_rprofile = TRUE` appends a
+  guarded block to the project's `.Rprofile`, after renv's own activation
+  line, that sources `~/.Rprofile` if it exists, checked at every session
+  start rather than once at creation time. Opt-in, and defaults to
+  `FALSE`, since it cuts against renv's own isolation goal: a project that
+  automatically re-sources the user's personal environment is no longer
+  fully isolated from it.
 
-### Documentation
+## Minor improvements
+
+* `init_project()` gains a `scaffold_fn` argument, defaulting to
+  `renv::scaffold`, mirroring the `interactive_fn` argument of
+  `detect_execution_context()`. It exists so the test suite can supply a
+  stand-in function rather than mocking a binding inside renv's own
+  namespace, which had been loading renv mid-suite and letting it
+  repoint `.libPaths()` under `covr::package_coverage()`, so that packages
+  went missing several test files away from the cause. Most users never
+  need to pass it.
+
+## Bug fixes
+
+* `create_qmd(include_examples = TRUE)` no longer copies the placeholder
+  logo into `assets/` when the project's own `_toolero.yml` declares a
+  `folders:` list that does not include `assets` -- the arrangement
+  `init_project(branding = "none")` produces. Previously every call with
+  `include_examples = TRUE` copied `logo.png` regardless, leaving a project
+  that declared no branding with an undeclared `assets/` folder holding a
+  file nothing else in the project asked for. A `.qmd` created outside any
+  toolero-scaffolded project (no `_toolero.yml` at `path`) is unaffected
+  and still gets the logo, since there is no project-level branding
+  decision to defer to. An existing `assets/logo.png` continues to be left
+  in place either way.
+
+* `create_qmd(header_defaults = )` no longer lets a profile's `format:`
+  block silently delete sibling keys `use_style` had just injected into the
+  same block. `.substitute_yaml()` built one `.set_yaml_key()` entry per
+  top-level key in the supplied file, and `.set_yaml_key()` replaces
+  whatever nested structure exists at a path wholesale, so a file setting
+  `format: html: toc: false` would overwrite the entire `format: html:`
+  mapping, discarding `css`, `include-before-body`, or `include-after-body`
+  if `use_style` had set any of them -- silently, since substitution runs
+  after style injection so it can override it. `.substitute_yaml()` now
+  flattens a mapping (a named block like `format: html: ...`) into
+  leaf-level path/value pairs before substituting, so a sibling key the
+  file doesn't mention survives at any depth; a sequence (`author:`,
+  `categories:`) is still replaced as a whole, since merging a list element
+  by element against the template's own list is not a meaningful
+  operation.
+
+## Deprecated features
+
+* `create_qmd()`: the `yaml_data` argument is renamed to `header_defaults`,
+  which better reflects what it does now that `generate_profile()` gives it
+  a natural counterpart to write from. `yaml_data` is deprecated rather
+  than removed: the old name still works, and its value is used when
+  `header_defaults` is not also supplied, but a
+  `lifecycle::deprecate_warn()` fires when it is. Removal is planned for
+  v0.7.0, alongside `init_project(uw_branding = )` and
+  `check_project(error = )`.
+
+## Documentation
 
 * Documentation, vignettes, and user-facing messages now use the family's
   shared vocabulary for the files toolero writes (see `CONVENTIONS.md`).
@@ -106,70 +185,17 @@
   from `run_by_group()` and "An output record already exists" from
   `generate_manifest()`).
 
-## Bug fixes
+## Testing
 
-* `init_project()` gains an injectable `scaffold_fn` argument, defaulting
-  to `renv::scaffold`, mirroring the `interactive_fn` pattern already used
-  by `detect_execution_context()`. The test suite no longer mocks a
-  binding inside renv's own namespace to exercise `use_renv = TRUE`, which
-  removes the root cause of the `covr::package_coverage()` incident
-  documented in `covr-renv-incident.md`: loading renv's namespace mid-suite let its sandbox silently repoint `.libPaths()`, dropping packages several files away from the test that triggered it.
+* `tests/testthat/setup.R` now calls `testthat::set_state_inspector()` to
+  compare `.libPaths()` before and after every test. Any test that changes
+  it without restoring it now fails immediately, naming the offending test,
+  instead of surfacing later as a misleading "package not installed" error
+  somewhere else in the suite.
 
-* `init_project()` gains an injectable `scaffold_fn` argument, defaulting to `renv::scaffold`, mirroring the `interactive_fn` pattern already used by `detect_execution_context()`. The test suite no longer mocks a binding inside renv's own namespace to exercise `use_renv = TRUE`, which removes the root cause of the `covr::package_coverage()` incident documented in `covr-renv-incident.md`: loading renv's namespace mid-suite let its sandbox silently repoint `.libPaths()`, dropping packages several files away from the test that triggered it .
-
-* `create_qmd(include_examples = TRUE)`: no longer copies the placeholder
-  logo into `assets/` when the project's own `_toolero.yml` declares a
-  `folders:` list that does not include `assets` -- the arrangement
-  `init_project(branding = "none")` produces. Previously every call with
-  `include_examples = TRUE` copied `logo.png` regardless, leaving a project
-  that declared no branding with an undeclared `assets/` folder holding a
-  file nothing else in the project asked for. A `.qmd` created outside any
-  toolero-scaffolded project (no `_toolero.yml` at `path`) is unaffected
-  and still gets the logo, since there is no project-level branding
-  decision to defer to. An existing `assets/logo.png` continues to be left
-  in place either way.
-
-* `create_qmd(header_defaults = )`: fixed a case where a profile's
-  `format:` block could silently delete sibling keys `use_style` had just
-  injected into the same block. `.substitute_yaml()` built one
-  `.set_yaml_key()` entry per top-level key in the supplied file, and
-  `.set_yaml_key()` replaces whatever nested structure exists at a path
-  wholesale, so a file setting `format: html: toc: false` would overwrite
-  the entire `format: html:` mapping, discarding `css`,
-  `include-before-body`, or `include-after-body` if `use_style` had set any
-  of them -- silently, since substitution runs after style injection so it
-  can override it. `.substitute_yaml()` now flattens a mapping (a named
-  block like `format: html: ...`) into leaf-level path/value pairs before
-  substituting, so a sibling key the file doesn't mention survives at any
-  depth; a sequence (`author:`, `categories:`) is still replaced as a
-  whole, since merging a list element by element against the template's
-  own list is not a meaningful operation.
-  
-## Testing 
-
-* Added `tests/testthat/setup.R::set_state_inspector()`, checking
-  `.libPaths()` before and after every test. Any test that changes it
-  without restoring the change now fails immediately, naming the offending
-  test, instead of surfacing later as a misleading "package not installed"
-  error. A permanent guard against a repeat of the incident T34 fixes,
-  rather than a rule that everyone has to remember (T35).
-
-* Retired the `RENV_CONFIG_SANDBOX_ENABLED = "FALSE"` workaround from
-  `tests/testthat/setup.R` now that T34 removes the reason it existed. Its
-  CI counterpart, `RENV_CONFIG_AUTOLOADER_ENABLED: "FALSE"` in the
-  job-level `env:` block of `.github/workflows/test-coverage.yaml`, should
-  retire the same way -- not included here since that file wasn't in hand.
-
-
-## Deprecated features
-
-* `create_qmd()`: the `yaml_data` argument is renamed to `header_defaults`,
-  which better reflects what it does now that `generate_profile()` gives it
-  a natural counterpart to write from. `yaml_data` is deprecated rather
-  than removed: the old name still works, and its value is used when
-  `header_defaults` is not also supplied, but a
-  `lifecycle::deprecate_warn()` fires when it is. Removal planned for
-  v0.7.0 alongside `uw_branding` and `check_project(error)`.
+* The `RENV_CONFIG_SANDBOX_ENABLED = "FALSE"` workaround is retired from
+  `tests/testthat/setup.R`, now that `init_project()`'s tests no longer
+  load renv's namespace (see `scaffold_fn` above).
 
 ## Internal changes
 
@@ -976,10 +1002,6 @@
   `file_path =` by name will error; positional calls are unaffected.
 
 ## New features
-
-* Added generate_license(), which writes a plain-text LICENSE file at a project's root from one of three common templates ("MIT", "CC0", "GPL-3"), with the copyright holder and year filled in. "GPL-3" writes the FSF's recommended short notice plus a link to the canonical full text rather than reproducing the several-hundred-line license itself. Mirrors generate_project_config()'s standalone-function design and validation/overwrite conventions (#T-G3).
-
-* Added generate_data_doc(), which writes a Markdown documentation stub for a single dataset (source, date obtained, license and usage terms, collection method, a variables table, and known issues), with the dataset's file name and today's date pre-filled and the rest left as placeholders -- the same "skeleton you complete by hand" approach generate_citation() already uses for CITATION.cff (#T-G3).
 
 * Added `generate_kb_xml()` to produce UW-Madison KB-importable XML files
   from rendered Quarto documents. Extracts metadata from the `.qmd` YAML

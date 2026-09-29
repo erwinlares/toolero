@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "execution_context": "rscript",
+  "generated_at": "2026-09-29T18:04:12.345Z",
+  "commit": "3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39",
+  "artifacts": [
+    {
+      "file_path": "output/tables/summary.csv",
+      "r_class": "tbl_df|tbl|data.frame",
+      "timestamp": "2026-09-29T18:04:10.101Z",
+      "function_used": "readr::write_csv",
+      "status": "success",
+      "error_message": null,
+      "note": "Per-species summary."
+    },
+    {
+      "file_path": "output/figures/mass.png",
+      "r_class": "gg|ggplot",
+      "timestamp": "2026-09-29T18:04:11.202Z",
+      "function_used": "ggplot2::ggsave",
+      "status": "failure",
+      "error_message": "cannot open file 'output/figures/mass.png'",
+      "note": null
+    }
+  ]
+}

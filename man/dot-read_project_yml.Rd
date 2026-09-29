@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils-project.R
 \name{.read_project_yml}
 \alias{.read_project_yml}
-\title{Read a project manifest from a project directory}
+\title{Read a project config from a project directory}
 \usage{
 .read_project_yml(path)
 }

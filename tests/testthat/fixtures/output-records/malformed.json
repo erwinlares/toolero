@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "execution_context": "rscript",
+  "artifacts": [
+    {
+      "file_path": "output/model.rds",
