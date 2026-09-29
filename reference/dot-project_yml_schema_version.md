@@ -1,4 +1,4 @@
-# Schema version of the project manifest
+# Schema version of the project config
 
 Internal helper returning the schema version this version of toolero
 writes and understands. This is a schema version, not a package version:

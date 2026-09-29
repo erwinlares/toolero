@@ -1,4 +1,4 @@
-# Name of the project manifest file
+# Name of the project config file
 
 Internal helper returning the filename
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)

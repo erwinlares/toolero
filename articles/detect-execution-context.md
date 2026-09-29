@@ -8,7 +8,7 @@ Here is a situation most intermediate R users have encountered, even if
 they have not quite named it. You write an analysis script interactively
 in RStudio. You load your data with a path relative to your working
 directory, run everything, and it works. A week later, you fold that
-script into a Quarto document. Suddenly the path is wrong —
+script into a Quarto document. Suddenly the path is wrong –
 `data/input.csv` no longer resolves because the working directory inside
 a `quarto render` call is the document’s directory, not the project root
 you were working from. You patch the path. Then you want to run the same
@@ -56,7 +56,7 @@ most when you are preparing an analysis for a computing cluster.
 
 These three contexts do not share a common convention for how input
 files are located or how parameters arrive. Code written with only one
-context in mind will need adaptation — or will silently fail — in the
+context in mind will need adaptation – or will silently fail – in the
 other two.
 
 ## The solution

@@ -19,7 +19,7 @@
 - [`generate_license()`](https://erwinlares.github.io/toolero/reference/generate_license.md)
   : Generate a LICENSE file
 - [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
-  : Write the project manifest
+  : Write the output record
 - [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md)
   : Generate a personal defaults file for create_qmd()
 - [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md)
@@ -34,7 +34,7 @@
   **\[experimental\]** : Resolve the input data path for the current
   execution context
 - [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
-  : Apply a function to each group in a manifest or named list
+  : Apply a function to each group in a job manifest or named list
 - [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
   : Save an object and record it in the project accumulator
 - [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)

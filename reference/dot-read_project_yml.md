@@ -1,4 +1,4 @@
-# Read a project manifest from a project directory
+# Read a project config from a project directory
 
 Internal helper returning the parsed contents of `_toolero.yml` at the
 root of `path`, or `NULL` when the project does not have one. A project

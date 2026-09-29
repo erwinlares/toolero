@@ -7,14 +7,14 @@
 `toolero` grew out of a recurring observation made while teaching and
 supporting researchers at UW-Madison: the habits that make a project
 reproducible, shareable, and maintainable are easiest to adopt at the
-very beginning — and hardest to retrofit once a project is already
+very beginning – and hardest to retrofit once a project is already
 underway.
 
 The package is heavily influenced by the workflows taught in workshops
 run by [The Carpentries](https://carpentries.org/) and the [UW-Madison
 Libraries](https://www.library.wisc.edu/). Those workshops emphasize
 consistent project organization, version control, and reproducible data
-practices as foundational skills — not advanced topics. `toolero` tries
+practices as foundational skills – not advanced topics. `toolero` tries
 to operationalize those principles into a small set of functions that
 reduce the friction of doing the right thing from the start.
 
@@ -86,8 +86,8 @@ populates it with a working Quarto document.
 Starting a new R project usually means the same manual steps every time:
 create a folder, set up an RStudio project, create subdirectories for
 data and scripts, initialize `renv`, initialize `git`. None of these
-steps is hard on its own, but skipping any of them — especially early on
-— tends to create friction later.
+steps is hard on its own, but skipping any of them – especially early on
+– tends to create friction later.
 
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
 handles all of this in a single call:
@@ -204,8 +204,8 @@ init_project(
 Whichever route you take,
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
 records the *resolved* folder set and naming conventions it ended up
-with in `_toolero.yml` at the project root. Commit that file. It is what
-lets
+with in the *project config*, `_toolero.yml`, at the project root.
+Commit that file. It is what lets
 [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md),
 and later `containr` and `submitr`, know how your project is laid out
 without being handed the same configuration again.
@@ -512,8 +512,9 @@ write_by_group(
 `group_col` also accepts more than one column, writing one file per
 combination that actually appears in the data (`adelie--female.csv`, and
 so on), and `prefix` prepends a namespace to every filename – useful
-before a high-throughput run, where `submitr` reduces the manifest to
-[`basename()`](https://rdrr.io/r/base/basename.html) and short group
+before a high-throughput run, where `submitr` reduces each path in the
+job manifest to its
+[`basename()`](https://rdrr.io/r/base/basename.html), and short group
 names from two different datasets could otherwise collide in one flat
 directory.
 
@@ -521,10 +522,11 @@ If a project was scaffolded with
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md),
 `output_dir` does not need to be typed out at all.
 [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
-accepts a `config` argument – a path to the project’s own `_toolero.yml`
-– and resolves `output_dir` from its `split_dir` convention when
-`output_dir` is not supplied directly. An explicit `output_dir` always
-wins; `config` only fills in what you didn’t already specify:
+accepts a `config` argument – a path to the project config,
+`_toolero.yml` – and resolves `output_dir` from its `split_dir`
+convention when `output_dir` is not supplied directly. An explicit
+`output_dir` always wins; `config` only fills in what you didn’t already
+specify:
 
 ``` r
 
@@ -537,9 +539,9 @@ write_by_group(
 ```
 
 [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
-reads that manifest (or a named list of data frames already in memory),
-applies your function to each subset, and assembles the results into a
-single tibble:
+reads that job manifest (or a named list of data frames already in
+memory), applies your function to each subset, and assembles the results
+into a single tibble:
 
 ``` r
 
@@ -589,9 +591,14 @@ save_output(
 At the end of the run,
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
 reads that accumulator, collapses it to one row per output file, and
-writes `output/project-manifest.json` – a record of what the analysis
-actually produced, which is useful on its own and becomes essential once
-a job is running unattended on a cluster.
+writes the *output record*, `output/project-manifest.json` – a record of
+what the analysis actually produced, which is useful on its own and
+becomes essential once a job is running unattended on a cluster. (The
+file and the function keep their historical names; the family calls the
+file the output record so that it is never confused with the job
+manifest
+[`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
+writes.)
 
 ``` r
 
@@ -604,16 +611,16 @@ both
 [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
 and
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
-accept a `config` argument that resolves `output_dir` from a project’s
-`_toolero.yml` when you don’t supply it directly.
+accept a `config` argument that resolves `output_dir` from the project
+config when you don’t supply it directly.
 
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
-also records `commit` in `project-manifest.json`: the git commit checked
-out in `git_root` (default `"."`) at the moment the manifest was
-written. `renv.lock` already answers which package versions were in
-play; `commit` answers which revision of the analysis script produced
-this particular set of outputs – the one piece of provenance package
-versions alone can’t supply:
+also records `commit` in the output record: the git commit checked out
+in `git_root` (default `"."`) at the moment the record was written.
+`renv.lock` already answers which package versions were in play;
+`commit` answers which revision of the analysis script produced this
+particular set of outputs – the one piece of provenance package versions
+alone can’t supply:
 
 ``` r
 
@@ -631,9 +638,9 @@ audits an existing project directory – one created by
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
 or any other R project – against the expected folder structure, an
 `.Rproj` file, `renv.lock`, git, a README, and a few other common
-reproducibility checks. It reads the project’s own `_toolero.yml` when
-one exists, so a customized project does not need to be handed the same
-configuration again:
+reproducibility checks. It reads the project config (`_toolero.yml`)
+when one exists, so a customized project does not need to be handed the
+same configuration again:
 
 ``` r
 
@@ -717,14 +724,14 @@ The function:
     explicitly via `qmd_path`)
 2.  Re-renders the document with `embed-resources: true` so all CSS,
     images, and JavaScript are self-contained
-3.  Extracts metadata from the `.qmd` YAML header — `title` →
+3.  Extracts metadata from the `.qmd` YAML header – `title` →
     `kb_title`, `description` → `kb_summary`, `categories` →
     `kb_keywords`
 4.  Produces a `.xml` file ready for direct KB import
 
 This is why the `description` and `categories` fields in the
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
-template matter — they flow through automatically into the KB article
+template matter – they flow through automatically into the KB article
 metadata without any extra work.
 
 > **When importing into the KB**, check the *Decode HTML entity in body
@@ -767,7 +774,7 @@ names, or family-name-first orderings – review the generated file’s
 Outside the general research workflow, `toolero` also ships
 [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md),
 which renders a syntactic tree description to a standalone PNG via
-Quarto’s Typst engine — useful for course handouts, papers, and slides
+Quarto’s Typst engine – useful for course handouts, papers, and slides
 without a full LaTeX installation. It has its own vignette,
 [`vignette("arborize")`](https://erwinlares.github.io/toolero/articles/arborize.md),
 since the notation and sizing options deserve room of their own.
@@ -778,7 +785,7 @@ since the notation and sizing options deserve room of their own.
 
 | Function | Brief description |
 |----|----|
-| [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new RStudio project with a reproducible folder structure, `renv`, `git`, a README, and optional branding assets. Records the resolved structure in `_toolero.yml`. |
+| [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md) | Creates a new RStudio project with a reproducible folder structure, `renv`, `git`, a README, and optional branding assets. Records the resolved structure in the project config, `_toolero.yml`. |
 | [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md) | Writes a skeleton YAML project configuration file, pre-filled with the standard folders and conventions, for projects whose layout should be reused or shared. |
 | [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md) | Audits an existing project against the expected folder structure, common reproducibility hygiene checks, and stale purled `.R` scripts. |
 | [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md) | Creates a Quarto document scaffold. Can generate a full worked example or a minimal skeleton, pre-fill YAML metadata via `header_defaults`, add styling, and opt into the purl post-render hook. |
@@ -788,7 +795,7 @@ since the notation and sizing options deserve room of their own.
 | [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md) | Splits a data frame by one or more grouping columns and writes one CSV file per group, optionally with a job manifest. `output_dir` can be resolved from `_toolero.yml` via `config`. |
 | [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md) | Applies a function to each group from a job manifest or a named list, sequentially or in parallel. |
 | [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md) | Writes an object to disk via a user-supplied function and records the write in a project-level accumulator. `output_dir` can be resolved from `_toolero.yml` via `config`. |
-| [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md) | Reads the accumulator and writes a deduplicated `project-manifest.json` describing everything the analysis produced, including the git commit checked out at the time (when available). |
+| [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md) | Reads the accumulator and writes the output record, a deduplicated `project-manifest.json` describing everything the analysis produced, including the git commit checked out at the time (when available). |
 | [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md) | Detects whether code is running interactively, during `quarto render`, or as an `Rscript` job. |
 | [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md) | Resolves the input data path for the current execution context, and explains what went wrong when it cannot. |
 | [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md) | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base-ready XML with embedded resources and metadata extracted from the source `.qmd`. |

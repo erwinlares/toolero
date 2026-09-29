@@ -1,4 +1,4 @@
-# Write a project manifest
+# Write a project config
 
 Internal helper that renders `inst/templates/_toolero.yml` with a folder
 list and a conventions block and writes the result to `dest`. Used by

@@ -49,7 +49,7 @@
 <pre class="text"><code>my-project/
 ├── data-raw/          inputs as they arrived, never edited in place
 ├── data/              analysis-ready data, produced from data-raw/
-│   └── jobs/          per-group splits from write_by_group(), plus manifest.csv
+│   └── jobs/          per-group splits from write_by_group(), plus the job manifest
 ├── R/                 R code, including scripts derived from .qmd documents
 ├── scripts/           standalone utility scripts not part of the analysis
 ├── output/            everything the analysis produces
@@ -58,7 +58,7 @@
 ├── reports/           .qmd documents and their rendered output
 ├── assets/            styling and branding, when branding is requested
 ├── renv.lock          the R package environment
-├── _toolero.yml       the project's own description of the above
+├── _toolero.yml       the project config: the project's own description of the above
 └── my-project.Rproj</code></pre>
 <p>Two notes on that tree, because both have bitten us.</p>
 <p><code>R/</code> is the one standard folder <code>toolero</code> does not create, because <code><a href="https://usethis.r-lib.org/reference/create_package.html" class="external-link">usethis::create_project()</a></code> creates it unconditionally on its own. It cannot be suppressed through <code>config</code> or <code>custom_folders</code>, and a call that asks for the folder set without <code>R/</code> will get <code>R/</code> anyway.</p>
@@ -69,28 +69,28 @@
 <a class="anchor" aria-label="anchor" href="#id_2-where-the-derived-script-lives-r"></a></h2>
 <p>An analysis in this family is usually written as a Quarto document and executed as a plain R script, because a cluster runs <code>Rscript</code>, not <code>quarto render</code>. The script derived from the document lives in <code>R/</code>.</p>
 <pre class="text"><code>reports/analysis.qmd        the source of truth, edited by a person
-R/analysis.R                derived from it, executed by a machine</code></pre>
-<p><code>create_qmd(use_purl = TRUE)</code> sets up a post-render hook that writes there. <code><a href="reference/qmd_to_r.html">qmd_to_r()</a></code>’s own default is to write beside its input, which is right for the one-off case, but the documented workflow passes <code>output = "R/analysis.R"</code>.</p>
-<p>Downstream this means <code>containr</code> is given <code>code_file = "R/analysis.R"</code> and <code>submitr</code> is given <code>r_script = "R/analysis.R"</code>. <strong>These two must always agree.</strong> Changing one without the other reproduces a broken path in a new location, which is how the family arrived at four different answers to this question in the first place.</p>
+R/reports/analysis.R        derived from it, executed by a machine</code></pre>
+<p><code>create_qmd(use_purl = TRUE)</code> sets up a post-render hook that writes there. The hook mirrors each document’s location under <code>R/</code>, so <code>reports/analysis.qmd</code> becomes <code>R/reports/analysis.R</code> and a document at the project root becomes <code>R/analysis.R</code>; two documents that share a filename in different folders never overwrite each other’s script. <code><a href="reference/qmd_to_r.html">qmd_to_r()</a></code>’s own default is to write beside its input, which is right for the one-off case; pass <code>output =</code> to put the script in <code>R/</code> yourself.</p>
+<p>The examples below use <code>R/analysis.R</code>, the script derived from a document at the project root. Downstream this means <code>submitr</code> is given <code>r_script = "R/analysis.R"</code>, in both <code>htc_gen_submit()</code> and <code>htc_gen_executable()</code>, and the same path in <code>htc_gen_submit(input_files = )</code>. The script is not baked into the container image: it travels to the execute node as an uploaded job input, so editing it means re-uploading and resubmitting, not rebuilding and re-pushing the image. <code>htc_gen_submit()</code> warns when <code>r_script</code> is missing from <code>input_files</code>. <code>containr</code> may still be given <code>code_file = "R/analysis.R"</code> for an image that has to run on its own, for a collaborator say, but a cluster job runs the uploaded copy, not the one in the image.</p>
+<p>The path itself is the one thing that has to stay consistent. Naming the script differently in different places reproduces a broken path in a new location, which is how the family arrived at four different answers to this question in the first place.</p>
 <p>Never edit the derived script. It is regenerated on every render, and an edit to it is lost the next time somebody opens the document.</p>
 </div>
 <div class="section level2">
 <h2 id="id_3-the-output-folder-output">3. The output folder: <code>output/</code>
 <a class="anchor" aria-label="anchor" href="#id_3-the-output-folder-output"></a></h2>
 <p>Everything an analysis produces goes under <code>output/</code>, on the laptop and on an execute node alike. Not <code>results/</code>, which earlier versions of <code>submitr</code> used.</p>
-<p><code><a href="reference/save_output.html">toolero::save_output()</a></code> writes there and records each write in <code>output/accumulator.csv</code>. <code><a href="reference/generate_manifest.html">toolero::generate_manifest()</a></code> reads that accumulator and writes <code>output/project-manifest.json</code>. <code>submitr::htc_gen_executable()</code> takes <code>results_folder = "output"</code> and tars that folder at the end of the job.</p>
+<p><code><a href="reference/save_output.html">toolero::save_output()</a></code> writes there and records each write in <code>output/accumulator.csv</code>. <code><a href="reference/generate_manifest.html">toolero::generate_manifest()</a></code> reads that accumulator and writes the output record, <code>output/project-manifest.json</code>. <code>submitr::htc_gen_executable()</code> defaults to <code>results_folder = "output"</code> and tars that folder at the end of the job.</p>
 <p>One consequence is worth stating plainly, because it is the failure people hit first. Creating <code>output/</code> does not create <code>output/figures/</code>. A job that runs on a machine where only <code>output/</code> exists, which is what a generated executable’s <code>mkdir -p</code> gives you, will fail on a bare <code>ggsave("output/figures/x.png")</code>. <code><a href="reference/save_output.html">save_output()</a></code> creates parent directories recursively and is safe; a direct call to a writer is not. Either use <code><a href="reference/save_output.html">save_output()</a></code>, or create the subfolder in the script before writing to it.</p>
 </div>
 <div class="section level2">
 <h2 id="id_4-paths-inside-the-container">4. Paths inside the container<a class="anchor" aria-label="anchor" href="#id_4-paths-inside-the-container"></a></h2>
-<p><code>containr</code> preserves the project’s directory structure inside the image, rooted at <code>copy_root</code>, which is <code>/home</code> for the <code>base</code>, <code>tidyverse</code>, <code>rstudio</code> and <code>verse</code> modes and <code>/srv/shiny-server</code> for the two Shiny modes. So a project laid out as in section 1 appears in the image like this:</p>
+<p><code>containr</code> preserves the project’s directory structure inside the image. For the <code>base</code>, <code>tidyverse</code>, <code>rstudio</code> and <code>verse</code> modes, files are copied under <code>home_dir</code> (<code>/home</code> by default); for the two Shiny modes they land under <code>/srv/shiny-server</code>. So a project laid out as in section 1, containerized with <code>data_file = "data-raw/"</code> and <code>misc_file = "reports/"</code>, appears in the image like this:</p>
 <pre class="text"><code>/home/renv.lock
-/home/R/analysis.R
 /home/data-raw/sample.csv
 /home/reports/analysis.qmd</code></pre>
 <p>Relative paths therefore mean the same thing inside the container as they do on the laptop, which is the whole point of preserving the structure. A script that reads <code>data-raw/sample.csv</code> works in both places without modification.</p>
-<p>The lockfile is the exception to the structure rule: it is copied to the working directory, because the <code>renv</code> restore runs there, and the working directory is <code>home_dir</code>, which is a separate argument from <code>copy_root</code>.</p>
-<p>When <code>submitr</code> names the script, it names the path inside the image, absolutely: <code>/home/R/analysis.R</code>. On the laptop the same file is <code>R/analysis.R</code>, relative to the project root. These are the same file and not the same path, and documents that say otherwise confuse people who read carefully.</p>
+<p>The lockfile always goes to the working directory, <code>home_dir</code>, because the <code>renv</code> restore runs there.</p>
+<p>When <code>submitr</code> names a data file baked into the image, it names the path inside the image, absolutely: <code>/home/data-raw/sample.csv</code>. On the laptop the same file is <code>data-raw/sample.csv</code>, relative to the project root. These are the same file and not the same path, and documents that say otherwise confuse people who read carefully. The script is the opposite case: it arrives in the job’s scratch directory as an uploaded input, so the generated executable runs it by bare name (<code>Rscript analysis.R</code>), not by a path inside the image.</p>
 </div>
 <div class="section level2">
 <h2 id="id_5-finding-the-input-file-resolve_input_path">5. Finding the input file: <code>resolve_input_path()</code>
@@ -132,29 +132,119 @@ R/analysis.R                derived from it, executed by a machine</code></pre>
 <p>The surface is marked experimental in <code>toolero</code>’s documentation. The schema may gain keys; existing keys will not change meaning without a version bump.</p>
 </div>
 <div class="section level2">
-<h2 id="id_7-vocabulary">7. Vocabulary<a class="anchor" aria-label="anchor" href="#id_7-vocabulary"></a></h2>
-<p>Four terms have drifted and each now has one meaning.</p>
-<p>A <strong>job manifest</strong> is a list of inputs. <code><a href="reference/write_by_group.html">write_by_group()</a></code> writes one at <code>data/jobs/manifest.csv</code>, with one row per split file, and <code>submitr</code> derives <code>subdatasets.csv</code> from it.</p>
-<p>A <strong>project manifest</strong> is a record of outputs. <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> writes one at <code>output/project-manifest.json</code>, describing every artifact the analysis produced.</p>
-<p>Unqualified, the word “manifest” means neither. Use one of the two.</p>
+<h2 id="id_7-the-output-record-project-manifestjson">7. The output record: <code>project-manifest.json</code>
+<a class="anchor" aria-label="anchor" href="#id_7-the-output-record-project-manifestjson"></a></h2>
+<p><code><a href="reference/generate_manifest.html">toolero::generate_manifest()</a></code> writes the output record at the end of an analysis, from the rows <code><a href="reference/save_output.html">save_output()</a></code> appended to <code>output/accumulator.csv</code> along the way. It records what the analysis produced, once per file, and the few facts about the run that apply to all of it. This section is its specification.</p>
+<p>It is <code>toolero</code>’s own format. Unlike <code>_toolero.yml</code> and the <code>file_path</code> column of the job manifest, it is not a contract between packages: <code>toolero</code> writes it, and <code>toolero</code> is the package that reads it. Other packages should treat it as an opaque file, noting that it exists if they need to, but not parsing it; <code>submitr::htc_collect()</code>, for example, reports whether each job brought one back without opening it. The reason is practical: every package that parses a format carries its own copy of the schema, and copies drift. One parser, in the package that writes the file, cannot disagree with itself.</p>
+<p>A version 1 output record looks like this:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>  <span class="dt">"schema_version"</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="dt">"execution_context"</span><span class="fu">:</span> <span class="st">"rscript"</span><span class="fu">,</span></span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="dt">"generated_at"</span><span class="fu">:</span> <span class="st">"2026-09-29T18:04:12.345Z"</span><span class="fu">,</span></span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>  <span class="dt">"commit"</span><span class="fu">:</span> <span class="st">"3f2a9c1e8b7d6a5f4e3d2c1b0a9f8e7d6c5b4a39"</span><span class="fu">,</span></span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>  <span class="dt">"artifacts"</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>    <span class="fu">{</span></span>
+<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>      <span class="dt">"file_path"</span><span class="fu">:</span> <span class="st">"output/tables/summary.csv"</span><span class="fu">,</span></span>
+<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a>      <span class="dt">"r_class"</span><span class="fu">:</span> <span class="st">"tbl_df|tbl|data.frame"</span><span class="fu">,</span></span>
+<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a>      <span class="dt">"timestamp"</span><span class="fu">:</span> <span class="st">"2026-09-29T18:04:10.101Z"</span><span class="fu">,</span></span>
+<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>      <span class="dt">"function_used"</span><span class="fu">:</span> <span class="st">"readr::write_csv"</span><span class="fu">,</span></span>
+<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a>      <span class="dt">"status"</span><span class="fu">:</span> <span class="st">"success"</span><span class="fu">,</span></span>
+<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a>      <span class="dt">"error_message"</span><span class="fu">:</span> <span class="kw">null</span><span class="fu">,</span></span>
+<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a>      <span class="dt">"note"</span><span class="fu">:</span> <span class="st">"Per-species summary."</span></span>
+<span id="cb6-15"><a href="#cb6-15" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb6-16"><a href="#cb6-16" tabindex="-1"></a>  <span class="ot">]</span></span>
+<span id="cb6-17"><a href="#cb6-17" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p><strong>Top-level keys</strong>, always present, in this order:</p>
+<table class="table"><colgroup><col width="33%"><col width="33%"><col width="33%"></colgroup><thead><tr><th>Key</th>
+<th>Type</th>
+<th>Value</th>
+</tr></thead><tbody><tr><td><code>schema_version</code></td>
+<td>integer</td>
+<td><code>1</code></td>
+</tr><tr><td><code>execution_context</code></td>
+<td>string</td>
+<td>
+<code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code>, from <code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code>
+</td>
+</tr><tr><td><code>generated_at</code></td>
+<td>string</td>
+<td>When the record was written, UTC, millisecond precision: <code>YYYY-MM-DDTHH:MM:SS.sssZ</code>
+</td>
+</tr><tr><td><code>commit</code></td>
+<td>string or null</td>
+<td>The 40-character git commit checked out in <code>git_root</code>; null when there is no repository, no commit yet, or no <code>git</code>
+</td>
+</tr><tr><td><code>artifacts</code></td>
+<td>array</td>
+<td>One object per output file; an empty array, never absent, when nothing was saved</td>
+</tr></tbody></table><p><strong>Artifact fields</strong>, always present, in this order:</p>
+<table class="table"><colgroup><col width="33%"><col width="33%"><col width="33%"></colgroup><thead><tr><th>Field</th>
+<th>Type</th>
+<th>Value</th>
+</tr></thead><tbody><tr><td><code>file_path</code></td>
+<td>string</td>
+<td>The path exactly as passed to <code><a href="reference/save_output.html">save_output()</a></code>
+</td>
+</tr><tr><td><code>r_class</code></td>
+<td>string</td>
+<td>
+<code>class(object)</code> joined with <code>"\|"</code>, captured before the write</td>
+</tr><tr><td><code>timestamp</code></td>
+<td>string</td>
+<td>When the save was attempted, same format as <code>generated_at</code>
+</td>
+</tr><tr><td><code>function_used</code></td>
+<td>string</td>
+<td>The writer as named at the call site, e.g. <code>"saveRDS"</code> or <code>"ggplot2::ggsave"</code>
+</td>
+</tr><tr><td><code>status</code></td>
+<td>string</td>
+<td>
+<code>"success"</code> or <code>"failure"</code>
+</td>
+</tr><tr><td><code>error_message</code></td>
+<td>string or null</td>
+<td>The writer’s error message on failure; null on success</td>
+</tr><tr><td><code>note</code></td>
+<td>string or null</td>
+<td>The <code>note</code> given to <code><a href="reference/save_output.html">save_output()</a></code>, if any</td>
+</tr></tbody></table><p>Three rules apply to the values. A field with no value is written as <code>null</code>, never as an empty string. Artifacts appear once per <code>file_path</code>, keeping the latest attempt, so a later failure supersedes an earlier success for the same file; they are ordered by <code>timestamp</code>. And <code>file_path</code> is recorded as given, so it is relative to the working directory the analysis ran in when the call used a relative path. Relative paths are the ones to use: an absolute path does not resolve on another machine, and it records local directory names in a file that may be shared.</p>
+<p><strong>Versioning.</strong> <code>schema_version</code> changes only when an existing key or field is removed, renamed, or changes meaning or type. A reader of the output record follows three rules:</p>
+<ul><li>A record with no <code>schema_version</code> is version 1. Output records written by <code>toolero</code> 0.5.x have exactly the version 1 shape without the key.</li>
+<li>A record with a version the reader does not know is read as far as possible, with a warning, not rejected. The same rule governs <code>_toolero.yml</code> (section 6).</li>
+<li>Keys and fields the reader does not recognize are ignored.</li>
+</ul><p>When <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> fails, or is never reached, the accumulator is still on disk. It holds the same seven fields, one row per save attempt rather than one per file, and is the fallback when no output record exists.</p>
+<p>Reference examples live in <code>toolero</code>’s tests, under <code>tests/testthat/fixtures/output-records/</code>: a good record, an empty one, an unversioned one, one with a future version, a malformed one, and a folder holding only an accumulator.</p>
+</div>
+<div class="section level2">
+<h2 id="id_8-vocabulary">8. Vocabulary<a class="anchor" aria-label="anchor" href="#id_8-vocabulary"></a></h2>
+<p>Several words drifted between the three packages, and each now has one meaning. Four of them name files. They are worth keeping straight, because three of the four files have “manifest” somewhere in their name.</p>
+<p>The <strong>project config</strong> is <code>_toolero.yml</code>: the project’s description of its own folders and conventions (section 6). <code><a href="reference/init_project.html">init_project()</a></code> writes it; <code><a href="reference/check_project.html">check_project()</a></code>, <code>containr</code>, and <code>submitr</code> read it.</p>
+<p>The <strong>job manifest</strong> is a list of inputs to a computation about to happen. <code><a href="reference/write_by_group.html">write_by_group()</a></code> writes one at <code>data/jobs/manifest.csv</code>, with one row per split file, and <code>submitr</code> derives <code>subdatasets.csv</code> from it.</p>
+<p>The <strong>output record</strong> is a record of outputs from a computation that has already happened. <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> writes it at <code>output/project-manifest.json</code>, from the rows <code><a href="reference/save_output.html">save_output()</a></code> appended to <code>output/accumulator.csv</code> along the way. The accumulator is the raw, append-only log; the output record is its deduplicated, end-of-run summary (section 7).</p>
+<p>The <strong>submission state</strong> is <code>submitr</code>’s working memory for the job in progress, kept in <code>htc-manifest.yaml</code>: which files were generated, where they were uploaded, and which cluster ID came back. It is updated as the work proceeds and read only by <code>submitr</code> itself.</p>
+<p>The file and function names predate these terms and are kept for compatibility, so <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> writes the output record and <code>htc-manifest.yaml</code> holds the submission state. Use the term in prose and the file name in code. Unqualified, the word “manifest” means none of these; use one of the four terms instead.</p>
 <p><strong>Development packages</strong> are what you install with <code>apt-get</code> to build an R package from source: <code>libfreetype-dev</code>, <code>libpng-dev</code>. <strong>Headers</strong> are one of the things inside such a package. Say “the <code>libfreetype</code> and <code>libpng</code> development packages”, not “the headers”, when what you mean is the thing being installed.</p>
 <p>CHTC calls the machine you log into an <strong>access point</strong>; HTCondor’s own documentation also calls it a <strong>submit node</strong>. Both are correct. Introduce both once, then use <strong>submit node</strong> throughout, because it pairs with <strong>execute node</strong>, which has no competing name.</p>
 </div>
 <div class="section level2">
-<h2 id="id_8-what-each-package-may-assume">8. What each package may assume<a class="anchor" aria-label="anchor" href="#id_8-what-each-package-may-assume"></a></h2>
+<h2 id="id_9-what-each-package-may-assume">9. What each package may assume<a class="anchor" aria-label="anchor" href="#id_9-what-each-package-may-assume"></a></h2>
 <p><code>toolero</code> assumes nothing about the other two. It never reads <code>_toolero.yml</code>, it never checks for a <code>Dockerfile</code>, and it has no knowledge of HTCondor.</p>
 <p><code>containr</code> may assume a project has <code>renv.lock</code> at its root. It may read <code>_toolero.yml</code> when it is pointed at one. It may not assume <code>toolero</code> is installed, and it may not assume any particular folder exists.</p>
-<p><code>submitr</code> may assume the image contains the script at the absolute path it was given, and it may read <code>_toolero.yml</code>. It cannot verify the first of those, and should say so rather than implying that it has.</p>
+<p><code>submitr</code> may assume the image contains any data files at the absolute paths it was given, and it may read <code>_toolero.yml</code> when it is pointed at one. It cannot verify the first of those, and should say so rather than implying that it has. It may not assume the image contains the analysis script: the script travels with the job (section 2).</p>
 <p>The analysis script inside an image may assume <code>toolero</code> is available <strong>only if <code>toolero</code> is in <code>renv.lock</code></strong>. This is easy to forget, because on the laptop <code>toolero</code> is installed for reasons that have nothing to do with the analysis. If the containerized script calls <code><a href="reference/save_output.html">save_output()</a></code> or <code><a href="reference/resolve_input_path.html">resolve_input_path()</a></code>, then <code>toolero</code> is a runtime dependency of that analysis and has to be snapshotted like any other.</p>
 </div>
 <div class="section level2">
-<h2 id="id_9-changing-a-convention">9. Changing a convention<a class="anchor" aria-label="anchor" href="#id_9-changing-a-convention"></a></h2>
+<h2 id="id_10-changing-a-convention">10. Changing a convention<a class="anchor" aria-label="anchor" href="#id_10-changing-a-convention"></a></h2>
 <p>A convention here is load-bearing across three CRAN packages, so changing one is not a refactor.</p>
 <p>Propose the change in the relevant package’s audit document, with the item number it will carry. Say which of the other two packages inherit it, and whether they have to move in the same release or can follow. Update this file in the same commit that ships the first half of the change, not afterwards, and note the change in the version history below.</p>
-<p>Where a change has to happen in two packages at once, say so explicitly and in both audit documents. There is exactly one such constraint at the time of writing, in section 2: <code>containr</code>’s <code>code_file</code> and <code>submitr</code>’s <code>r_script</code> name the same file and cannot move separately.</p>
+<p>Where a change has to happen in two packages at once, say so explicitly and in both audit documents. There is exactly one such constraint at the time of writing, in section 5: <code>submitr</code>’s generated executable passes the subset filename as the first trailing command line argument, and <code><a href="reference/resolve_input_path.html">toolero::resolve_input_path()</a></code>’s <code>rscript</code> branch reads exactly that. The two cannot move separately. (The constraint section 2 used to name, between <code>containr</code>’s <code>code_file</code> and <code>submitr</code>’s <code>r_script</code>, retired when the script stopped being baked into the image.)</p>
 <hr></div>
 <div class="section level2">
 <h2 id="version-history">Version history<a class="anchor" aria-label="anchor" href="#version-history"></a></h2>
+<p>Section numbers in each entry are as they stood at the time.</p>
+<p><strong>2026-09 (the output record specified).</strong> A new section 7 specifies the output record, <code>project-manifest.json</code>: its keys, types, allowed values, and the rules for reading it across versions. <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> now writes <code>schema_version: 1</code> as its first key (T36). The section also records that the output record is <code>toolero</code>’s own format rather than a contract between packages; <code>submitr::htc_collect()</code> stopped parsing it in the same round (S27). The vocabulary section and the two after it moved down one number, to 8, 9 and 10.</p>
+<p><strong>2026-09 (vocabulary and the uploaded script).</strong> Section 7 now defines four file terms instead of two: the <em>project manifest</em> is renamed the <em>output record</em>, and <em>project config</em> (<code>_toolero.yml</code>) and <em>submission state</em> (<code>htc-manifest.yaml</code>) are added. No files, functions, or arguments were renamed; the three READMEs were brought into line in the same change. Sections 2, 4, 8 and 9 were corrected to match <code>submitr</code>’s decision (S-I4, 2026-09-24) that the analysis script travels to the execute node as an uploaded job input rather than being baked into the container image. That decision shipped before this file was updated, which is the order section 9 asks to avoid. Section 2 also now describes the purl hook’s path mirroring (<code>reports/analysis.qmd</code> purls to <code>R/reports/analysis.R</code>), which the earlier text had flattened to <code>R/analysis.R</code>.</p>
 <p><strong>2026-09 (toolero 0.6.0).</strong> No changes to the conventions themselves. <code>toolero</code> added <code><a href="reference/generate_profile.html">generate_profile()</a></code> and <code><a href="reference/generate_citation.html">generate_citation()</a></code>, a <code>config</code> argument to <code><a href="reference/write_by_group.html">write_by_group()</a></code>, <code><a href="reference/save_output.html">save_output()</a></code>, and <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> for reading <code>output_dir</code>/<code>split_dir</code> out of <code>_toolero.yml</code>, and a <code>commit</code> field on the project manifest – all additive, and all already consistent with what this file describes.</p>
 <p><strong>2026-09.</strong> First version, written after the <code>toolero</code> 0.5.0 remediation settled the conventions in sections 1 through 6. The decisions recorded here supersede: <code>results/</code> as an output folder name, <code>scripts/</code> as the home of derived scripts, the hand-written <code><a href="https://rdrr.io/r/base/switch.html" class="external-link">switch()</a></code> on <code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code> as the way to resolve an input path, and the stamped <code>params:</code> block that an earlier draft of <code><a href="reference/create_qmd.html">create_qmd()</a></code> briefly wrote.</p>
 </div>

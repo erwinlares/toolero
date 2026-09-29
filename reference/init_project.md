@@ -3,8 +3,8 @@
 `init_project()` creates a new R project at the given path with an
 opinionated folder structure suited for research workflows. It
 optionally initializes `renv` for package management and git for version
-control, and records the structure it resolved in a project manifest at
-the project root.
+control, and records the structure it resolved in a project config,
+`_toolero.yml`, at the project root.
 
 ## Usage
 
@@ -71,7 +71,7 @@ init_project(
   [`usethis::create_project()`](https://usethis.r-lib.org/reference/create_package.html)
   creates it unconditionally, so it is present in every project
   `init_project()` makes. A structure that leaves it out is honored
-  everywhere else – `R/` is absent from the project manifest, gets no
+  everywhere else – `R/` is absent from the project config, gets no
   `.gitkeep`, and is not audited by
   [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
   – but the directory itself is there.
@@ -90,7 +90,7 @@ init_project(
   branding files under the same standardized names. `"none"` or `FALSE`
   creates no `assets/` folder. Defaults to `"none"`. When branding is
   enabled, `assets/` joins the project's folder set and is recorded in
-  the project manifest alongside every other folder, so downstream
+  the project config alongside every other folder, so downstream
   packages can find the branding files without being told about them
   separately. Note that `favicon.png` is included in the asset set but
   is not automatically wired into Quarto output – favicons are a
@@ -142,7 +142,7 @@ init_project(
 
 Called for its side effects. Invisibly returns `path`.
 
-## The project manifest
+## The project config
 
 **\[experimental\]**
 

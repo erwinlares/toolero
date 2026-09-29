@@ -67,7 +67,7 @@
 Lares</h4>
             
             <h4 data-toc-skip class="date">Created 2026-04-30 | Last
-updated 2026-09-24</h4>
+updated 2026-09-29</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/vignettes/toolero-intro.Rmd" class="external-link"><code>vignettes/toolero-intro.Rmd</code></a></small>
       <div class="d-none name"><code>toolero-intro.Rmd</code></div>
@@ -82,14 +82,14 @@ updated 2026-09-24</h4>
 <p><code>toolero</code> grew out of a recurring observation made while
 teaching and supporting researchers at UW-Madison: the habits that make
 a project reproducible, shareable, and maintainable are easiest to adopt
-at the very beginning — and hardest to retrofit once a project is
+at the very beginning – and hardest to retrofit once a project is
 already underway.</p>
 <p>The package is heavily influenced by the workflows taught in
 workshops run by <a href="https://carpentries.org/" class="external-link">The Carpentries</a>
 and the <a href="https://www.library.wisc.edu/" class="external-link">UW-Madison
 Libraries</a>. Those workshops emphasize consistent project
 organization, version control, and reproducible data practices as
-foundational skills — not advanced topics. <code>toolero</code> tries to
+foundational skills – not advanced topics. <code>toolero</code> tries to
 operationalize those principles into a small set of functions that
 reduce the friction of doing the right thing from the start.</p>
 <p><code>toolero</code> is also the first package in <em>From the
@@ -155,7 +155,7 @@ document.</p>
 time: create a folder, set up an RStudio project, create subdirectories
 for data and scripts, initialize <code>renv</code>, initialize
 <code>git</code>. None of these steps is hard on its own, but skipping
-any of them — especially early on — tends to create friction later.</p>
+any of them – especially early on – tends to create friction later.</p>
 <p><code><a href="../reference/init_project.html">init_project()</a></code> handles all of this in a single call:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/erwinlares/toolero" class="external-link">toolero</a></span><span class="op">)</span></span>
@@ -246,10 +246,11 @@ writes a skeleton YAML config you can edit once and reuse:</p>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Whichever route you take, <code><a href="../reference/init_project.html">init_project()</a></code> records the
 <em>resolved</em> folder set and naming conventions it ended up with in
-<code>_toolero.yml</code> at the project root. Commit that file. It is
-what lets <code><a href="../reference/check_project.html">check_project()</a></code>, and later <code>containr</code>
-and <code>submitr</code>, know how your project is laid out without
-being handed the same configuration again.</p>
+the <em>project config</em>, <code>_toolero.yml</code>, at the project
+root. Commit that file. It is what lets <code><a href="../reference/check_project.html">check_project()</a></code>,
+and later <code>containr</code> and <code>submitr</code>, know how your
+project is laid out without being handed the same configuration
+again.</p>
 <p>To apply UW-Madison branding assets to the project:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/init_project.html">init_project</a></span><span class="op">(</span></span>
@@ -563,13 +564,13 @@ count, and file path:</p>
 file per combination that actually appears in the data
 (<code>adelie--female.csv</code>, and so on), and <code>prefix</code>
 prepends a namespace to every filename – useful before a high-throughput
-run, where <code>submitr</code> reduces the manifest to
-<code><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename()</a></code> and short group names from two different
+run, where <code>submitr</code> reduces each path in the job manifest to
+its <code><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename()</a></code>, and short group names from two different
 datasets could otherwise collide in one flat directory.</p>
 <p>If a project was scaffolded with <code><a href="../reference/init_project.html">init_project()</a></code>,
 <code>output_dir</code> does not need to be typed out at all.
 <code><a href="../reference/write_by_group.html">write_by_group()</a></code> accepts a <code>config</code> argument – a
-path to the project’s own <code>_toolero.yml</code> – and resolves
+path to the project config, <code>_toolero.yml</code> – and resolves
 <code>output_dir</code> from its <code>split_dir</code> convention when
 <code>output_dir</code> is not supplied directly. An explicit
 <code>output_dir</code> always wins; <code>config</code> only fills in
@@ -581,8 +582,8 @@ what you didn’t already specify:</p>
 <span>  config    <span class="op">=</span> <span class="st">"_toolero.yml"</span>,</span>
 <span>  manifest  <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p><code><a href="../reference/run_by_group.html">run_by_group()</a></code> reads that manifest (or a named list of
-data frames already in memory), applies your function to each subset,
+<p><code><a href="../reference/run_by_group.html">run_by_group()</a></code> reads that job manifest (or a named list
+of data frames already in memory), applies your function to each subset,
 and assembles the results into a single tibble:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summarise_species</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data</span><span class="op">)</span> <span class="op">{</span></span>
@@ -625,23 +626,26 @@ function used, and whether the write succeeded:</p>
 <span>  .f <span class="op">=</span> <span class="va">saveRDS</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>At the end of the run, <code><a href="../reference/generate_manifest.html">generate_manifest()</a></code> reads that
-accumulator, collapses it to one row per output file, and writes
-<code>output/project-manifest.json</code> – a record of what the
-analysis actually produced, which is useful on its own and becomes
-essential once a job is running unattended on a cluster.</p>
+accumulator, collapses it to one row per output file, and writes the
+<em>output record</em>, <code>output/project-manifest.json</code> – a
+record of what the analysis actually produced, which is useful on its
+own and becomes essential once a job is running unattended on a cluster.
+(The file and the function keep their historical names; the family calls
+the file the output record so that it is never confused with the job
+manifest <code><a href="../reference/write_by_group.html">write_by_group()</a></code> writes.)</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="st">"output"</span><span class="op">)</span></span></code></pre></div>
 <p>Like <code><a href="../reference/write_by_group.html">write_by_group()</a></code>, both <code><a href="../reference/save_output.html">save_output()</a></code>
 and <code><a href="../reference/generate_manifest.html">generate_manifest()</a></code> accept a <code>config</code>
-argument that resolves <code>output_dir</code> from a project’s
-<code>_toolero.yml</code> when you don’t supply it directly.</p>
+argument that resolves <code>output_dir</code> from the project config
+when you don’t supply it directly.</p>
 <p><code><a href="../reference/generate_manifest.html">generate_manifest()</a></code> also records <code>commit</code> in
-<code>project-manifest.json</code>: the git commit checked out in
-<code>git_root</code> (default <code>"."</code>) at the moment the
-manifest was written. <code>renv.lock</code> already answers which
-package versions were in play; <code>commit</code> answers which
-revision of the analysis script produced this particular set of outputs
-– the one piece of provenance package versions alone can’t supply:</p>
+the output record: the git commit checked out in <code>git_root</code>
+(default <code>"."</code>) at the moment the record was written.
+<code>renv.lock</code> already answers which package versions were in
+play; <code>commit</code> answers which revision of the analysis script
+produced this particular set of outputs – the one piece of provenance
+package versions alone can’t supply:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="st">"output"</span>, git_root <span class="op">=</span> <span class="st">"."</span><span class="op">)</span></span></code></pre></div>
 <p><code>commit</code> comes back <code>NULL</code> when the project
@@ -655,9 +659,9 @@ installed, so recording it is always safe to leave on.</p>
 one created by <code><a href="../reference/init_project.html">init_project()</a></code> or any other R project –
 against the expected folder structure, an <code>.Rproj</code> file,
 <code>renv.lock</code>, git, a README, and a few other common
-reproducibility checks. It reads the project’s own
-<code>_toolero.yml</code> when one exists, so a customized project does
-not need to be handed the same configuration again:</p>
+reproducibility checks. It reads the project config
+(<code>_toolero.yml</code>) when one exists, so a customized project
+does not need to be handed the same configuration again:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/check_project.html">check_project</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>Among those checks is a stale-purled-script check: every
@@ -730,7 +734,7 @@ with all visual assets embedded in the HTML body.
 it explicitly via <code>qmd_path</code>)</li>
 <li>Re-renders the document with <code>embed-resources: true</code> so
 all CSS, images, and JavaScript are self-contained</li>
-<li>Extracts metadata from the <code>.qmd</code> YAML header —
+<li>Extracts metadata from the <code>.qmd</code> YAML header –
 <code>title</code> → <code>kb_title</code>, <code>description</code> →
 <code>kb_summary</code>, <code>categories</code> →
 <code>kb_keywords</code>
@@ -738,7 +742,7 @@ all CSS, images, and JavaScript are self-contained</li>
 <li>Produces a <code>.xml</code> file ready for direct KB import</li>
 </ol>
 <p>This is why the <code>description</code> and <code>categories</code>
-fields in the <code><a href="../reference/create_qmd.html">create_qmd()</a></code> template matter — they flow
+fields in the <code><a href="../reference/create_qmd.html">create_qmd()</a></code> template matter – they flow
 through automatically into the KB article metadata without any extra
 work.</p>
 <blockquote>
@@ -778,7 +782,7 @@ orderings – review the generated file’s <code>given-names</code> and
 </h2>
 <p>Outside the general research workflow, <code>toolero</code> also
 ships <code><a href="../reference/arborize.html">arborize()</a></code>, which renders a syntactic tree
-description to a standalone PNG via Quarto’s Typst engine — useful for
+description to a standalone PNG via Quarto’s Typst engine – useful for
 course handouts, papers, and slides without a full LaTeX installation.
 It has its own vignette, <code><a href="../articles/arborize.html">vignette("arborize")</a></code>, since the
 notation and sizing options deserve room of their own.</p>
@@ -801,7 +805,7 @@ notation and sizing options deserve room of their own.</p>
 <td><code><a href="../reference/init_project.html">init_project()</a></code></td>
 <td>Creates a new RStudio project with a reproducible folder structure,
 <code>renv</code>, <code>git</code>, a README, and optional branding
-assets. Records the resolved structure in
+assets. Records the resolved structure in the project config,
 <code>_toolero.yml</code>.</td>
 </tr>
 <tr class="even">
@@ -862,7 +866,7 @@ resolved from <code>_toolero.yml</code> via <code>config</code>.</td>
 </tr>
 <tr class="odd">
 <td><code><a href="../reference/generate_manifest.html">generate_manifest()</a></code></td>
-<td>Reads the accumulator and writes a deduplicated
+<td>Reads the accumulator and writes the output record, a deduplicated
 <code>project-manifest.json</code> describing everything the analysis
 produced, including the git commit checked out at the time (when
 available).</td>

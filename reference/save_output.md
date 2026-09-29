@@ -7,7 +7,8 @@ default) – appends a row to the project-level accumulator at
 the write succeeded. The accumulator is the working file later consumed
 by
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md),
-which deduplicates it and reshapes it into `project-manifest.json`.
+which deduplicates it and reshapes it into the output record,
+`project-manifest.json`.
 
 ## Usage
 
@@ -131,5 +132,5 @@ save_output(
   note = "Unmodified example data.",
   output_dir = output_dir
 )
-#> ℹ Created the directory /tmp/RtmpU20TFH/file1ab025ef74cc to hold mtcars.rds.
+#> ℹ Created the directory /tmp/RtmpW98hhs/file1dca7af29077 to hold mtcars.rds.
 ```

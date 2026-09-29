@@ -65,7 +65,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>Rendering Syntactic Trees with arborize()</h1>
             
             <h4 data-toc-skip class="date">Created 2026-04-30 | Last
-updated 2026-09-24</h4>
+updated 2026-09-29</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/vignettes/arborize.Rmd" class="external-link"><code>vignettes/arborize.Rmd</code></a></small>
       <div class="d-none name"><code>arborize.Rmd</code></div>
@@ -92,7 +92,7 @@ analysis lives in a Quarto document, a Shiny app, or an R Markdown
 report, pulling in LaTeX just to draw a tree is a heavy dependency for a
 relatively simple task.</p>
 <p>The situation is further complicated when you want to embed a tree in
-a format that has nothing to do with LaTeX — a Word document, a Keynote
+a format that has nothing to do with LaTeX – a Word document, a Keynote
 slide, a webpage. A PDF compiled from LaTeX does not travel well.</p>
 </div>
 <div class="section level2">
@@ -133,7 +133,7 @@ work offline.</p>
 by the <code>tree_notation</code> argument.</p>
 <div class="section level3">
 <h3 id="tree_notation-simple-bracket-notation">
-<code>tree_notation = "simple"</code> — bracket notation<a class="anchor" aria-label="anchor" href="#tree_notation-simple-bracket-notation"></a>
+<code>tree_notation = "simple"</code> – bracket notation<a class="anchor" aria-label="anchor" href="#tree_notation-simple-bracket-notation"></a>
 </h3>
 <p>The default backend uses the <code>@preview/syntree</code> Typst
 package, which accepts bracket notation. This is the most compact input
@@ -148,7 +148,7 @@ complex phrase structure trees without specialized annotation.</p>
 </div>
 <div class="section level3">
 <h3 id="tree_notation-structured-lingotree-notation">
-<code>tree_notation = "structured"</code> — lingotree notation<a class="anchor" aria-label="anchor" href="#tree_notation-structured-lingotree-notation"></a>
+<code>tree_notation = "structured"</code> – lingotree notation<a class="anchor" aria-label="anchor" href="#tree_notation-structured-lingotree-notation"></a>
 </h3>
 <p>The structured backend uses the <code>@preview/lingotree</code> Typst
 package, which accepts nested <code>tree()</code> function calls. The
@@ -183,7 +183,7 @@ what the final PNG looks like.</p>
 <p><code><a href="../reference/arborize.html">arborize()</a></code> renders the tree onto a Typst page of the
 specified <code>papersize</code>. That page becomes the PDF, which is
 then converted to PNG. If the page is much larger than the tree, the PNG
-will have a lot of empty whitespace around the tree — it will look small
+will have a lot of empty whitespace around the tree – it will look small
 and lost in the image. If the page is too small, the tree will be
 clipped.</p>
 <p>The goal is to choose a <code>papersize</code> that fits snugly
@@ -205,17 +205,17 @@ reference:</p>
 <tr class="odd">
 <td><code>"a7"</code></td>
 <td>74 × 105 mm</td>
-<td>Very small trees, 2–3 nodes</td>
+<td>Very small trees, 2-3 nodes</td>
 </tr>
 <tr class="even">
 <td><code>"a6"</code></td>
 <td>105 × 148 mm</td>
-<td>Simple trees, 4–6 nodes</td>
+<td>Simple trees, 4-6 nodes</td>
 </tr>
 <tr class="odd">
 <td><code>"a5"</code></td>
 <td>148 × 210 mm</td>
-<td>Default — medium trees</td>
+<td>Default – medium trees</td>
 </tr>
 <tr class="even">
 <td><code>"a4"</code></td>
@@ -266,7 +266,7 @@ a complex tree.</p>
 <div class="section level3">
 <h3 id="a-simple-np">A simple NP<a class="anchor" aria-label="anchor" href="#a-simple-np"></a>
 </h3>
-<p>The most basic case — a determiner phrase nested under a noun phrase.
+<p>The most basic case – a determiner phrase nested under a noun phrase.
 A simple NP fits well on <code>"a6"</code>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/arborize.html">arborize</a></span><span class="op">(</span></span>
@@ -294,7 +294,7 @@ branching calls for <code>"a5"</code>.</p>
 <div class="section level3">
 <h3 id="aspectual-classes">Aspectual classes<a class="anchor" aria-label="anchor" href="#aspectual-classes"></a>
 </h3>
-<p>The classic Vendlerian classification of verbal aspect — a wide,
+<p>The classic Vendlerian classification of verbal aspect – a wide,
 multi-level tree. This one needs <code>"a4"</code> to accommodate its
 breadth, and a slightly larger margin gives the labels room to
 breathe.</p>
@@ -322,7 +322,7 @@ breathe.</p>
 <p>For figures destined for publication, use <code>dpi = 600</code>. The
 default <code>dpi = 300</code> is appropriate for screen use and general
 document embedding; 600 is the minimum for print reproduction. Note that
-higher DPI produces a larger file but does not change the crop —
+higher DPI produces a larger file but does not change the crop –
 <code>papersize</code> and <code>margin</code> still control that.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/arborize.html">arborize</a></span><span class="op">(</span></span>
@@ -353,7 +353,7 @@ tighter crop often looks cleaner. Reducing <code>margin</code> to
 </h3>
 <p>A VP with a DP internal argument, rendered using the lingotree
 backend. Note that the <code>tree()</code> string is passed verbatim to
-Typst — the syntax is Typst, not R. Always pass
+Typst – the syntax is Typst, not R. Always pass
 <code>tree_notation = "structured"</code> when using lingotree; without
 it <code><a href="../reference/arborize.html">arborize()</a></code> defaults to the syntree backend and the
 output will be incorrect.</p>
@@ -419,9 +419,9 @@ the render:</p>
 <span id="cb12-7"><a href="#cb12-7" tabindex="-1"></a><span class="fu">papersize</span><span class="kw">:</span><span class="at"> a6</span></span>
 <span id="cb12-8"><a href="#cb12-8" tabindex="-1"></a><span class="fu">margin</span><span class="kw">:</span><span class="at"> 0.5cm</span></span>
 <span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="fu">tree</span><span class="kw">:</span><span class="at"> </span><span class="st">'[NP [Det the] [N cat]]'</span></span></code></pre></div>
-<p>To re-render from a provenance file — for example to increase the DPI
+<p>To re-render from a provenance file – for example to increase the DPI
 for a journal submission while keeping the exact same tree and crop
-settings — read the <code>.yaml</code> and pass its fields back to
+settings – read the <code>.yaml</code> and pass its fields back to
 <code><a href="../reference/arborize.html">arborize()</a></code>:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">yaml</span><span class="fu">::</span><span class="fu"><a href="https://yaml.r-lib.org/reference/read_yaml.html" class="external-link">read_yaml</a></span><span class="op">(</span><span class="st">"figures/np-tree.yaml"</span><span class="op">)</span></span>
@@ -436,11 +436,11 @@ settings — read the <code>.yaml</code> and pass its fields back to
 <span>  overwrite     <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The provenance file ensures that the high-resolution version is
-cropped identically to the original — same <code>papersize</code>, same
+cropped identically to the original – same <code>papersize</code>, same
 <code>margin</code>, different <code>dpi</code>.</p>
 <p>A dedicated <code>rearborize()</code> function that wraps this
 pattern is not yet implemented. If this would be useful to you, please
-file an issue at <a href="https://github.com/erwinlares/toolero/issues" class="external-link uri">https://github.com/erwinlares/toolero/issues</a> — user
+file an issue at <a href="https://github.com/erwinlares/toolero/issues" class="external-link uri">https://github.com/erwinlares/toolero/issues</a> – user
 demand is the most direct signal that a feature is worth building.</p>
 </div>
 <div class="section level2">
@@ -479,7 +479,7 @@ content management system.</p>
 <tbody>
 <tr class="odd">
 <td><code>tree</code></td>
-<td>—</td>
+<td>–</td>
 <td>Tree string in bracket or lingotree notation</td>
 </tr>
 <tr class="even">

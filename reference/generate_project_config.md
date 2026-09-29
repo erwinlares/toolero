@@ -40,9 +40,9 @@ Invisibly returns the full path to the written file.
 
 The file uses the same schema as the `_toolero.yml` that
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
-writes into a project, so a config you author by hand and a manifest a
-project carries are the same kind of document. The only difference is
-who wrote it.
+writes into a project, so a config you author by hand and the project
+config a project carries are the same kind of document. The only
+difference is who wrote it.
 
 ## See also
 

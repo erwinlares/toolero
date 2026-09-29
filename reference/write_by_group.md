@@ -116,16 +116,17 @@ is the *job manifest*: a list of inputs to a computation that has not
 happened yet, and the file consumed by
 [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
 and by `submitr::htc_gen_submit()` in multiple-job mode. It is a
-different document from the *project manifest* that
+different document from the *output record* that
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
 writes, which records outputs from a computation that already has.
 
 The schema is one column per grouping variable, holding the raw
 unsanitized value, followed by `group_value`, `n_rows`, and `file_path`.
-Grouping on one column therefore produces a manifest whose first column
-repeats `group_value` exactly. That redundancy is deliberate: one schema
-with a varying column count is easier to read, validate and rely on than
-two schemas selected by how many columns you happened to group on.
+Grouping on one column therefore produces a job manifest whose first
+column repeats `group_value` exactly. That redundancy is deliberate: one
+schema with a varying column count is easier to read, validate and rely
+on than two schemas selected by how many columns you happened to group
+on.
 
 `group_value` is a human-readable composite of the raw values joined by
 `" | "`, so `"Adelie | male"` for two columns and simply `"Adelie"` for
@@ -133,11 +134,11 @@ one.
 
 ## Row order
 
-Groups are written, and manifest rows recorded, in order of first
+Groups are written, and job manifest rows recorded, in order of first
 appearance in `data`. This matters downstream: `submitr` writes its
-`subdatasets.csv` in manifest order, HTCondor assigns `ProcId` in that
-order, and log filenames are reconstructed from position, so manifest
-row order is the mapping from a job number back to a group.
+`subdatasets.csv` in job manifest order, HTCondor assigns `ProcId` in
+that order, and log filenames are reconstructed from position, so job
+manifest row order is the mapping from a job number back to a group.
 
 ## Missing values
 
@@ -185,21 +186,21 @@ data <- data.frame(
   mass    = c(3750, 3800, 5000)
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpU20TFH/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpU20TFH/gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpW98hhs/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpW98hhs/gentoo.csv
 
 # Same but also write a job manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpU20TFH/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpU20TFH/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmpU20TFH/manifest.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpW98hhs/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpW98hhs/gentoo.csv
+#> ✔ Manifest written to /tmp/RtmpW98hhs/manifest.csv
 
 # Namespace the filenames -- adelie.csv becomes penguins-adelie.csv
 write_by_group(data, group_col = "species", prefix = "penguins",
                output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpU20TFH/penguins-adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpU20TFH/penguins-gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpW98hhs/penguins-adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpW98hhs/penguins-gentoo.csv
 
 # Group by more than one column
 data2 <- data.frame(
@@ -209,10 +210,10 @@ data2 <- data.frame(
 )
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpU20TFH/adelie--male.csv
-#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpU20TFH/adelie--female.csv
-#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpU20TFH/gentoo--male.csv
-#> ✔ Manifest written to /tmp/RtmpU20TFH/manifest.csv
+#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpW98hhs/adelie--male.csv
+#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpW98hhs/adelie--female.csv
+#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpW98hhs/gentoo--male.csv
+#> ✔ Manifest written to /tmp/RtmpW98hhs/manifest.csv
 
 # Let a project's own _toolero.yml supply output_dir via split_dir.
 # generate_project_config() writes the default conventions, including
@@ -222,11 +223,11 @@ write_by_group(data2, group_col = c("species", "sex"),
 config_dir <- tempfile()
 dir.create(config_dir)
 generate_project_config("_toolero.yml", path = config_dir)
-#> ✔ Created /tmp/RtmpU20TFH/file1ab0178b06ea/_toolero.yml
-#> ℹ Edit /tmp/RtmpU20TFH/file1ab0178b06ea/_toolero.yml to define your custom
+#> ✔ Created /tmp/RtmpW98hhs/file1dca700a890b/_toolero.yml
+#> ℹ Edit /tmp/RtmpW98hhs/file1dca700a890b/_toolero.yml to define your custom
 #>   folder structure,
 #>   then pass it to `init_project()` via `config =
-#>   "/tmp/RtmpU20TFH/file1ab0178b06ea/_toolero.yml"`.
+#>   "/tmp/RtmpW98hhs/file1dca700a890b/_toolero.yml"`.
 #> ℹ For easy reuse across projects, consider moving this file to /home/runner.
 withr::with_dir(config_dir, {
   write_by_group(
@@ -236,7 +237,7 @@ withr::with_dir(config_dir, {
   )
 })
 #> Using split_dir ("data/jobs") from
-#> /tmp/RtmpU20TFH/file1ab0178b06ea/_toolero.yml.
+#> /tmp/RtmpW98hhs/file1dca700a890b/_toolero.yml.
 #> ✔ Written "Adelie" (2 rows) to data/jobs/adelie.csv
 #> ✔ Written "Gentoo" (1 rows) to data/jobs/gentoo.csv
 # }

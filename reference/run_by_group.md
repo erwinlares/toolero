@@ -1,8 +1,8 @@
-# Apply a function to each group in a manifest or named list
+# Apply a function to each group in a job manifest or named list
 
 `run_by_group()` applies a function to each subset of a dataset and
 collects the results. Subsets can be supplied in two ways: as files
-listed in a manifest produced by
+listed in a job manifest produced by
 [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md),
 or as a named list of data frames already in memory. When the function
 returns tabular output (a data frame or tibble), the results are
@@ -32,10 +32,11 @@ run_by_group(
 - manifest:
 
   A character string, data frame, or `NULL`. If a string, the path to a
-  manifest CSV produced by `write_by_group(manifest = TRUE)`. Must
-  contain a `group_value` and a `file_path` column. If a data frame,
-  used directly. If `groups` is supplied, `manifest` is ignored with a
-  warning and may be omitted entirely.
+  job manifest (`manifest.csv`) produced by
+  `write_by_group(manifest = TRUE)`. Must contain a `group_value` and a
+  `file_path` column. If a data frame, used directly. If `groups` is
+  supplied, `manifest` is ignored with a warning and may be omitted
+  entirely.
 
 - .f:
 
@@ -111,13 +112,13 @@ has two columns: `.id` and `results` (a list-column).
 toolero. The split half is
 [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md),
 which partitions a data frame by a grouping column and writes one file
-per group along with a manifest.
+per group along with a job manifest.
 
     # Split to disk
     write_by_group(penguins, group_col = "species",
                    output_dir = "data/jobs", manifest = TRUE)
 
-    # Apply from disk via manifest
+    # Apply from disk via the job manifest
     results <- run_by_group(
       manifest = "data/jobs/manifest.csv",
       .f       = my_analysis
@@ -247,10 +248,10 @@ penguins <- read_clean_csv(sample_path)
 tmp <- tempdir()
 write_by_group(penguins, group_col = "species",
                output_dir = tmp, manifest = TRUE)
-#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpU20TFH/adelie.csv
-#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpU20TFH/gentoo.csv
-#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpU20TFH/chinstrap.csv
-#> ✔ Manifest written to /tmp/RtmpU20TFH/manifest.csv
+#> ✔ Written "Adelie" (152 rows) to /tmp/RtmpW98hhs/adelie.csv
+#> ✔ Written "Gentoo" (124 rows) to /tmp/RtmpW98hhs/gentoo.csv
+#> ✔ Written "Chinstrap" (68 rows) to /tmp/RtmpW98hhs/chinstrap.csv
+#> ✔ Manifest written to /tmp/RtmpW98hhs/manifest.csv
 
 # Define an analysis function
 summarise_species <- function(data) {
@@ -261,7 +262,7 @@ summarise_species <- function(data) {
   )
 }
 
-# Apply via manifest -- returns a flat tibble
+# Apply via the job manifest -- returns a flat tibble
 results <- run_by_group(
   manifest = file.path(tmp, "manifest.csv"),
   .f       = summarise_species

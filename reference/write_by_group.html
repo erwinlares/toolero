@@ -160,11 +160,11 @@ group, and reads better as one.</p>
 the <em>job manifest</em>: a list of inputs to a computation that has not
 happened yet, and the file consumed by <code><a href="run_by_group.html">run_by_group()</a></code> and by
 <code>submitr::htc_gen_submit()</code> in multiple-job mode. It is a different
-document from the <em>project manifest</em> that <code><a href="generate_manifest.html">generate_manifest()</a></code> writes,
+document from the <em>output record</em> that <code><a href="generate_manifest.html">generate_manifest()</a></code> writes,
 which records outputs from a computation that already has.</p>
 <p>The schema is one column per grouping variable, holding the raw
 unsanitized value, followed by <code>group_value</code>, <code>n_rows</code>, and <code>file_path</code>.
-Grouping on one column therefore produces a manifest whose first column
+Grouping on one column therefore produces a job manifest whose first column
 repeats <code>group_value</code> exactly. That redundancy is deliberate: one schema
 with a varying column count is easier to read, validate and rely on than
 two schemas selected by how many columns you happened to group on.</p>
@@ -176,11 +176,11 @@ one.</p>
     <h2 id="row-order">Row order<a class="anchor" aria-label="anchor" href="#row-order"></a></h2>
 
 
-<p>Groups are written, and manifest rows recorded, in order of first
+<p>Groups are written, and job manifest rows recorded, in order of first
 appearance in <code>data</code>. This matters downstream: <code>submitr</code> writes its
-<code>subdatasets.csv</code> in manifest order, HTCondor assigns <code>ProcId</code> in that
-order, and log filenames are reconstructed from position, so manifest row
-order is the mapping from a job number back to a group.</p>
+<code>subdatasets.csv</code> in job manifest order, HTCondor assigns <code>ProcId</code> in
+that order, and log filenames are reconstructed from position, so job
+manifest row order is the mapping from a job number back to a group.</p>
     </div>
     <div class="section level2">
     <h2 id="missing-values">Missing values<a class="anchor" aria-label="anchor" href="#missing-values"></a></h2>
@@ -225,21 +225,21 @@ asked for and didn't get should never look identical to not asking.</p>
 <span class="r-in"><span>  mass    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3750</span>, <span class="fl">3800</span>, <span class="fl">5000</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>, output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/gentoo.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Same but also write a job manifest</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/gentoo.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpU20TFH/manifest.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpW98hhs/manifest.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Namespace the filenames -- adelie.csv becomes penguins-adelie.csv</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data</span>, group_col <span class="op">=</span> <span class="st">"species"</span>, prefix <span class="op">=</span> <span class="st">"penguins"</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/penguins-adelie.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/penguins-gentoo.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/penguins-adelie.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/penguins-gentoo.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Group by more than one column</span></span></span>
 <span class="r-in"><span><span class="va">data2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
@@ -249,10 +249,10 @@ asked for and didn't get should never look identical to not asking.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">write_by_group</span><span class="op">(</span><span class="va">data2</span>, group_col <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="st">"sex"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>               output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, manifest <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie | male"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/adelie--male.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie | female"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/adelie--female.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo | male"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpU20TFH/gentoo--male.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpU20TFH/manifest.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie | male"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/adelie--male.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie | female"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/adelie--female.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo | male"</span> (1 rows) to <span style="color: #0000BB;">/tmp/RtmpW98hhs/gentoo--male.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Manifest written to <span style="color: #0000BB;">/tmp/RtmpW98hhs/manifest.csv</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Let a project's own _toolero.yml supply output_dir via split_dir.</span></span></span>
 <span class="r-in"><span><span class="co"># generate_project_config() writes the default conventions, including</span></span></span>
@@ -262,11 +262,11 @@ asked for and didn't get should never look identical to not asking.</p>
 <span class="r-in"><span><span class="va">config_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.create</a></span><span class="op">(</span><span class="va">config_dir</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="generate_project_config.html">generate_project_config</a></span><span class="op">(</span><span class="st">"_toolero.yml"</span>, path <span class="op">=</span> <span class="va">config_dir</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpU20TFH/file1ab0178b06ea/_toolero.yml</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Edit <span style="color: #0000BB;">/tmp/RtmpU20TFH/file1ab0178b06ea/_toolero.yml</span> to define your custom</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpW98hhs/file1dca700a890b/_toolero.yml</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Edit <span style="color: #0000BB;">/tmp/RtmpW98hhs/file1dca700a890b/_toolero.yml</span> to define your custom</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   folder structure,</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   then pass it to `init_project()` via `config =</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   "<span style="color: #0000BB;">/tmp/RtmpU20TFH/file1ab0178b06ea/_toolero.yml</span>"`.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   "<span style="color: #0000BB;">/tmp/RtmpW98hhs/file1dca700a890b/_toolero.yml</span>"`.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> For easy reuse across projects, consider moving this file to <span style="color: #0000BB;">/home/runner</span>.</span>
 <span class="r-in"><span><span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_dir.html" class="external-link">with_dir</a></span><span class="op">(</span><span class="va">config_dir</span>, <span class="op">{</span></span></span>
 <span class="r-in"><span>  <span class="fu">write_by_group</span><span class="op">(</span></span></span>
@@ -276,7 +276,7 @@ asked for and didn't get should never look identical to not asking.</p>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Using <span style="color: #00BB00;">split_dir</span> (<span style="color: #0000BB;">"data/jobs"</span>) from</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">/tmp/RtmpU20TFH/file1ab0178b06ea/_toolero.yml</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #0000BB;">/tmp/RtmpW98hhs/file1dca700a890b/_toolero.yml</span>.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Adelie"</span> (2 rows) to <span style="color: #0000BB;">data/jobs/adelie.csv</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Written <span style="color: #0000BB;">"Gentoo"</span> (1 rows) to <span style="color: #0000BB;">data/jobs/gentoo.csv</span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>

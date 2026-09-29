@@ -72,8 +72,8 @@ all of type character.</p>
 is created by the first <code><a href="save_output.html">save_output()</a></code> call, so its absence means no
 save was ever recorded – most often because <code><a href="save_output.html">save_output()</a></code> was called
 with a different <code>output_dir</code>, or with <code>manifest = FALSE</code>, or was never
-reached at all. Returning an empty manifest in that case would present a
-setup mistake as a finished record.</p>
+reached at all. Returning an empty output record in that case would
+present a setup mistake as a finished record.</p>
 <p>Every column is read as character. Timestamps in particular must not be
 coerced, since <code><a href="dot-dedupe_accumulator.html">.dedupe_accumulator()</a></code> compares them lexicographically
 and relies on the exact string written by <code><a href="save_output.html">save_output()</a></code>.</p>
@@ -81,7 +81,7 @@ and relies on the exact string written by <code><a href="save_output.html">save_
 <code>na = ""</code> convention used when the accumulator is written. Without this
 the <code>error_message</code> column of every successful row would return as an
 empty string rather than <code>NA</code>, and that difference would surface in the
-manifest.</p>
+output record.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

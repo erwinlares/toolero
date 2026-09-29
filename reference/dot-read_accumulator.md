@@ -32,8 +32,8 @@ call, so its absence means no save was ever recorded – most often
 because
 [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
 was called with a different `output_dir`, or with `manifest = FALSE`, or
-was never reached at all. Returning an empty manifest in that case would
-present a setup mistake as a finished record.
+was never reached at all. Returning an empty output record in that case
+would present a setup mistake as a finished record.
 
 Every column is read as character. Timestamps in particular must not be
 coerced, since
@@ -46,4 +46,4 @@ Empty fields are read back as `NA` via `na.strings = ""`, matching the
 `na = ""` convention used when the accumulator is written. Without this
 the `error_message` column of every successful row would return as an
 empty string rather than `NA`, and that difference would surface in the
-manifest.
+output record.

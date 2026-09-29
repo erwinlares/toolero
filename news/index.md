@@ -53,12 +53,33 @@
   defeat it. Review the generated file’s `given-names`/`family-names`
   fields before relying on them.
 
+- Added
+  [`generate_license()`](https://erwinlares.github.io/toolero/reference/generate_license.md),
+  which writes a plain-text `LICENSE` file at a project’s root from one
+  of three common templates (`"MIT"`, `"CC0"`, `"GPL-3"`), with the
+  copyright holder and year filled in. `"GPL-3"` writes the Free
+  Software Foundation’s recommended short notice plus a link to the
+  canonical full text, rather than reproducing the several-hundred-line
+  license itself. It follows the same standalone design and validation
+  and overwrite conventions as
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md).
+
+- Added
+  [`generate_data_doc()`](https://erwinlares.github.io/toolero/reference/generate_data_doc.md),
+  which writes a Markdown documentation stub for a single dataset
+  (source, date obtained, license and usage terms, collection method, a
+  variables table, and known issues), with the dataset’s file name and
+  today’s date pre-filled and the rest left as placeholders – the same
+  skeleton-you-complete-by-hand approach
+  [`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md)
+  uses for `CITATION.cff`.
+
 - [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md),
   [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md),
   and
   [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
-  gain a new `config` argument: a path to a project configuration file,
-  typically a project’s own `_toolero.yml` as written by
+  gain a `config` argument: a path to a project config, typically a
+  project’s own `_toolero.yml` as written by
   [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md).
   When supplied, and `output_dir` is not, `output_dir` is resolved from
   the config’s `output_dir` convention (`split_dir`, for
@@ -74,9 +95,9 @@
   built-in default.
 
 - [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
-  gains a new `git_root` argument (default `"."`) and now records
-  `commit` in `project-manifest.json`: the git commit checked out in
-  `git_root` at the moment the manifest was written. This is
+  gains a `git_root` argument (default `"."`) and now records `commit`
+  in the output record (`project-manifest.json`): the git commit checked
+  out in `git_root` at the moment the record was written. This is
   deliberately the one piece of “which version of the code produced
   this” that package versions cannot supply – `renv.lock` already
   answers which package versions were in play, but nothing else records
@@ -88,8 +109,21 @@
   adding a git R package as a dependency, since this is the only place
   in toolero that needs git at all.
 
+- [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+  now writes `schema_version: 1` as the first key of the output record,
+  and the format is specified in full:
+  [`?generate_manifest`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+  gains a Format section, and the family’s `CONVENTIONS.md` gains a
+  section covering every key, its type and allowed values, and the rules
+  for reading records across versions. A record without
+  `schema_version`, as written by toolero 0.5.x, has the version 1 shape
+  and is read as version 1. The version only changes when an existing
+  key is removed, renamed, or changes meaning or type. Reference
+  examples of the format live in
+  `tests/testthat/fixtures/output-records/`.
+
 - [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
-  gains a new stale purled scripts check. Every `.qmd` under the project
+  gains a stale purled scripts check. Every `.qmd` under the project
   whose header declares `purl: true` (see
   [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)’s
   `use_purl` argument) gets its own row, comparing it against the `.R`
@@ -97,18 +131,18 @@
   entirely, or older than the `.qmd` it was purled from, is reported as
   `"warn"`: the `.qmd` is the source of truth, so an `R/` script older
   than the document it came from means an edit was made and not yet
-  re-rendered, and a container or cluster job that bakes in the `.R`
-  file would run the old analysis without any error to say so. Documents
+  re-rendered, and a container or cluster job that runs the `.R` file
+  would run the old analysis without any error to say so. Documents
   never opted into purl produce no row. The scan covers the project root
   and the project’s declared folders, the same shape the existing
   `renv.lock` checks use, so `renv/library` is neither walked nor
   mistaken for the project’s own documents.
 
 - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
-  gains a new `use_rprofile` argument (default `FALSE`). R reads exactly
-  one `.Rprofile` per session – the project’s own if the working
-  directory has one, `~/.Rprofile` only if it does not – so once
-  `use_renv = TRUE` writes a project `.Rprofile` via
+  gains a `use_rprofile` argument (default `FALSE`). R reads exactly one
+  `.Rprofile` per session – the project’s own if the working directory
+  has one, `~/.Rprofile` only if it does not – so once `use_renv = TRUE`
+  writes a project `.Rprofile` via
   [`renv::scaffold()`](https://rstudio.github.io/renv/reference/scaffold.html),
   a user’s personal aliases, options, and helper functions in
   `~/.Rprofile` silently stop loading for that project.
@@ -120,78 +154,49 @@
   re-sources the user’s personal environment is no longer fully isolated
   from it.
 
+### Minor improvements
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  gains a `scaffold_fn` argument, defaulting to
+  [`renv::scaffold`](https://rstudio.github.io/renv/reference/scaffold.html),
+  mirroring the `interactive_fn` argument of
+  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md).
+  It exists so the test suite can supply a stand-in function rather than
+  mocking a binding inside renv’s own namespace, which had been loading
+  renv mid-suite and letting it repoint
+  [`.libPaths()`](https://rdrr.io/r/base/libPaths.html) under
+  `covr::package_coverage()`, so that packages went missing several test
+  files away from the cause. Most users never need to pass it.
+
 ### Bug fixes
 
-- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
-  gains an injectable `scaffold_fn` argument, defaulting to
-  [`renv::scaffold`](https://rstudio.github.io/renv/reference/scaffold.html),
-  mirroring the `interactive_fn` pattern already used by
-  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md).
-  The test suite no longer mocks a binding inside renv’s own namespace
-  to exercise `use_renv = TRUE`, which removes the root cause of the
-  `covr::package_coverage()` incident documented in
-  `covr-renv-incident.md`: loading renv’s namespace mid-suite let its
-  sandbox silently repoint
-  [`.libPaths()`](https://rdrr.io/r/base/libPaths.html), dropping
-  packages several files away from the test that triggered it.
+- `create_qmd(include_examples = TRUE)` no longer copies the placeholder
+  logo into `assets/` when the project’s own `_toolero.yml` declares a
+  `folders:` list that does not include `assets` – the arrangement
+  `init_project(branding = "none")` produces. Previously every call with
+  `include_examples = TRUE` copied `logo.png` regardless, leaving a
+  project that declared no branding with an undeclared `assets/` folder
+  holding a file nothing else in the project asked for. A `.qmd` created
+  outside any toolero-scaffolded project (no `_toolero.yml` at `path`)
+  is unaffected and still gets the logo, since there is no project-level
+  branding decision to defer to. An existing `assets/logo.png` continues
+  to be left in place either way.
 
-- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
-  gains an injectable `scaffold_fn` argument, defaulting to
-  [`renv::scaffold`](https://rstudio.github.io/renv/reference/scaffold.html),
-  mirroring the `interactive_fn` pattern already used by
-  [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md).
-  The test suite no longer mocks a binding inside renv’s own namespace
-  to exercise `use_renv = TRUE`, which removes the root cause of the
-  `covr::package_coverage()` incident documented in
-  `covr-renv-incident.md`: loading renv’s namespace mid-suite let its
-  sandbox silently repoint
-  [`.libPaths()`](https://rdrr.io/r/base/libPaths.html), dropping
-  packages several files away from the test that triggered it .
-
-- `create_qmd(include_examples = TRUE)`: no longer copies the
-  placeholder logo into `assets/` when the project’s own `_toolero.yml`
-  declares a `folders:` list that does not include `assets` – the
-  arrangement `init_project(branding = "none")` produces. Previously
-  every call with `include_examples = TRUE` copied `logo.png`
-  regardless, leaving a project that declared no branding with an
-  undeclared `assets/` folder holding a file nothing else in the project
-  asked for. A `.qmd` created outside any toolero-scaffolded project (no
-  `_toolero.yml` at `path`) is unaffected and still gets the logo, since
-  there is no project-level branding decision to defer to. An existing
-  `assets/logo.png` continues to be left in place either way.
-
-- `create_qmd(header_defaults = )`: fixed a case where a profile’s
-  `format:` block could silently delete sibling keys `use_style` had
-  just injected into the same block. `.substitute_yaml()` built one
-  `.set_yaml_key()` entry per top-level key in the supplied file, and
-  `.set_yaml_key()` replaces whatever nested structure exists at a path
-  wholesale, so a file setting `format: html: toc: false` would
-  overwrite the entire `format: html:` mapping, discarding `css`,
-  `include-before-body`, or `include-after-body` if `use_style` had set
-  any of them – silently, since substitution runs after style injection
-  so it can override it. `.substitute_yaml()` now flattens a mapping (a
-  named block like `format: html: ...`) into leaf-level path/value pairs
-  before substituting, so a sibling key the file doesn’t mention
-  survives at any depth; a sequence (`author:`, `categories:`) is still
-  replaced as a whole, since merging a list element by element against
-  the template’s own list is not a meaningful operation.
-
-### Testing
-
-- Added `tests/testthat/setup.R::set_state_inspector()`, checking
-  [`.libPaths()`](https://rdrr.io/r/base/libPaths.html) before and after
-  every test. Any test that changes it without restoring the change now
-  fails immediately, naming the offending test, instead of surfacing
-  later as a misleading “package not installed” error. A permanent guard
-  against a repeat of the incident T34 fixes, rather than a rule that
-  everyone has to remember (T35).
-
-- Retired the `RENV_CONFIG_SANDBOX_ENABLED = "FALSE"` workaround from
-  `tests/testthat/setup.R` now that T34 removes the reason it existed.
-  Its CI counterpart, `RENV_CONFIG_AUTOLOADER_ENABLED: "FALSE"` in the
-  job-level `env:` block of `.github/workflows/test-coverage.yaml`,
-  should retire the same way – not included here since that file wasn’t
-  in hand.
+- `create_qmd(header_defaults = )` no longer lets a profile’s `format:`
+  block silently delete sibling keys `use_style` had just injected into
+  the same block. `.substitute_yaml()` built one `.set_yaml_key()` entry
+  per top-level key in the supplied file, and `.set_yaml_key()` replaces
+  whatever nested structure exists at a path wholesale, so a file
+  setting `format: html: toc: false` would overwrite the entire
+  `format: html:` mapping, discarding `css`, `include-before-body`, or
+  `include-after-body` if `use_style` had set any of them – silently,
+  since substitution runs after style injection so it can override it.
+  `.substitute_yaml()` now flattens a mapping (a named block like
+  `format: html: ...`) into leaf-level path/value pairs before
+  substituting, so a sibling key the file doesn’t mention survives at
+  any depth; a sequence (`author:`, `categories:`) is still replaced as
+  a whole, since merging a list element by element against the
+  template’s own list is not a meaningful operation.
 
 ### Deprecated features
 
@@ -203,8 +208,40 @@
   deprecated rather than removed: the old name still works, and its
   value is used when `header_defaults` is not also supplied, but a
   [`lifecycle::deprecate_warn()`](https://lifecycle.r-lib.org/reference/deprecate_soft.html)
-  fires when it is. Removal planned for v0.7.0 alongside `uw_branding`
-  and `check_project(error)`.
+  fires when it is. Removal is planned for v0.7.0, alongside
+  `init_project(uw_branding = )` and `check_project(error = )`.
+
+### Documentation
+
+- Documentation, vignettes, and user-facing messages now use the
+  family’s shared vocabulary for the files toolero writes (see
+  `CONVENTIONS.md`). `_toolero.yml` is the *project config*,
+  `manifest.csv` from
+  [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
+  is the *job manifest*, and `project-manifest.json` from
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+  is the *output record*. File names, function names, and arguments are
+  unchanged; only the prose around them moved. Error and warning
+  messages that previously said “manifest” now name the specific file
+  they mean (for example, “Job manifest … does not exist” from
+  [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+  and “An output record already exists” from
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)).
+
+### Testing
+
+- `tests/testthat/setup.R` now calls
+  [`testthat::set_state_inspector()`](https://testthat.r-lib.org/reference/set_state_inspector.html)
+  to compare [`.libPaths()`](https://rdrr.io/r/base/libPaths.html)
+  before and after every test. Any test that changes it without
+  restoring it now fails immediately, naming the offending test, instead
+  of surfacing later as a misleading “package not installed” error
+  somewhere else in the suite.
+
+- The `RENV_CONFIG_SANDBOX_ENABLED = "FALSE"` workaround is retired from
+  `tests/testthat/setup.R`, now that
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)’s
+  tests no longer load renv’s namespace (see `scaffold_fn` above).
 
 ### Internal changes
 
@@ -1243,21 +1280,6 @@ CRAN release: 2026-04-27
   error; positional calls are unaffected.
 
 ### New features
-
-- Added generate_license(), which writes a plain-text LICENSE file at a
-  project’s root from one of three common templates (“MIT”, “CC0”,
-  “GPL-3”), with the copyright holder and year filled in. “GPL-3” writes
-  the FSF’s recommended short notice plus a link to the canonical full
-  text rather than reproducing the several-hundred-line license itself.
-  Mirrors generate_project_config()’s standalone-function design and
-  validation/overwrite conventions (#T-G3).
-
-- Added generate_data_doc(), which writes a Markdown documentation stub
-  for a single dataset (source, date obtained, license and usage terms,
-  collection method, a variables table, and known issues), with the
-  dataset’s file name and today’s date pre-filled and the rest left as
-  placeholders – the same “skeleton you complete by hand” approach
-  generate_citation() already uses for CITATION.cff (#T-G3).
 
 - Added
   [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)
