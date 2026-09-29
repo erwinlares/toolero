@@ -98,7 +98,7 @@ time as your project's needs grow.
 cleanly for the next, but none reaches backward.
 
 What the later packages read, rather than guess, is recorded in the project
-manifest. `init_project()` writes `_toolero.yml` at the project root
+config: `init_project()` writes `_toolero.yml` at the project root,
 describing the folder set it resolved and the naming conventions in force.
 Commit that file. It describes the project, not the machine it was created
 on, and it is how a customized project stays legible to `check_project()`,
@@ -202,7 +202,7 @@ save_output(
   output_dir = file.path(project_dir, "output")
 )
 
-# 10. Write a project manifest summarizing what was produced
+# 10. Write the output record, summarizing what was produced
 generate_manifest(output_dir = file.path(project_dir, "output"))
 ```
 
@@ -219,7 +219,7 @@ and scalable computing when needed.
 |---|---|
 | `init_project()` | Creates a new R project with a standard research-oriented folder structure and records that structure in `_toolero.yml` at the project root. Can set up `renv`, initialize `git`, customize folders via `custom_folders`, load a config file, optionally copy branding assets into `assets/` via the `branding` argument (`TRUE` for generic placeholders, `"uw-madison"` for RCI branding), create a README via `use_readme` (`README.md` by default, `"plain"` for `README.txt`, or `FALSE` to skip it), and, via `use_rprofile`, keep loading your own `~/.Rprofile` customizations in a project that renv would otherwise shadow them in. |
 | `generate_project_config()` | Writes a skeleton YAML project configuration file pre-filled with the standard toolero folder structure and conventions. Edit to define a custom layout and pass to `init_project()` via `config`. Same schema, template and writer as the `_toolero.yml` a project carries. |
-| `check_project()` | Audits an existing project for common reproducibility scaffolding: the expected folders, an `.Rproj` file, `renv.lock` and whether it actually records anything, `.renvignore` entries that would hide your source from `renv`, git, README, `.gitignore`, the project manifest, stale purled `.R` scripts, and hidden files such as `.RData` or `.Rhistory`. Audits against the project's own `_toolero.yml` when it has one. |
+| `check_project()` | Audits an existing project for common reproducibility scaffolding: the expected folders, an `.Rproj` file, `renv.lock` and whether it actually records anything, `.renvignore` entries that would hide your source from `renv`, git, README, `.gitignore`, the project config (`_toolero.yml`), stale purled `.R` scripts, and hidden files such as `.RData` or `.Rhistory`. Audits against the project's own `_toolero.yml` when it has one. |
 | `create_qmd()` | Scaffolds a Quarto document. Can create a full worked example or a blank skeleton, pre-populate YAML metadata via `header_defaults`, wire in custom styling from a standardized `assets/` folder, and (opt-in via `use_purl`, `FALSE` by default) stamp `purl: true`/`false` into the document's header and set up a post-render purl hook, merged into an existing `_quarto.yml` where possible and skipped with a warning for website, book and manuscript projects. |
 | `generate_profile()` | Writes a YAML skeleton of author information and document formatting preferences, meant to be edited once and reused across projects via `create_qmd(header_defaults = )`. |
 | `qmd_to_r()` | Extracts R code chunks from a Quarto document into a standalone `.R` script, creating the output directory if it does not exist. Useful when the `.qmd` is the source of truth but a script is needed for batch execution or sharing. |
@@ -228,7 +228,7 @@ and scalable computing when needed.
 | `write_by_group()` | Splits a data frame by one or more grouping columns and writes one CSV per group, optionally prefixed via `prefix`. Can also create a job manifest for parallel or high-throughput workflows. `output_dir` can be resolved from a project's `_toolero.yml` via `config`. |
 | `run_by_group()` | Applies a function to each group subset and collects the results. Accepts a job manifest from `write_by_group()` or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns. |
 | `save_output()` | Writes an object to disk via a user-supplied function and appends a row to the project accumulator recording the path, class, function used, and whether the write succeeded. `output_dir` can be resolved from a project's `_toolero.yml` via `config`. |
-| `generate_manifest()` | Reads the project accumulator, deduplicates by path, and writes `project-manifest.json` describing every artifact the analysis produced, along with the git commit checked out at the time (when available). |
+| `generate_manifest()` | Reads the project accumulator, deduplicates by path, and writes the output record, `project-manifest.json`, describing every artifact the analysis produced, along with the git commit checked out at the time (when available). |
 | `detect_execution_context()` | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
 | `resolve_input_path()` | Resolves where the input data lives for the current execution context, and says what to fix when it cannot. The companion to `detect_execution_context()` for the specific case of finding your data. |
 | `generate_kb_xml()` | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
@@ -732,13 +732,13 @@ fills in what you did not already say. This is opt-in -- a project never
 scaffolded by `init_project()`, or a call that supplies `output_dir`
 directly, behaves exactly as it always has.
 
-Groups are written, and manifest rows recorded, in order of first appearance
+Groups are written, and job manifest rows recorded, in order of first appearance
 in the data rather than in sort order. This is more than cosmetic: `submitr`
-writes its `subdatasets.csv` in manifest order, HTCondor assigns `ProcId` in
-that order, and log filenames are reconstructed from position, so manifest
-row order is the mapping from a job number back to a group.
+writes its `subdatasets.csv` in job manifest order, HTCondor assigns `ProcId`
+in that order, and log filenames are reconstructed from position, so job
+manifest row order is the mapping from a job number back to a group.
 
-`run_by_group()` handles the apply. It reads each subset from the manifest,
+`run_by_group()` handles the apply. It reads each subset from the job manifest,
 calls your function on each one, and assembles the results into a single
 tibble. If your function returns a data frame, the output is automatically
 unnested into a flat tibble with a group ID column prepended. If it returns
@@ -766,7 +766,7 @@ summarise_species <- function(data) {
   )
 }
 
-# Apply from disk via manifest, returning a flat tibble
+# Apply from disk via the job manifest, returning a flat tibble
 results <- run_by_group(
   manifest = "data/jobs/manifest.csv",
   .f       = summarise_species
@@ -811,7 +811,7 @@ write_by_group(
 The `prefix` argument prepends a namespace to every output filename, so
 `a.csv` becomes `data-a.csv` and `a--female.csv` becomes
 `data-a--female.csv`. It is worth using before a high-throughput run:
-`submitr::htc_gen_submit()` reduces the manifest to `basename()`, so subsets
+`submitr::htc_gen_submit()` reduces the job manifest's paths to `basename()`, so subsets
 from two datasets split on the same short column would otherwise land in one
 flat directory on the access point and overwrite each other.
 
@@ -876,16 +876,20 @@ saved, how, and whether the write succeeded. `generate_manifest()` reads
 that accumulator at the end of the analysis and writes a
 `project-manifest.json` describing every artifact the project produced.
 
-This is the *project manifest*, a record of outputs from a computation that
+This is the *output record*, a record of outputs from a computation that
 has already happened. It is a different document from the *job manifest*
 `write_by_group()` produces, which lists inputs to a computation about to
-happen. The two share a word and nothing else, which is why this one is
-named `project-manifest.json` rather than `manifest.json`.
+happen. The file is named `project-manifest.json`, and the function that
+writes it `generate_manifest()`, for compatibility; the family calls it the
+output record so that the word "manifest" is not doing two jobs. The
+[vocabulary section of
+CONVENTIONS.md](https://github.com/erwinlares/toolero/blob/main/CONVENTIONS.md#7-vocabulary)
+lists all four terms.
 
 `save_output()` wraps any write function behind a narrowly-scoped
 `tryCatch()`. A failed write is recorded with `status = "failure"` and the
 caught error message before the original condition is rethrown unmodified,
-so the manifest captures what went wrong on an unattended run even if
+so the output record captures what went wrong on an unattended run even if
 nothing else does.
 
 ```r
@@ -909,7 +913,7 @@ save_output(
   height = 5
 )
 
-# Write the project manifest at the end of the analysis
+# Write the output record at the end of the analysis
 generate_manifest(output_dir = "output")
 ```
 
@@ -921,12 +925,12 @@ name, which is a small loss of provenance in exchange for the write
 working at all.
 
 The accumulator at `output/accumulator.csv` is append-only and written
-incrementally throughout the analysis. The manifest at
+incrementally throughout the analysis. The output record at
 `output/project-manifest.json` is the deduplicated, end-of-run summary:
 `execution_context` and `generated_at` recorded once at the top level,
 followed by an `artifacts` array with one entry per output file. When an
 analysis re-runs within a session and overwrites an earlier output, the
-manifest keeps only the most recent write per path.
+output record keeps only the most recent write per path.
 
 Like `write_by_group()`, both functions accept a `config` argument: a path
 to a project's `_toolero.yml`, from which `output_dir` is resolved (via the
@@ -935,8 +939,8 @@ config's `output_dir` convention) when not supplied directly. An explicit
 before.
 
 `generate_manifest()` also accepts a `git_root` argument (default `"."`)
-and records a `commit` field in the manifest -- the git commit checked out
-in `git_root` at the moment the manifest was written, recorded once at the
+and records a `commit` field in the output record -- the git commit checked
+out in `git_root` at the moment the record was written, recorded once at the
 top level alongside `execution_context` and `generated_at`. This is the one
 piece of provenance package versions cannot supply: `renv.lock` already
 records which package versions were in play, but nothing else records which
@@ -945,10 +949,10 @@ revision of the analysis script itself produced a given set of outputs.
 yet, or `git` is not installed, so its absence is informative rather than a
 failure.
 
-A missing accumulator at manifest time is an error, since no `save_output()`
-calls were ever recorded. An accumulator with no rows produces an empty
-manifest with a warning, since that is a truthful result rather than a
-setup mistake.
+A missing accumulator when `generate_manifest()` runs is an error, since no
+`save_output()` calls were ever recorded. An accumulator with no rows
+produces an empty output record with a warning, since that is a truthful
+result rather than a setup mistake.
 
 For unattended execution on CHTC where nobody is watching the job log in
 real time, the recommended pattern is:
@@ -965,7 +969,8 @@ tryCatch(
 
 The `try()` inside `finally` ensures that a crash before the first
 `save_output()` call, which leaves no accumulator on disk, does not replace
-the original error with a manifest-not-found error in the job log.
+the original error with `generate_manifest()`'s missing-accumulator error
+in the job log.
 
 **What holds still.** The accumulator's column set is the contract between
 these two functions and anything downstream that reads what an analysis

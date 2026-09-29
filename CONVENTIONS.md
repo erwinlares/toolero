@@ -32,7 +32,7 @@ A project scaffolded by `toolero::init_project()` has this shape:
 my-project/
 ├── data-raw/          inputs as they arrived, never edited in place
 ├── data/              analysis-ready data, produced from data-raw/
-│   └── jobs/          per-group splits from write_by_group(), plus manifest.csv
+│   └── jobs/          per-group splits from write_by_group(), plus the job manifest
 ├── R/                 R code, including scripts derived from .qmd documents
 ├── scripts/           standalone utility scripts not part of the analysis
 ├── output/            everything the analysis produces
@@ -41,7 +41,7 @@ my-project/
 ├── reports/           .qmd documents and their rendered output
 ├── assets/            styling and branding, when branding is requested
 ├── renv.lock          the R package environment
-├── _toolero.yml       the project's own description of the above
+├── _toolero.yml       the project config: the project's own description of the above
 └── my-project.Rproj
 ```
 
@@ -65,18 +65,33 @@ script derived from the document lives in `R/`.
 
 ```text
 reports/analysis.qmd        the source of truth, edited by a person
-R/analysis.R                derived from it, executed by a machine
+R/reports/analysis.R        derived from it, executed by a machine
 ```
 
-`create_qmd(use_purl = TRUE)` sets up a post-render hook that writes there.
-`qmd_to_r()`'s own default is to write beside its input, which is right for the
-one-off case, but the documented workflow passes `output = "R/analysis.R"`.
+`create_qmd(use_purl = TRUE)` sets up a post-render hook that writes there. The
+hook mirrors each document's location under `R/`, so `reports/analysis.qmd`
+becomes `R/reports/analysis.R` and a document at the project root becomes
+`R/analysis.R`; two documents that share a filename in different folders never
+overwrite each other's script. `qmd_to_r()`'s own default is to write beside its
+input, which is right for the one-off case; pass `output = ` to put the script
+in `R/` yourself.
 
-Downstream this means `containr` is given `code_file = "R/analysis.R"` and
-`submitr` is given `r_script = "R/analysis.R"`. **These two must always agree.**
-Changing one without the other reproduces a broken path in a new location, which
-is how the family arrived at four different answers to this question in the
-first place.
+The examples below use `R/analysis.R`, the script derived from a document at
+the project root. Downstream this means `submitr` is given
+`r_script = "R/analysis.R"`, in both
+`htc_gen_submit()` and `htc_gen_executable()`, and the same path in
+`htc_gen_submit(input_files = )`. The script is not baked into the container
+image: it travels to the execute node as an uploaded job input, so editing it
+means re-uploading and resubmitting, not rebuilding and re-pushing the image.
+`htc_gen_submit()` warns when `r_script` is missing from `input_files`.
+`containr` may still be given `code_file = "R/analysis.R"` for an image that has
+to run on its own, for a collaborator say, but a cluster job runs the uploaded
+copy, not the one in the image.
+
+The path itself is the one thing that has to stay consistent. Naming the script
+differently in different places reproduces a broken path in a new location,
+which is how the family arrived at four different answers to this question in
+the first place.
 
 Never edit the derived script. It is regenerated on every render, and an edit to
 it is lost the next time somebody opens the document.
@@ -88,8 +103,9 @@ execute node alike. Not `results/`, which earlier versions of `submitr` used.
 
 `toolero::save_output()` writes there and records each write in
 `output/accumulator.csv`. `toolero::generate_manifest()` reads that accumulator
-and writes `output/project-manifest.json`. `submitr::htc_gen_executable()` takes
-`results_folder = "output"` and tars that folder at the end of the job.
+and writes the output record, `output/project-manifest.json`.
+`submitr::htc_gen_executable()` defaults to `results_folder = "output"` and tars
+that folder at the end of the job.
 
 One consequence is worth stating plainly, because it is the failure people hit
 first. Creating `output/` does not create `output/figures/`. A job that runs on
@@ -101,14 +117,15 @@ the script before writing to it.
 
 ## 4. Paths inside the container
 
-`containr` preserves the project's directory structure inside the image, rooted
-at `copy_root`, which is `/home` for the `base`, `tidyverse`, `rstudio` and
-`verse` modes and `/srv/shiny-server` for the two Shiny modes. So a project laid
-out as in section 1 appears in the image like this:
+`containr` preserves the project's directory structure inside the image. For
+the `base`, `tidyverse`, `rstudio` and `verse` modes, files are copied under
+`home_dir` (`/home` by default); for the two Shiny modes they land under
+`/srv/shiny-server`. So a project laid out as in section 1, containerized with
+`data_file = "data-raw/"` and `misc_file = "reports/"`, appears in the image
+like this:
 
 ```text
 /home/renv.lock
-/home/R/analysis.R
 /home/data-raw/sample.csv
 /home/reports/analysis.qmd
 ```
@@ -117,14 +134,16 @@ Relative paths therefore mean the same thing inside the container as they do on
 the laptop, which is the whole point of preserving the structure. A script that
 reads `data-raw/sample.csv` works in both places without modification.
 
-The lockfile is the exception to the structure rule: it is copied to the working
-directory, because the `renv` restore runs there, and the working directory is
-`home_dir`, which is a separate argument from `copy_root`.
+The lockfile always goes to the working directory, `home_dir`, because the
+`renv` restore runs there.
 
-When `submitr` names the script, it names the path inside the image, absolutely:
-`/home/R/analysis.R`. On the laptop the same file is `R/analysis.R`, relative to
-the project root. These are the same file and not the same path, and documents
-that say otherwise confuse people who read carefully.
+When `submitr` names a data file baked into the image, it names the path inside
+the image, absolutely: `/home/data-raw/sample.csv`. On the laptop the same file
+is `data-raw/sample.csv`, relative to the project root. These are the same file
+and not the same path, and documents that say otherwise confuse people who read
+carefully. The script is the opposite case: it arrives in the job's scratch
+directory as an uploaded input, so the generated executable runs it by bare
+name (`Rscript analysis.R`), not by a path inside the image.
 
 ## 5. Finding the input file: `resolve_input_path()`
 
@@ -209,17 +228,34 @@ gain keys; existing keys will not change meaning without a version bump.
 
 ## 7. Vocabulary
 
-Four terms have drifted and each now has one meaning.
+Several words drifted between the three packages, and each now has one
+meaning. Four of them name files. They are worth keeping straight, because
+three of the four files have "manifest" somewhere in their name.
 
-A **job manifest** is a list of inputs. `write_by_group()` writes one at
-`data/jobs/manifest.csv`, with one row per split file, and `submitr` derives
-`subdatasets.csv` from it.
+The **project config** is `_toolero.yml`: the project's description of its own
+folders and conventions (section 6). `init_project()` writes it;
+`check_project()`, `containr`, and `submitr` read it.
 
-A **project manifest** is a record of outputs. `generate_manifest()` writes one
-at `output/project-manifest.json`, describing every artifact the analysis
-produced.
+The **job manifest** is a list of inputs to a computation about to happen.
+`write_by_group()` writes one at `data/jobs/manifest.csv`, with one row per
+split file, and `submitr` derives `subdatasets.csv` from it.
 
-Unqualified, the word "manifest" means neither. Use one of the two.
+The **output record** is a record of outputs from a computation that has
+already happened. `generate_manifest()` writes it at
+`output/project-manifest.json`, from the rows `save_output()` appended to
+`output/accumulator.csv` along the way. The accumulator is the raw,
+append-only log; the output record is its deduplicated, end-of-run summary.
+
+The **submission state** is `submitr`'s working memory for the job in
+progress, kept in `htc-manifest.yaml`: which files were generated, where they
+were uploaded, and which cluster ID came back. It is updated as the work
+proceeds and read only by `submitr` itself.
+
+The file and function names predate these terms and are kept for
+compatibility, so `generate_manifest()` writes the output record and
+`htc-manifest.yaml` holds the submission state. Use the term in prose and the
+file name in code. Unqualified, the word "manifest" means none of these; use
+one of the four terms instead.
 
 **Development packages** are what you install with `apt-get` to build an R
 package from source: `libfreetype-dev`, `libpng-dev`. **Headers** are one of the
@@ -240,9 +276,11 @@ never checks for a `Dockerfile`, and it has no knowledge of HTCondor.
 `_toolero.yml` when it is pointed at one. It may not assume `toolero` is
 installed, and it may not assume any particular folder exists.
 
-`submitr` may assume the image contains the script at the absolute path it was
-given, and it may read `_toolero.yml`. It cannot verify the first of those, and
-should say so rather than implying that it has.
+`submitr` may assume the image contains any data files at the absolute paths
+it was given, and it may read `_toolero.yml` when it is pointed at one. It
+cannot verify the first of those, and should say so rather than implying that
+it has. It may not assume the image contains the analysis script: the script
+travels with the job (section 2).
 
 The analysis script inside an image may assume `toolero` is available **only if
 `toolero` is in `renv.lock`**. This is easy to forget, because on the laptop
@@ -264,12 +302,29 @@ note the change in the version history below.
 
 Where a change has to happen in two packages at once, say so explicitly and in
 both audit documents. There is exactly one such constraint at the time of
-writing, in section 2: `containr`'s `code_file` and `submitr`'s `r_script` name
-the same file and cannot move separately.
+writing, in section 5: `submitr`'s generated executable passes the subset
+filename as the first trailing command line argument, and
+`toolero::resolve_input_path()`'s `rscript` branch reads exactly that. The two
+cannot move separately. (The constraint section 2 used to name, between
+`containr`'s `code_file` and `submitr`'s `r_script`, retired when the script
+stopped being baked into the image.)
 
 ---
 
 ## Version history
+
+**2026-09 (vocabulary and the uploaded script).** Section 7 now defines four
+file terms instead of two: the *project manifest* is renamed the *output
+record*, and *project config* (`_toolero.yml`) and *submission state*
+(`htc-manifest.yaml`) are added. No files, functions, or arguments were
+renamed; the three READMEs were brought into line in the same change.
+Sections 2, 4, 8 and 9 were corrected to match `submitr`'s decision (S-I4,
+2026-09-24) that the analysis script travels to the execute node as an
+uploaded job input rather than being baked into the container image. That
+decision shipped before this file was updated, which is the order section 9
+asks to avoid. Section 2 also now describes the purl hook's path mirroring
+(`reports/analysis.qmd` purls to `R/reports/analysis.R`), which the earlier
+text had flattened to `R/analysis.R`.
 
 **2026-09 (toolero 0.6.0).** No changes to the conventions themselves.
 `toolero` added `generate_profile()` and `generate_citation()`, a `config`
