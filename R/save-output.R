@@ -62,8 +62,9 @@
 #'
 #' Internal helper returning the canonical column names of
 #' `accumulator.csv`, in order. Single source of truth shared by
-#' [.append_accumulator_row()] and the manifest reader, so that schema
-#' drift surfaces as an error rather than as silently misaligned rows.
+#' [.append_accumulator_row()] and the accumulator reader behind
+#' [generate_manifest()], so that schema drift surfaces as an error rather
+#' than as silently misaligned rows.
 #'
 #' @return A character vector of column names.
 #'
@@ -161,8 +162,8 @@
 #' default) -- appends a row to the project-level accumulator at
 #' `output_dir/accumulator.csv` recording what was saved, how, and whether
 #' the write succeeded. The accumulator is the working file later consumed
-#' by [generate_manifest()], which deduplicates it and reshapes it into
-#' `project-manifest.json`.
+#' by [generate_manifest()], which deduplicates it and reshapes it into the
+#' output record, `project-manifest.json`.
 #'
 #' @param object The object to save.
 #' @param file_path Character. A single destination path for `object`. Its

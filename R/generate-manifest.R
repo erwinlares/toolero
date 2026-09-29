@@ -3,11 +3,11 @@
 #' Read the current git commit, if any
 #'
 #' Internal helper used by [generate_manifest()] to record which version of
-#' the project's code was checked out when the manifest was written. Best
-#' effort and silent: returns `NULL` whenever `git` is not installed, `path`
-#' is not inside a git repository, or the repository has no commits yet,
-#' rather than aborting a manifest write over a fact that is genuinely
-#' optional.
+#' the project's code was checked out when the output record was written.
+#' Best effort and silent: returns `NULL` whenever `git` is not installed,
+#' `path` is not inside a git repository, or the repository has no commits
+#' yet, rather than aborting the output record over a fact that is
+#' genuinely optional.
 #'
 #' Shells out to `git rev-parse HEAD` rather than depending on a git R
 #' package, since this is the only place in toolero that needs git at all.
@@ -62,8 +62,8 @@
 #' is created by the first [save_output()] call, so its absence means no
 #' save was ever recorded -- most often because `save_output()` was called
 #' with a different `output_dir`, or with `manifest = FALSE`, or was never
-#' reached at all. Returning an empty manifest in that case would present a
-#' setup mistake as a finished record.
+#' reached at all. Returning an empty output record in that case would
+#' present a setup mistake as a finished record.
 #'
 #' Every column is read as character. Timestamps in particular must not be
 #' coerced, since [.dedupe_accumulator()] compares them lexicographically
@@ -73,7 +73,7 @@
 #' `na = ""` convention used when the accumulator is written. Without this
 #' the `error_message` column of every successful row would return as an
 #' empty string rather than `NA`, and that difference would surface in the
-#' manifest.
+#' output record.
 #'
 #' @keywords internal
 .read_accumulator <- function(output_dir = "output") {
@@ -82,7 +82,7 @@
     if (!fs::file_exists(accumulator_path)) {
         cli::cli_abort(c(
             "No accumulator was found at {.file {accumulator_path}}.",
-            "x" = "A project manifest cannot be written without one.",
+            "x" = "The output record cannot be written without one.",
             "i" = "{.fn save_output} creates this file on its first call.",
             "i" = "Check that {.fn save_output} was reached, was called with {.code manifest = TRUE}, and used a matching {.arg output_dir}."
         ))
@@ -136,9 +136,9 @@
 #'
 #' Note that the surviving row for a path may record a failure: if a save
 #' succeeded and a later re-run of the same path failed, the failure is
-#' what the manifest reports. This is the intended reading. The manifest
-#' describes the state of the project at the end of the run, not the best
-#' outcome observed along the way.
+#' what the output record reports. This is the intended reading. The
+#' output record describes the state of the project at the end of the run,
+#' not the best outcome observed along the way.
 #'
 #' @keywords internal
 .dedupe_accumulator <- function(accumulator) {
@@ -159,33 +159,34 @@
     deduplicated
 }
 
-#' Write the project manifest
+#' Write the output record
 #'
 #' `generate_manifest()` reads the accumulator written by [save_output()]
 #' over the course of an analysis, collapses it to one row per output file,
-#' and writes `project-manifest.json` describing every artifact the project
-#' produced.
+#' and writes the output record, `project-manifest.json`, describing every
+#' artifact the project produced.
 #'
 #' @param output_dir Character or `NULL`. Directory containing
-#'   `accumulator.csv` and receiving the manifest. If `NULL` (the default)
-#'   and `config` is supplied, resolved from the config's `output_dir`
+#'   `accumulator.csv` and receiving the output record. If `NULL` (the
+#'   default) and `config` is supplied, resolved from the config's `output_dir`
 #'   convention; if `config` is also `NULL`, falls back to `"output"`,
 #'   unchanged from earlier versions.
-#' @param filename Character. Name of the manifest file. Defaults to
+#' @param filename Character. Name of the output record file. Defaults to
 #'   `"project-manifest.json"`.
-#' @param overwrite Logical. When `FALSE` (default), an existing manifest
+#' @param overwrite Logical. When `FALSE` (default), an existing output record
 #'   at that path is an error rather than being replaced.
 #' @param config Character or `NULL`. Path to a project configuration file
 #'   (typically a project's own `_toolero.yml`, as written by
 #'   [init_project()]). Only consulted when `output_dir` is not supplied;
 #'   an explicit `output_dir` always wins. Defaults to `NULL`.
 #' @param git_root Character. Directory to check for a git commit to record
-#'   in the manifest (see the Provenance section below). Defaults to `"."`.
+#'   in the output record (see the Provenance section below). Defaults to
+#'   `"."`.
 #'
-#' @return The path to the manifest, invisibly.
+#' @return The path to the output record, invisibly.
 #'
 #' @details
-#' The manifest records `execution_context` and `generated_at` once at the
+#' The output record holds `execution_context` and `generated_at` once at the
 #' top level, followed by an `artifacts` array with one entry per output
 #' file, ordered chronologically. Context and generation time are facts
 #' about the run as a whole rather than about any individual artifact, so
@@ -203,13 +204,14 @@
 #' automatically at bagging time.
 #'
 #' A missing accumulator is an error: no save was ever recorded, and an
-#' empty manifest would present that as a finished result. An accumulator
-#' holding no rows is different -- the file exists, so the machinery was
-#' wired up -- and produces an empty manifest with a warning.
+#' empty output record would present that as a finished result. An
+#' accumulator holding no rows is different -- the file exists, so the
+#' machinery was wired up -- and produces an empty output record with a
+#' warning.
 #'
 #' @section Provenance:
-#' The manifest also records `commit`: the git commit checked out in
-#' `git_root` at the moment the manifest was written, or `null` when the
+#' The output record also holds `commit`: the git commit checked out in
+#' `git_root` at the moment the record was written, or `null` when the
 #' project is not a git repository, has no commits yet, or `git` is not
 #' installed. This is deliberately the one piece of "which version of the
 #' code produced this" that package versions cannot supply -- `renv.lock`
@@ -225,14 +227,15 @@
 #' message [init_project()] gives for a bad `config`, rather than silently
 #' falling back to `"output"`.
 #'
-#' @section The project manifest and the job manifest:
-#' This is the *project manifest*: a record of outputs from a computation
+#' @section The output record and the job manifest:
+#' This is the *output record*: a record of outputs from a computation
 #' that has already happened. It is distinct from the *job manifest*
 #' produced by [write_by_group()] and consumed by
 #' `submitr::htc_gen_submit()`, which lists inputs to a computation about
-#' to happen. The two are structurally different documents that happen to
-#' share a word, which is why this one defaults to
-#' `project-manifest.json` rather than `manifest.json`.
+#' to happen. The file name, `project-manifest.json`, and this function's
+#' name predate the family's vocabulary and are kept for compatibility;
+#' the file defaults to `project-manifest.json` rather than
+#' `manifest.json` so the two documents cannot be confused on disk.
 #'
 #' @seealso [save_output()]
 #'
@@ -287,7 +290,7 @@ generate_manifest <- function(output_dir = NULL,
 
     if (fs::file_exists(manifest_path) && !overwrite) {
         cli::cli_abort(c(
-            "A manifest already exists at {.file {manifest_path}}.",
+            "An output record already exists at {.file {manifest_path}}.",
             "i" = "Set {.code overwrite = TRUE} to replace it."
         ))
     }
@@ -296,9 +299,9 @@ generate_manifest <- function(output_dir = NULL,
 
     if (nrow(artifacts) == 0L) {
         cli::cli_warn(c(
-            "!" = "The accumulator holds no rows, so the manifest is empty.",
+            "!" = "The accumulator holds no rows, so the output record is empty.",
             "i" = "{.fn save_output} appends a row for every object it saves.",
-            "i" = "An empty manifest still records that the analysis ran and produced nothing."
+            "i" = "An empty output record still shows that the analysis ran and produced nothing."
         ))
     }
 

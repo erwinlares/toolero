@@ -3,8 +3,8 @@
 #' `init_project()` creates a new R project at the given path with an
 #' opinionated folder structure suited for research workflows. It optionally
 #' initializes `renv` for package management and git for version control, and
-#' records the structure it resolved in a project manifest at the project
-#' root.
+#' records the structure it resolved in a project config, `_toolero.yml`, at
+#' the project root.
 #'
 #' @param path A character string with the path and name of the new
 #'   project (e.g., `"~/Documents/my-project"`).
@@ -36,7 +36,7 @@
 #'   `R/`. [usethis::create_project()] creates it unconditionally, so it is
 #'   present in every project `init_project()` makes. A structure that
 #'   leaves it out is honored everywhere else -- `R/` is absent from the
-#'   project manifest, gets no `.gitkeep`, and is not audited by
+#'   project config, gets no `.gitkeep`, and is not audited by
 #'   [check_project()] -- but the directory itself is there.
 #' @param open Logical. If `TRUE`, opens the new project in RStudio after
 #'   creation. Defaults to `FALSE`.
@@ -47,7 +47,7 @@
 #'   UW-Madison RCI branding files under the same standardized names.
 #'   `"none"` or `FALSE` creates no `assets/` folder. Defaults to `"none"`.
 #'   When branding is enabled, `assets/` joins the project's folder set and is
-#'   recorded in the project manifest alongside every other folder, so
+#'   recorded in the project config alongside every other folder, so
 #'   downstream packages can find the branding files without being told about
 #'   them separately. Note that `favicon.png` is included in the asset set but
 #'   is not automatically wired into Quarto output -- favicons are a
@@ -80,7 +80,7 @@
 #'   namespace into the test process. Overriding it outside of tests is
 #'   unsupported.
 #'
-#' @section The project manifest:
+#' @section The project config:
 #' `r lifecycle::badge("experimental")`
 #'
 #' `init_project()` writes `_toolero.yml` to the project root, recording the
@@ -314,10 +314,10 @@ init_project <- function(path,
     # now this argument had no validation at all: a bad value (a path, say
     # -- a plausible mistake given the argument's old logical-only contract)
     # surfaced only much later, as a raw `if (use_rprofile)` error at step
-    # 13b, by which point the project directory, folders, README, manifest,
-    # and any renv scaffolding had already been written to disk. Checked
-    # here, with the other arguments, so a rejected call leaves nothing
-    # behind, same as branding and use_readme above.
+    # 13b, by which point the project directory, folders, README, project
+    # config, and any renv scaffolding had already been written to disk.
+    # Checked here, with the other arguments, so a rejected call leaves
+    # nothing behind, same as branding and use_readme above.
     if (!(is.logical(use_rprofile) || is.character(use_rprofile)) ||
         length(use_rprofile) != 1L ||
         is.na(use_rprofile) ||
@@ -382,7 +382,7 @@ init_project <- function(path,
     )
 
     # Branding puts files in assets/, so assets/ is part of the structure and
-    # belongs in the manifest with everything else.
+    # belongs in the project config with everything else.
     if (use_branding && !"assets" %in% final_folders) {
         final_folders <- c(final_folders, "assets")
     }
@@ -417,7 +417,7 @@ init_project <- function(path,
             cli::cli_abort(c(
                 "A {.file {manifest_name}} file already exists in {.path {path}}.",
                 "i" = "{.fn init_project} is designed to scaffold new projects and
-                       does not overwrite an existing project manifest.",
+                       does not overwrite an existing project config.",
                 "i" = "Run {.fn check_project} to audit the existing project instead."
             ))
         }
@@ -520,7 +520,7 @@ init_project <- function(path,
     # against losing the structure.
     .add_gitkeep(fs::path(path, final_folders))
 
-    # -- 12. Write the project manifest --------------------------------------
+    # -- 12. Write the project config ----------------------------------------
     # Records the resolved structure, not the inputs that produced it. This
     # is what check_project() audits against and what containr and submitr
     # read instead of assuming a layout.
@@ -738,9 +738,9 @@ init_project <- function(path,
 #' argument.
 #'
 #' The file uses the same schema as the `_toolero.yml` that [init_project()]
-#' writes into a project, so a config you author by hand and a manifest a
-#' project carries are the same kind of document. The only difference is who
-#' wrote it.
+#' writes into a project, so a config you author by hand and the project
+#' config a project carries are the same kind of document. The only
+#' difference is who wrote it.
 #'
 #' @param filename A character string. Name of the YAML file to create
 #'   (e.g., `"linguistics-project.yml"`). Must be supplied explicitly.
@@ -793,10 +793,11 @@ generate_project_config <- function(filename, path = ".", overwrite = FALSE) {
     }
 
     # -- 4. Write the config file --------------------------------------------
-    # Same writer, same schema, same template as the manifest init_project()
-    # writes into a project. The folder list and conventions come from the
-    # package defaults rather than from literal text, so adding a folder to
-    # the standard set is a one-line change in .default_folders().
+    # Same writer, same schema, same template as the project config
+    # init_project() writes into a project. The folder list and conventions
+    # come from the package defaults rather than from literal text, so
+    # adding a folder to the standard set is a one-line change in
+    # .default_folders().
     .write_project_yml(
         dest        = dest,
         folders     = .default_folders(),

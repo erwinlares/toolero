@@ -72,12 +72,12 @@
 #' the *job manifest*: a list of inputs to a computation that has not
 #' happened yet, and the file consumed by [run_by_group()] and by
 #' `submitr::htc_gen_submit()` in multiple-job mode. It is a different
-#' document from the *project manifest* that [generate_manifest()] writes,
+#' document from the *output record* that [generate_manifest()] writes,
 #' which records outputs from a computation that already has.
 #'
 #' The schema is one column per grouping variable, holding the raw
 #' unsanitized value, followed by `group_value`, `n_rows`, and `file_path`.
-#' Grouping on one column therefore produces a manifest whose first column
+#' Grouping on one column therefore produces a job manifest whose first column
 #' repeats `group_value` exactly. That redundancy is deliberate: one schema
 #' with a varying column count is easier to read, validate and rely on than
 #' two schemas selected by how many columns you happened to group on.
@@ -87,11 +87,11 @@
 #' one.
 #'
 #' @section Row order:
-#' Groups are written, and manifest rows recorded, in order of first
+#' Groups are written, and job manifest rows recorded, in order of first
 #' appearance in `data`. This matters downstream: `submitr` writes its
-#' `subdatasets.csv` in manifest order, HTCondor assigns `ProcId` in that
-#' order, and log filenames are reconstructed from position, so manifest row
-#' order is the mapping from a job number back to a group.
+#' `subdatasets.csv` in job manifest order, HTCondor assigns `ProcId` in
+#' that order, and log filenames are reconstructed from position, so job
+#' manifest row order is the mapping from a job number back to a group.
 #'
 #' @section Missing values:
 #' With `drop_na = TRUE` (the default), rows with a missing value in any
@@ -229,7 +229,7 @@ write_by_group <- function(
         if (length(reserved_hits) > 0) {
             cli::cli_abort(
                 "{length(reserved_hits)} column name{?s} in {.arg group_col} {?is/are}
-         reserved for the manifest: {.val {reserved_hits}}. This only matters
+         reserved for the job manifest: {.val {reserved_hits}}. This only matters
          when {.code manifest = TRUE}."
             )
         }

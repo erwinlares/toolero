@@ -93,6 +93,19 @@
   re-sources the user's personal environment is no longer fully isolated
   from it.
 
+### Documentation
+
+* Documentation, vignettes, and user-facing messages now use the family's
+  shared vocabulary for the files toolero writes (see `CONVENTIONS.md`).
+  `_toolero.yml` is the *project config*, `manifest.csv` from
+  `write_by_group()` is the *job manifest*, and `project-manifest.json`
+  from `generate_manifest()` is the *output record*. File names, function
+  names, and arguments are unchanged; only the prose around them moved.
+  Error and warning messages that previously said "manifest" now name the
+  specific file they mean (for example, "Job manifest ... does not exist"
+  from `run_by_group()` and "An output record already exists" from
+  `generate_manifest()`).
+
 ## Bug fixes
 
 * `init_project()` gains an injectable `scaffold_fn` argument, defaulting

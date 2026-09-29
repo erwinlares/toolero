@@ -1,7 +1,7 @@
 # R/utils-project.R
 #
 # Shared internals describing a toolero project: the default folder set, the
-# default conventions, the reader and writer for the project manifest
+# default conventions, the reader and writer for the project config
 # (_toolero.yml), the config-file reader, and README detection.
 #
 # These exist so that init_project(), generate_project_config(), and
@@ -10,7 +10,7 @@
 # conventions block, should require editing exactly one function in this file.
 
 
-#' Name of the project manifest file
+#' Name of the project config file
 #'
 #' Internal helper returning the filename `init_project()` writes to the
 #' project root and `check_project()` looks for. Centralized so the name
@@ -24,7 +24,7 @@
 }
 
 
-#' Schema version of the project manifest
+#' Schema version of the project config
 #'
 #' Internal helper returning the schema version this version of toolero
 #' writes and understands. This is a schema version, not a package version:
@@ -149,7 +149,7 @@
 }
 
 
-#' Write a project manifest
+#' Write a project config
 #'
 #' Internal helper that renders `inst/templates/_toolero.yml` with a folder
 #' list and a conventions block and writes the result to `dest`. Used by both
@@ -188,7 +188,7 @@
 }
 
 
-#' Read a project manifest from a project directory
+#' Read a project config from a project directory
 #'
 #' Internal helper returning the parsed contents of `_toolero.yml` at the
 #' root of `path`, or `NULL` when the project does not have one. A project

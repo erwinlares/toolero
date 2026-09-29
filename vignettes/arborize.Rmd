@@ -54,7 +54,7 @@ a Quarto document, a Shiny app, or an R Markdown report, pulling in LaTeX just
 to draw a tree is a heavy dependency for a relatively simple task.
 
 The situation is further complicated when you want to embed a tree in a format
-that has nothing to do with LaTeX — a Word document, a Keynote slide, a webpage.
+that has nothing to do with LaTeX -- a Word document, a Keynote slide, a webpage.
 A PDF compiled from LaTeX does not travel well.
 
 ## How `arborize()` solves it
@@ -89,7 +89,7 @@ renders use the cached package and work offline.
 `arborize()` supports two rendering backends, controlled by the
 `tree_notation` argument.
 
-### `tree_notation = "simple"` — bracket notation
+### `tree_notation = "simple"` -- bracket notation
 
 The default backend uses the `@preview/syntree` Typst package, which accepts
 bracket notation. This is the most compact input format and the one most
@@ -106,7 +106,7 @@ brackets.
 This backend suits the majority of use cases: simple to moderately complex
 phrase structure trees without specialized annotation.
 
-### `tree_notation = "structured"` — lingotree notation
+### `tree_notation = "structured"` -- lingotree notation
 
 The structured backend uses the `@preview/lingotree` Typst package, which
 accepts nested `tree()` function calls. The syntax is more verbose but more
@@ -141,7 +141,7 @@ Before diving into examples, it is worth understanding how `papersize` and
 `arborize()` renders the tree onto a Typst page of the specified `papersize`.
 That page becomes the PDF, which is then converted to PNG. If the page is much
 larger than the tree, the PNG will have a lot of empty whitespace around the
-tree — it will look small and lost in the image. If the page is too small, the
+tree -- it will look small and lost in the image. If the page is too small, the
 tree will be clipped.
 
 The goal is to choose a `papersize` that fits snugly around the tree, with
@@ -154,9 +154,9 @@ Typst's paper sizes follow the ISO standard series. For reference:
 
 | papersize | Dimensions | Good for |
 |---|---|---|
-| `"a7"` | 74 × 105 mm | Very small trees, 2–3 nodes |
-| `"a6"` | 105 × 148 mm | Simple trees, 4–6 nodes |
-| `"a5"` | 148 × 210 mm | Default — medium trees |
+| `"a7"` | 74 × 105 mm | Very small trees, 2-3 nodes |
+| `"a6"` | 105 × 148 mm | Simple trees, 4-6 nodes |
+| `"a5"` | 148 × 210 mm | Default -- medium trees |
 | `"a4"` | 210 × 297 mm | Wide or deep trees |
 | `"a3"` | 297 × 420 mm | Very wide trees |
 
@@ -184,7 +184,7 @@ A practical approach when sizing a new tree:
 
 ### A simple NP
 
-The most basic case — a determiner phrase nested under a noun phrase. A simple
+The most basic case -- a determiner phrase nested under a noun phrase. A simple
 NP fits well on `"a6"`.
 
 ```{r simple-np, eval = FALSE}
@@ -220,7 +220,7 @@ knitr::include_graphics("figures/clause-tree.png")
 
 ### Aspectual classes
 
-The classic Vendlerian classification of verbal aspect — a wide, multi-level
+The classic Vendlerian classification of verbal aspect -- a wide, multi-level
 tree. This one needs `"a4"` to accommodate its breadth, and a slightly larger
 margin gives the labels room to breathe.
 
@@ -251,7 +251,7 @@ knitr::include_graphics("figures/aspectual-classes.png")
 For figures destined for publication, use `dpi = 600`. The default `dpi = 300`
 is appropriate for screen use and general document embedding; 600 is the
 minimum for print reproduction. Note that higher DPI produces a larger file
-but does not change the crop — `papersize` and `margin` still control that.
+but does not change the crop -- `papersize` and `margin` still control that.
 
 ```{r print-quality, eval = FALSE}
 arborize(
@@ -285,7 +285,7 @@ knitr::include_graphics("figures/np-tree-tight.png")
 ### Structured notation with lingotree
 
 A VP with a DP internal argument, rendered using the lingotree backend. Note
-that the `tree()` string is passed verbatim to Typst — the syntax is Typst, not
+that the `tree()` string is passed verbatim to Typst -- the syntax is Typst, not
 R. Always pass `tree_notation = "structured"` when using lingotree; without it
 `arborize()` defaults to the syntree backend and the output will be incorrect.
 
@@ -362,8 +362,8 @@ margin: 0.5cm
 tree: '[NP [Det the] [N cat]]'
 ```
 
-To re-render from a provenance file — for example to increase the DPI for a
-journal submission while keeping the exact same tree and crop settings — read
+To re-render from a provenance file -- for example to increase the DPI for a
+journal submission while keeping the exact same tree and crop settings -- read
 the `.yaml` and pass its fields back to `arborize()`:
 
 ```{r rearborize, eval = FALSE}
@@ -381,11 +381,11 @@ arborize(
 ```
 
 The provenance file ensures that the high-resolution version is cropped
-identically to the original — same `papersize`, same `margin`, different `dpi`.
+identically to the original -- same `papersize`, same `margin`, different `dpi`.
 
 A dedicated `rearborize()` function that wraps this pattern is not yet
 implemented. If this would be useful to you, please file an issue at
-<https://github.com/erwinlares/toolero/issues> — user demand is the most
+<https://github.com/erwinlares/toolero/issues> -- user demand is the most
 direct signal that a feature is worth building.
 
 ## Embedding trees in documents
@@ -417,7 +417,7 @@ uploaded directly to any content management system.
 
 | Argument | Default | Description |
 |---|---|---|
-| `tree` | — | Tree string in bracket or lingotree notation |
+| `tree` | -- | Tree string in bracket or lingotree notation |
 | `output` | `"syntactic-tree.png"` | Path to the output PNG file |
 | `dpi` | `300` | Resolution in dots per inch |
 | `tree_notation` | `"simple"` | `"simple"` for syntree, `"structured"` for lingotree |

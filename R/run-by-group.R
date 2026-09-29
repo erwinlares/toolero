@@ -1,8 +1,8 @@
-#' Apply a function to each group in a manifest or named list
+#' Apply a function to each group in a job manifest or named list
 #'
 #' `run_by_group()` applies a function to each subset of a dataset and
 #' collects the results. Subsets can be supplied in two ways: as files
-#' listed in a manifest produced by [write_by_group()], or as a named
+#' listed in a job manifest produced by [write_by_group()], or as a named
 #' list of data frames already in memory. When the function returns
 #' tabular output (a data frame or tibble), the results are automatically
 #' unnested into a flat tibble with a group-id column. When the function
@@ -11,7 +11,7 @@
 #' list-column.
 #'
 #' @param manifest A character string, data frame, or `NULL`. If a
-#'   string, the path to a manifest CSV produced by
+#'   string, the path to a job manifest (`manifest.csv`) produced by
 #'   `write_by_group(manifest = TRUE)`. Must contain a `group_value`
 #'   and a `file_path` column. If a data frame, used directly. If
 #'   `groups` is supplied, `manifest` is ignored with a warning and
@@ -63,14 +63,14 @@
 #' `run_by_group()` is the apply half of the split-apply workflow in
 #' toolero. The split half is [write_by_group()], which partitions a
 #' data frame by a grouping column and writes one file per group along
-#' with a manifest.
+#' with a job manifest.
 #'
 #' ```r
 #' # Split to disk
 #' write_by_group(penguins, group_col = "species",
 #'                output_dir = "data/jobs", manifest = TRUE)
 #'
-#' # Apply from disk via manifest
+#' # Apply from disk via the job manifest
 #' results <- run_by_group(
 #'   manifest = "data/jobs/manifest.csv",
 #'   .f       = my_analysis
@@ -213,7 +213,7 @@
 #'   )
 #' }
 #'
-#' # Apply via manifest -- returns a flat tibble
+#' # Apply via the job manifest -- returns a flat tibble
 #' results <- run_by_group(
 #'   manifest = file.path(tmp, "manifest.csv"),
 #'   .f       = summarise_species
@@ -416,7 +416,7 @@ run_by_group <- function(manifest = NULL,
         if (is.character(manifest)) {
             if (!file.exists(manifest)) {
                 cli::cli_abort(
-                    "Manifest file {.path {manifest}} does not exist."
+                    "Job manifest {.path {manifest}} does not exist."
                 )
             }
             manifest_df <- readr::read_csv(manifest, show_col_types = FALSE)
@@ -433,14 +433,14 @@ run_by_group <- function(manifest = NULL,
 
         if (length(missing_cols) > 0L) {
             cli::cli_abort(c(
-                "Manifest is missing required column{?s}: {.val {missing_cols}}.",
+                "Job manifest is missing required column{?s}: {.val {missing_cols}}.",
                 "i" = "Use {.fn write_by_group} with {.code manifest = TRUE}",
-                " " = "  to produce a compatible manifest."
+                " " = "  to produce a compatible job manifest."
             ))
         }
 
         if (nrow(manifest_df) == 0L) {
-            cli::cli_abort("Manifest contains no rows.")
+            cli::cli_abort("Job manifest contains no rows.")
         }
 
         file_paths  <- manifest_df[["file_path"]]
@@ -449,7 +449,7 @@ run_by_group <- function(manifest = NULL,
         missing_files <- file_paths[!file.exists(file_paths)]
         if (length(missing_files) > 0L) {
             cli::cli_abort(c(
-                "{length(missing_files)} subset file{?s} listed in the manifest {?was/were} not found.",
+                "{length(missing_files)} subset file{?s} listed in the job manifest {?was/were} not found.",
                 "i" = "Missing path{?s}: {.path {missing_files}}.",
                 "i" = "Check that {.fn write_by_group} output is still in place."
             ))

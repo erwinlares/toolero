@@ -148,7 +148,7 @@ check_project <- function(path   = ".",
     has_manifest  <- fs::file_exists(manifest_path)
 
     # -- 2. Resolve the folder set and conventions -------------------------
-    # Precedence: explicit config > the project's own manifest > built-in
+    # Precedence: explicit config > the project's own config > built-in
     # default. The source decides how a missing folder is reported: a
     # declaration that is not met is a failure, an unmet suggestion is not.
     manifest_error <- NULL
@@ -160,7 +160,7 @@ check_project <- function(path   = ".",
         folder_source <- "config"
 
     } else if (has_manifest) {
-        # The project's own manifest is something check_project() went
+        # The project's own config is something check_project() went
         # looking for. Reporting that it is broken is more useful than
         # aborting the audit over it, so the failure becomes a row and the
         # folder checks fall back to the built-in set.
@@ -189,7 +189,7 @@ check_project <- function(path   = ".",
     folder_list <- resolved$folders
     conventions <- resolved$conventions
 
-    # -- 3. Check for the project manifest ---------------------------------
+    # -- 3. Check for the project config -----------------------------------
     if (!is.null(manifest_error)) {
         results[["toolero_yml"]] <- .check_result(
             check   = manifest_name,
@@ -340,9 +340,9 @@ check_project <- function(path   = ".",
 
     # -- 11. Check folders -------------------------------------------------
     # A declared folder that is absent is a conformance failure, whether the
-    # declaration came from a config the caller named or from the manifest
-    # the project carries. The built-in set is a convention, so its absences
-    # are advisory.
+    # declaration came from a config the caller named or from the project
+    # config the project carries. The built-in set is a convention, so its
+    # absences are advisory.
     folders_are_declared <- folder_source %in% c("config", "manifest")
     missing_status       <- if (folders_are_declared) "fail" else "warn"
 
