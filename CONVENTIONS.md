@@ -262,7 +262,8 @@ specification.
 
 It is `toolero`'s own format. Unlike `_toolero.yml` and the `file_path`
 column of the job manifest, it is not a contract between packages: `toolero`
-writes it, and `toolero` is the package that reads it. Other packages should
+writes it, and `toolero` is the package that reads it, with
+`read_output_records()`. Other packages should
 treat it as an opaque file, noting that it exists if they need to, but not
 parsing it; `submitr::htc_collect()`, for example, reports whether each job
 brought one back without opening it. The reason is practical: every
@@ -451,6 +452,11 @@ stopped being baked into the image.)
 ## Version history
 
 Section numbers in each entry are as they stood at the time.
+
+**2026-09 (the output record's reader).** Section 7 names
+`read_output_records()` as `toolero`'s reader for the output record (T37).
+It follows the reading rules section 7 already set out, so the conventions
+themselves do not change.
 
 **2026-09 (YAML files end in `.yml`).** Section 8 adds the rule that every
 YAML file a family package names for itself uses the `.yml` extension, with

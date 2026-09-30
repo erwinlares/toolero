@@ -272,8 +272,9 @@
 #' key. The full specification, including the rules for readers, is in the
 #' family's `CONVENTIONS.md`.
 #'
-#' The output record is toolero's own format. Other packages should treat
-#' it as an opaque file rather than parse it.
+#' The output record is toolero's own format. Read it with
+#' [read_output_records()]; other packages should treat the file as opaque
+#' rather than parse it.
 #'
 #' @section The output record and the job manifest:
 #' This is the *output record*: a record of outputs from a computation
@@ -285,7 +286,8 @@
 #' the file defaults to `project-manifest.json` rather than
 #' `manifest.json` so the two documents cannot be confused on disk.
 #'
-#' @seealso [save_output()]
+#' @seealso [save_output()], which feeds the accumulator, and
+#'   [read_output_records()], which reads the output record back.
 #'
 #' @examples
 #' output_dir <- withr::local_tempdir()

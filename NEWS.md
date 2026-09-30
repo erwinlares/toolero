@@ -105,6 +105,21 @@
   Reference examples of the format live in
   `tests/testthat/fixtures/output-records/`.
 
+* Added `read_output_records()` (experimental), the reader that goes with
+  `generate_manifest()`. It reads one or more output folders (or record
+  files) and returns a tibble with one row per artifact: the seven artifact
+  fields as recorded, then `read_from`, `schema_version`, and the run-level
+  `execution_context`, `generated_at`, and `commit`, with a `source` column
+  labeling each folder's rows (by name when `path` is named). It follows
+  the reading rules in `CONVENTIONS.md`: a record without `schema_version`
+  reads as version 1, a record with an unknown version is read as far as
+  possible with a warning, and unrecognized keys are ignored. A folder with
+  no usable record falls back to its `accumulator.csv`, deduplicated as
+  `generate_manifest()` would, with a warning; a folder with neither
+  contributes no rows, also with a warning, so one incomplete job never
+  stops the rest from being read. Paired with `submitr::htc_collect()`, it
+  turns a multi-job run into one table in two calls.
+
 * Paths in analysis code now start at the project root, the rule
   `here::here()` follows, so a document can live in `reports/` (or any
   folder below the root) and run unchanged there, at the root, and on a

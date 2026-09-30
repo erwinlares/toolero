@@ -193,8 +193,9 @@ results <- run_by_group(
 )
 
 # 9. Save outputs and record each write in the project accumulator.
-#    output_dir is where the accumulator goes; it defaults to "output"
-#    relative to the working directory, so it is given explicitly here.
+#    output_dir is where the accumulator goes. It defaults to output/
+#    under the project root, and the working directory here is not inside
+#    project_dir, so it is given explicitly.
 save_output(
   results,
   file.path(project_dir, "output", "results.rds"),
@@ -204,6 +205,9 @@ save_output(
 
 # 10. Write the output record, summarizing what was produced
 generate_manifest(output_dir = file.path(project_dir, "output"))
+
+# 11. Read it back as a table, one row per artifact
+read_output_records(file.path(project_dir, "output"))
 ```
 
 In a real project, replace `project_dir` with the path where you want the
@@ -229,6 +233,7 @@ and scalable computing when needed.
 | `run_by_group()` | Applies a function to each group subset and collects the results. Accepts a job manifest from `write_by_group()` or a named list of data frames. Supports parallel execution and returns a flat tibble or a nested tibble depending on what the function returns. |
 | `save_output()` | Writes an object to disk via a user-supplied function and appends a row to the project accumulator recording the path, class, function used, and whether the write succeeded. `output_dir` can be resolved from a project's `_toolero.yml` via `config`. |
 | `generate_manifest()` | Reads the project accumulator, deduplicates by path, and writes the output record, `project-manifest.json`, describing every artifact the analysis produced, along with the git commit checked out at the time (when available). |
+| `read_output_records()` | Reads one or more output records back as a tibble, one row per artifact, labeled by folder. Falls back to the accumulator, with a warning, when a folder has no usable record. Experimental. |
 | `detect_execution_context()` | Returns `"interactive"`, `"quarto"`, or `"rscript"` so one codebase can adapt to local exploration, document rendering, or batch execution. |
 | `resolve_input_path()` | Resolves where the input data lives for the current execution context, and says what to fix when it cannot. The companion to `detect_execution_context()` for the specific case of finding your data. |
 | `generate_kb_xml()` | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base importable XML with embedded resources and metadata derived from the source document. |
@@ -1018,6 +1023,50 @@ rather than a straight swap. `save_output()` checks the header of an existing
 accumulator against that schema before appending and aborts on a mismatch
 rather than writing misaligned rows. The functions themselves are newer and
 may still move; the schema is what to build against.
+
+### `read_output_records()`
+
+`read_output_records()` is the reader for the output record, and it is
+experimental: its columns may still move before it settles. It returns a
+tibble with one row per artifact. The seven artifact fields come first,
+exactly as recorded; after them come `read_from`, `schema_version`, and the
+run-level facts (`execution_context`, `generated_at`, `commit`), repeated on
+each of that run's rows; and a `source` column at the front says which
+folder each row came from.
+
+```r
+# The project's own output/, found the same way save_output() finds it
+records <- read_output_records()
+
+# What failed?
+records[records$status == "failure", c("file_path", "error_message")]
+```
+
+Given several folders, it reads each one and stacks the results. That is
+the shape a multi-job run comes back in. `submitr::htc_collect()` (submitr
+0.2.0 or later) extracts each job's results folder and returns an index of
+where they landed; `read_output_records()` then reads what those folders
+say about themselves. Name the folders, and the names become `source`:
+
+```r
+jobs    <- submitr::htc_collect()
+jobs    <- jobs[!is.na(jobs$output_dir), ]  # drop jobs whose results never arrived
+records <- read_output_records(setNames(jobs$output_dir, jobs$group_id))
+```
+
+The two calls split the work the way the family does. `submitr` knows where
+the results landed and whether each job brought a record back; `toolero`
+wrote the record, so `toolero` is the package that interprets it (see
+[section 7 of
+CONVENTIONS.md](https://github.com/erwinlares/toolero/blob/main/CONVENTIONS.md#7-the-output-record-project-manifestjson)).
+
+A folder with no usable output record, such as a job that crashed before
+`generate_manifest()` ran, is read from its accumulator instead, keeping
+the latest row per file, with a warning; its run-level columns are `NA`. A
+folder with neither contributes no rows, also with a warning, so one
+incomplete job never stops the rest from being read. A record written by
+toolero 0.5.x, which has no `schema_version`, reads as version 1; a record
+from a newer toolero reads as far as possible, with a warning.
 
 ---
 

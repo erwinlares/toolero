@@ -116,8 +116,9 @@ was written by toolero 0.5.x and has the version 1 shape without the
 key. The full specification, including the rules for readers, is in the
 family's \code{CONVENTIONS.md}.
 
-The output record is toolero's own format. Other packages should treat
-it as an opaque file rather than parse it.
+The output record is toolero's own format. Read it with
+\code{\link[=read_output_records]{read_output_records()}}; other packages should treat the file as opaque
+rather than parse it.
 }
 
 \section{The output record and the job manifest}{
@@ -146,5 +147,6 @@ generate_manifest(output_dir = output_dir)
 
 }
 \seealso{
-\code{\link[=save_output]{save_output()}}
+\code{\link[=save_output]{save_output()}}, which feeds the accumulator, and
+\code{\link[=read_output_records]{read_output_records()}}, which reads the output record back.
 }

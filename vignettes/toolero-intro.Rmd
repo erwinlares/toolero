@@ -594,6 +594,39 @@ generate_manifest(git_root = ".")
 commits yet, or `git` isn't installed, so recording it is always safe to
 leave on.
 
+### Reading output records back: `read_output_records()`
+
+The output record is a file for machines, but the question it answers is
+one you will ask yourself: what did that run produce, and did anything fail?
+`read_output_records()` reads the record and returns a tibble with one row
+per artifact:
+
+```{r}
+#| eval: false
+records <- read_output_records()
+records[records$status == "failure", c("file_path", "error_message")]
+```
+
+With no arguments it reads `output/` under the project root, the same
+folder `save_output()` and `generate_manifest()` use. Given several output
+folders, it reads each and stacks the results, with a `source` column
+saying which folder a row came from. That is how a multi-job run comes back
+from a cluster: one results folder per job. With `submitr` (0.2.0 or later)
+it takes two calls, one to bring the results back and one to read them:
+
+```{r}
+#| eval: false
+jobs    <- submitr::htc_collect()
+jobs    <- jobs[!is.na(jobs$output_dir), ]
+records <- read_output_records(setNames(jobs$output_dir, jobs$group_id))
+```
+
+`htc_collect()` knows where each job's results landed; `read_output_records()`
+knows what the record inside means, because `toolero` wrote it. When a job
+crashed before `generate_manifest()` ran, its accumulator is usually still
+there, and `read_output_records()` reads that instead, with a warning, so
+the rows for that job still show what was saved before it stopped.
+
 ### Auditing a project: `check_project()`
 
 `check_project()` audits an existing project directory -- one created by
@@ -750,6 +783,7 @@ the notation and sizing options deserve room of their own.
 | `run_by_group()` | Applies a function to each group from a job manifest or a named list, sequentially or in parallel. |
 | `save_output()` | Writes an object to disk via a user-supplied function and records the write in a project-level accumulator. `output_dir` can be resolved from `_toolero.yml` via `config`. |
 | `generate_manifest()` | Reads the accumulator and writes the output record, a deduplicated `project-manifest.json` describing everything the analysis produced, including the git commit checked out at the time (when available). |
+| `read_output_records()` | Reads one or more output records back as a tibble, one row per artifact, falling back to the accumulator when a record is missing. Experimental. |
 | `detect_execution_context()` | Detects whether code is running interactively, during `quarto render`, or as an `Rscript` job. |
 | `resolve_input_path()` | Resolves the input data path for the current execution context, and explains what went wrong when it cannot. |
 | `generate_kb_xml()` | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base-ready XML with embedded resources and metadata extracted from the source `.qmd`. |
