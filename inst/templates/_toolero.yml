@@ -10,8 +10,17 @@
 #
 # Who reads it:
 #   check_project()                  audits the project against this file
-#   containr::generate_dockerfile()  learns which folders belong in the image
-#   submitr::htc_gen_executable()    learns where the analysis writes output
+#   save_output(), generate_manifest(), read_output_records()
+#                                    find the output folder from output_dir,
+#                                    when passed config =
+#   write_by_group()                 finds its split folder from split_dir,
+#                                    when passed config =
+#   containr::generate_dockerfile()  copies data-raw and assets into the
+#                                    image and creates every folder there,
+#                                    when passed config =
+#   submitr::htc_gen_submit(),       find the job manifest from split_dir
+#   submitr::htc_gen_executable()    and the output folder from output_dir,
+#                                    when passed htc_config(project_config = )
 #
 # Commit this file. It describes the project, not your machine.
 #
@@ -29,9 +38,11 @@ folders:
 {{folders}}
 
 # Names the toolero family resolves rather than assumes.
-#   output_dir  where the analysis writes artifacts, read by save_output()
-#               and generate_manifest()
-#   script_dir  where the .R script derived from the .qmd lives
+#   output_dir  where the analysis writes artifacts, read by save_output(),
+#               generate_manifest() and read_output_records()
+#   script_dir  where the .R script derived from the .qmd lives. The script
+#               travels with each cluster job, so containr does not copy it
+#               into the image
 #   split_dir   where write_by_group() writes its per-group subsets
 conventions:
 {{conventions}}

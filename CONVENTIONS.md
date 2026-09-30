@@ -211,10 +211,8 @@ schema_version: 1
 folders:
   - data-raw
   - data
-  - data/jobs
   - R
   - scripts
-  - output
   - output/figures
   - output/tables
   - reports
@@ -222,9 +220,12 @@ conventions:
   output_dir: output
   script_dir: R
   split_dir: data/jobs
-  raw_dir: data-raw
-  clean_dir: data
 ```
+
+That is what `init_project()` writes with its defaults, minus the comments
+the template adds; `branding = TRUE` or `"uw-madison"` adds `assets` to
+`folders:`. `data/jobs` is not created up front: `write_by_group()` creates
+it the first time it splits data there.
 
 Four rules govern it.
 
@@ -367,13 +368,13 @@ append-only log; the output record is its deduplicated, end-of-run summary
 (section 7).
 
 The **submission state** is `submitr`'s working memory for the job in
-progress, kept in `htc-manifest.yaml`: which files were generated, where they
+progress, kept in `htc-manifest.yml`: which files were generated, where they
 were uploaded, and which cluster ID came back. It is updated as the work
 proceeds and read only by `submitr` itself.
 
 The file and function names predate these terms and are kept for
 compatibility, so `generate_manifest()` writes the output record and
-`htc-manifest.yaml` holds the submission state. Use the term in prose and the
+`htc-manifest.yml` holds the submission state. Use the term in prose and the
 file name in code. Unqualified, the word "manifest" means none of these; use
 one of the four terms instead.
 
@@ -390,10 +391,11 @@ accept: a file the user names explicitly, such as a profile passed to
 `init_project(config = )`, is read whatever its extension. GitHub Actions
 workflow files under `.github/workflows/` keep `.yaml`, since that is what
 `usethis` and GitHub's own templates write, and they belong to the repository
-rather than to the family. At the time of writing, `submitr`'s two files are
-still `htc-manifest.yaml` and `htc-resources.yaml`; both move to `.yml` in
-`submitr` 0.2.0, which reads an existing `htc-resources.yaml` as a fallback for
-one release.
+rather than to the family. `submitr` 0.2.0 made the last two renames:
+`htc-manifest.yaml` became `htc-manifest.yml` with no fallback, since no
+release ever wrote it, and `htc-resources.yaml` became `htc-resources.yml`,
+with a project's own `htc-resources.yaml` still read, with a warning, for
+that one release.
 
 **Development packages** are what you install with `apt-get` to build an R
 package from source: `libfreetype-dev`, `libpng-dev`. **Headers** are one of the
@@ -452,6 +454,14 @@ stopped being baked into the image.)
 ## Version history
 
 Section numbers in each entry are as they stood at the time.
+
+**2026-09 (the `.yml` renames complete).** Section 8's vocabulary names
+the submission state by its new file name, `htc-manifest.yml`, and the
+`.yml` paragraph records that `submitr` 0.2.0 made both of its renames.
+Section 6's example file is corrected to what `init_project()` actually
+writes: it had shown `output` and `data/jobs` among the folders and
+`raw_dir` and `clean_dir` among the conventions, none of which the
+function writes. The conventions themselves do not change.
 
 **2026-09 (the output record's reader).** Section 7 names
 `read_output_records()` as `toolero`'s reader for the output record (T37).
