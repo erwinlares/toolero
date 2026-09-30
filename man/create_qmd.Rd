@@ -16,8 +16,11 @@ create_qmd(
 )
 }
 \arguments{
-\item{filename}{A string or \code{NULL}. Name of the generated \code{.qmd} file.
-Must be supplied explicitly, e.g. \code{"analysis.qmd"}.}
+\item{filename}{A string or \code{NULL}. Name of the generated \code{.qmd} file,
+relative to \code{path}. Must be supplied explicitly, e.g.
+\code{"analysis.qmd"} or \code{"reports/analysis.qmd"}. A folder named in it is
+created if it does not exist. See the section on documents in
+subfolders below.}
 
 \item{path}{A string. Path to the directory where the document will be
 created. Defaults to \code{"."} (the current working directory).}
@@ -201,6 +204,26 @@ Penguin Data. \doi{10.5281/zenodo.3960218}. Collected by Palmer
 Station Antarctica LTER, a member of the Long Term Ecological
 Research Network.
 }
+}
+\section{Documents in subfolders}{
+
+\code{path} is the project root; \code{filename} may place the document below it,
+as in \code{create_qmd("reports/analysis.qmd")}. The sample data, the
+placeholder logo, \code{R/purl.R}, and \verb{_quarto.yml} still go to the project
+root. Paths in the document follow two rules:
+\itemize{
+\item \strong{Code paths start at the project root.} The example template writes
+its results with \code{here::here("output", ...)}, and its
+\code{params: input_file: "data-raw/sample.csv"} is read from the root by
+\code{\link[=resolve_input_path]{resolve_input_path()}}, so the same code works at the root, in
+\verb{reports/}, and on an HTCondor execute node.
+\item \strong{Header paths are relative to the document}, because that is how
+Quarto resolves them. For a document in \verb{reports/}, \code{use_style}
+writes \code{css: ../assets/styles.css}, and likewise for the two
+\verb{include-*} entries. When a header include is wired in, the
+document's \code{resource-path} also lists the project root, so the logo
+\code{header.html} refers to as \code{assets/logo.png} is found.
+}
 
 Every edit to the document's YAML header is made line by line rather
 than by parsing the header and writing it back out. Keys the edit does
@@ -212,6 +235,7 @@ Note: \code{filename} has no default value and must always be supplied
 explicitly. Use \code{tempdir()} for temporary output during testing or
 exploration.
 }
+
 \examples{
 \donttest{
 # Minimal blank document -- no examples, no styling, no purl

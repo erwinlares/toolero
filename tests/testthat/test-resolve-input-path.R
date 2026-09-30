@@ -293,3 +293,84 @@ test_that("params_input_file() searches enclosing environments", {
 
     expect_equal(.params_input_file(inner), "data-raw/x.csv")
 })
+
+
+# -- Relative paths start at the project root (T40) -----------------------------
+# A document under reports/ is rendered with reports/ as its working
+# directory, but its params still say data-raw/sample.csv. The interactive
+# and quarto branches read a relative path from the project root; the rscript
+# branch, which runs on an execute node, does not.
+
+local_project_with_data <- function(env = parent.frame()) {
+    root <- withr::local_tempdir(.local_envir = env)
+    file.create(fs::path(root, ".here"))
+    fs::dir_create(fs::path(root, "data-raw"))
+    fs::dir_create(fs::path(root, "reports"))
+    readr::write_file("a,b\n1,2\n", fs::path(root, "data-raw", "sample.csv"))
+    as.character(fs::path_real(root))
+}
+
+test_that("a relative quarto path is read from the project root", {
+    root <- local_project_with_data()
+    withr::local_dir(fs::path(root, "reports"))
+
+    expect_equal(
+        resolve_input_path(quarto = "data-raw/sample.csv", context = "quarto"),
+        as.character(fs::path(root, "data-raw", "sample.csv"))
+    )
+})
+
+test_that("params$input_file in a subfolder document is read from the project root", {
+    root <- local_project_with_data()
+    withr::local_dir(fs::path(root, "reports"))
+    params <- list(input_file = "data-raw/sample.csv")
+
+    expect_equal(
+        resolve_input_path(context = "interactive"),
+        as.character(fs::path(root, "data-raw", "sample.csv"))
+    )
+})
+
+test_that("the rscript branch is not joined to the project root", {
+    root <- local_project_with_data()
+    withr::local_dir(fs::path(root, "reports"))
+
+    expect_equal(
+        resolve_input_path(rscript = "data-raw/sample.csv", context = "rscript",
+                           must_exist = FALSE),
+        "data-raw/sample.csv"
+    )
+})
+
+test_that("a path written relative to the document still works", {
+    # Documents written before the project-root rule used ../ paths.
+    root <- local_project_with_data()
+    withr::local_dir(fs::path(root, "reports"))
+
+    expect_equal(
+        resolve_input_path(interactive = "../data-raw/sample.csv",
+                           context = "interactive"),
+        "../data-raw/sample.csv"
+    )
+})
+
+test_that("a URL is never joined to the project root", {
+    root <- local_project_with_data()
+    withr::local_dir(fs::path(root, "reports"))
+
+    expect_equal(
+        resolve_input_path(interactive = "https://example.org/data.csv",
+                           context = "interactive", must_exist = FALSE),
+        "https://example.org/data.csv"
+    )
+})
+
+test_that("a missing relative path is reported against the project root", {
+    root <- local_project_with_data()
+    withr::local_dir(fs::path(root, "reports"))
+
+    expect_error(
+        resolve_input_path(quarto = "data-raw/missing.csv", context = "quarto"),
+        "root"
+    )
+})

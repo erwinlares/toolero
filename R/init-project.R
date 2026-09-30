@@ -100,6 +100,17 @@
 #' `schema_version` field exists so that a reader can tell whether it
 #' understands what it is holding.
 #'
+#' @section The `.here` marker:
+#' `init_project()` also writes an empty `.here` file at the project root.
+#' It marks the root for `here::here()`, which the documents
+#' [create_qmd()] scaffolds use to build paths, and for toolero's own
+#' functions that take paths from the project root ([resolve_input_path()],
+#' [save_output()], [generate_manifest()]). An `.Rproj` file or a `.git`
+#' folder would serve too, but a project created outside RStudio and
+#' without git has neither, so `.here` guarantees a marker. Commit it. It
+#' is never sent to an execute node, so there the job's scratch directory
+#' stands in for the root. An existing `.here` is left as it is.
+#'
 #' @section Empty folders and git:
 #' Each folder `init_project()` creates that is still empty when the call
 #' finishes receives a zero-byte `.gitkeep`.
@@ -535,6 +546,16 @@ init_project <- function(path,
     cli::cli_alert_success(
         "Recorded project structure in {.file {manifest_name}}"
     )
+
+    # -- 12b. Mark the project root for here::here() --------------------------
+    # .Rproj exists only when the project was created from RStudio, and
+    # .git only with use_git = TRUE, so neither can be relied on as the
+    # marker here::here() and .project_root() look for. .here always can.
+    here_marker <- fs::path(path, ".here")
+    if (!fs::file_exists(here_marker)) {
+        fs::file_create(here_marker)
+        cli::cli_alert_success("Marked the project root with {.file .here}")
+    }
 
     # -- 13. Set up renv -----------------------------------------------------
     # scaffold(), not init(). init() loads the project into the CALLING

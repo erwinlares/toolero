@@ -93,6 +93,40 @@
   Reference examples of the format live in
   `tests/testthat/fixtures/output-records/`.
 
+* Paths in analysis code now start at the project root, the rule
+  `here::here()` follows, so a document can live in `reports/` (or any
+  folder below the root) and run unchanged there, at the root, and on a
+  cluster. toolero gains `here` and `rprojroot` as dependencies.
+  - `init_project()` writes an empty `.here` file at the project root, a
+    marker `here::here()` finds even in a project created outside RStudio
+    and without git. Commit it.
+  - `create_qmd()` accepts a `filename` in a subfolder
+    (`"reports/analysis.qmd"`) and creates the folder. The sample data,
+    logo, `R/purl.R`, and `_quarto.yml` still go to the project root.
+    Header paths from `use_style` are written relative to the document
+    (`css: ../assets/styles.css`), since Quarto resolves them from there,
+    and a document below the root that includes `header.html` or
+    `footer.html` also lists the root on its `resource-path`, so the logo
+    those files refer to is found. The example template writes its results
+    to `here::here("output")`.
+  - `resolve_input_path()` reads a relative path from the project root in
+    the `interactive` and `quarto` contexts, so `input_file:
+    data-raw/sample.csv` works from any folder. A path that exists only
+    relative to the working directory is still used as it is, so documents
+    written with `../` paths keep working. The `rscript` context is left
+    alone.
+  - `save_output()` and `generate_manifest()` default `output_dir` to
+    `output/` under the project root rather than under the working
+    directory, and a relative `output_dir` convention in `config` is taken
+    from the folder holding the config. An explicit `output_dir` is still
+    used exactly as given. `save_output()` records `file_path` relative to
+    the project root when the file is inside the project, so the output
+    record never carries a home directory.
+
+  On an HTCondor execute node no marker is uploaded, so the job's scratch
+  directory stands in for the project root and `output/` means the job's
+  own results folder.
+
 * `check_project()` gains a stale purled scripts check. Every `.qmd` under
   the project whose header declares `purl: true` (see `create_qmd()`'s
   `use_purl` argument) gets its own row, comparing it against the `.R`

@@ -1453,3 +1453,128 @@ test_that("reports why the logo was skipped", {
     "does not declare"
   )
 })
+
+# -- T40: documents in subfolders ------------------------------------------------
+# Code paths start at the project root (here::here(), resolve_input_path());
+# header paths are relative to the document, because Quarto resolves them
+# from there.
+
+read_header <- function(file) {
+  header <- .split_yaml_header(readr::read_file(file))$header
+  yaml::yaml.load(paste(header, collapse = "\n"))
+}
+
+test_that("creates the document's folder when filename includes one", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(path = tmp, filename = "reports/analysis.qmd")
+
+  expect_true(fs::file_exists(fs::path(tmp, "reports", "analysis.qmd")))
+})
+
+test_that("creates nested folders two levels down", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(path = tmp, filename = "reports/2026/analysis.qmd",
+             include_examples = FALSE)
+
+  expect_true(fs::file_exists(fs::path(tmp, "reports", "2026", "analysis.qmd")))
+})
+
+test_that("sample data and the logo stay at the project root for a subfolder document", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(path = tmp, filename = "reports/analysis.qmd")
+
+  expect_true(fs::file_exists(fs::path(tmp, "data-raw", "sample.csv")))
+  expect_true(fs::file_exists(fs::path(tmp, "assets", "logo.png")))
+  expect_false(fs::dir_exists(fs::path(tmp, "reports", "data-raw")))
+})
+
+test_that("the input path in a subfolder document stays relative to the project root", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(path = tmp, filename = "reports/analysis.qmd")
+
+  parsed <- read_header(fs::path(tmp, "reports", "analysis.qmd"))
+  expect_equal(parsed[["params"]][["input_file"]], "data-raw/sample.csv")
+})
+
+test_that("the example template writes its results with here::here()", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(path = tmp, filename = "analysis.qmd")
+
+  qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
+  expect_true(grepl('here::here("output")', qmd_content, fixed = TRUE))
+})
+
+test_that("style paths in a subfolder document are relative to the document", {
+  tmp <- withr::local_tempdir()
+  make_style_dir(tmp)
+
+  create_qmd(path = tmp, filename = "reports/analysis.qmd",
+             include_examples = FALSE, use_style = TRUE)
+
+  html <- read_header(fs::path(tmp, "reports", "analysis.qmd"))[["format"]][["html"]]
+  expect_equal(html[["css"]], "../assets/styles.css")
+  expect_equal(html[["include-before-body"]], "../assets/header.html")
+  expect_equal(html[["include-after-body"]], "../assets/footer.html")
+})
+
+test_that("style paths two levels down climb two levels", {
+  tmp <- withr::local_tempdir()
+  make_style_dir(tmp)
+
+  create_qmd(path = tmp, filename = "reports/2026/analysis.qmd",
+             include_examples = FALSE, use_style = TRUE)
+
+  html <- read_header(fs::path(tmp, "reports", "2026", "analysis.qmd"))[["format"]][["html"]]
+  expect_equal(html[["css"]], "../../assets/styles.css")
+})
+
+test_that("a subfolder document with a header include lists the project root on its resource path", {
+  tmp <- withr::local_tempdir()
+  make_style_dir(tmp)
+
+  create_qmd(path = tmp, filename = "reports/analysis.qmd",
+             include_examples = FALSE, use_style = TRUE)
+
+  html <- read_header(fs::path(tmp, "reports", "analysis.qmd"))[["format"]][["html"]]
+  expect_equal(unlist(html[["resource-path"]]), c(".", ".."))
+})
+
+test_that("a document at the project root gets no resource path", {
+  tmp <- withr::local_tempdir()
+  make_style_dir(tmp)
+
+  create_qmd(path = tmp, filename = "analysis.qmd",
+             include_examples = FALSE, use_style = TRUE)
+
+  html <- read_header(fs::path(tmp, "analysis.qmd"))[["format"]][["html"]]
+  expect_equal(html[["css"]], "assets/styles.css")
+  expect_null(html[["resource-path"]])
+})
+
+test_that("a subfolder document with only a stylesheet gets no resource path", {
+  tmp <- withr::local_tempdir()
+  fs::dir_create(fs::path(tmp, "assets"))
+  readr::write_file("body {}", fs::path(tmp, "assets", "styles.css"))
+
+  create_qmd(path = tmp, filename = "reports/analysis.qmd",
+             include_examples = FALSE, use_style = TRUE)
+
+  html <- read_header(fs::path(tmp, "reports", "analysis.qmd"))[["format"]][["html"]]
+  expect_equal(html[["css"]], "../assets/styles.css")
+  expect_null(html[["resource-path"]])
+})
+
+test_that("R/purl.R and _quarto.yml stay at the project root for a subfolder document", {
+  tmp <- withr::local_tempdir()
+
+  create_qmd(path = tmp, filename = "reports/analysis.qmd", use_purl = TRUE)
+
+  expect_true(fs::file_exists(fs::path(tmp, "R", "purl.R")))
+  expect_true(fs::file_exists(fs::path(tmp, "_quarto.yml")))
+  expect_false(fs::file_exists(fs::path(tmp, "reports", "_quarto.yml")))
+})

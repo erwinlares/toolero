@@ -20,7 +20,11 @@ save_output(
 
 \item{file_path}{Character. A single destination path for \code{object}. Its
 parent directory is created if it does not already exist, and the
-creation is reported.}
+creation is reported. Build it with \code{here::here()}
+(\code{here::here("output", "fit.rds")}) so it points at the project's
+\verb{output/} folder wherever the code runs. It is recorded in the
+accumulator relative to the project root (\code{"output/fit.rds"}) when it
+lies inside the project, and as given otherwise.}
 
 \item{.f}{A function used to perform the save, called as
 \code{.f(object, file_path, ...)}. Supply the function itself (for example
@@ -41,10 +45,15 @@ nothing is recorded.}
 alongside this row.}
 
 \item{output_dir}{Character or \code{NULL}. Directory containing (or to
-contain) the accumulator. If \code{NULL} (the default) and \code{config} is
-supplied, resolved from the config's \code{output_dir} convention; if
-\code{config} is also \code{NULL}, falls back to \code{"output"}, the family-wide
-convention, unchanged from earlier versions.}
+contain) the accumulator. An explicit value is used exactly as given.
+If \code{NULL} (the default), resolved from \code{config}'s \code{output_dir}
+convention when \code{config} is supplied, or \code{"output"} otherwise, and in
+either case taken from the project root rather than the working
+directory: the folder holding \code{config}, or the nearest folder above
+the working directory that carries a project marker (the \code{.here} file
+\code{\link[=init_project]{init_project()}} writes, an \code{.Rproj} file, or a \code{.git} folder). With
+no marker at all, as on an HTCondor execute node, the working
+directory is the root.}
 
 \item{config}{Character or \code{NULL}. Path to a project configuration file
 (typically a project's own \verb{_toolero.yml}, as written by
@@ -83,11 +92,14 @@ relies on this when keeping the latest row per \code{file_path}.
 }
 \section{Project conventions}{
 
-\code{config} is entirely opt-in. Nothing changes for a project never
-scaffolded by \code{\link[=init_project]{init_project()}}: pass \code{output_dir} (or rely on the
-\code{"output"} default) exactly as before. When \code{config} is supplied but
-cannot be read, this aborts with the same message \code{\link[=init_project]{init_project()}} gives
-for a bad \code{config}, rather than silently falling back to \code{"output"}.
+Paths in analysis code start at the project root, the same rule
+\code{here::here()} follows, so the accumulator for a document under
+\verb{reports/} lands in the project's own \verb{output/} rather than in
+\verb{reports/output/}. \code{config} is opt-in: without it, \code{output_dir}
+defaults to \verb{output/} under the project root. When \code{config} is
+supplied but cannot be read, this aborts with the same message
+\code{\link[=init_project]{init_project()}} gives for a bad \code{config}, rather than silently falling
+back to \code{"output"}.
 }
 
 \examples{

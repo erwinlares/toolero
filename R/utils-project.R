@@ -552,3 +552,134 @@
         unname(known[idx])
     }
 }
+
+
+#' The criterion that identifies a project root
+#'
+#' Internal helper. The same markers `here::here()` looks for, so that
+#' toolero's own functions and the `here::here()` calls in a scaffolded
+#' document agree on where the project root is: a `.here` file (which
+#' [init_project()] writes), an RStudio `.Rproj` file, an R package
+#' `DESCRIPTION`, a `remake.yml`, a `.projectile` file, or a version
+#' control root (`.git`, `.svn`).
+#'
+#' @return An `rprojroot` root criterion.
+#'
+#' @keywords internal
+.project_root_criterion <- function() {
+    rprojroot::has_file(".here") |
+        rprojroot::is_rstudio_project |
+        rprojroot::is_r_package |
+        rprojroot::is_remake_project |
+        rprojroot::is_projectile_project |
+        rprojroot::is_vcs_root
+}
+
+
+#' Find the project root from a directory
+#'
+#' Internal helper used by [resolve_input_path()], [save_output()], and
+#' [generate_manifest()]. Walks up from `path` looking for any marker in
+#' [.project_root_criterion()] and returns the first directory that has
+#' one. When none is found, returns `path` itself: that is what happens on
+#' an HTCondor execute node, where no marker is uploaded, so the job's
+#' scratch directory stands in for the project root and `output/` means
+#' the same thing there as it does on the laptop.
+#'
+#' Unlike `here::here()`, which fixes the root once when the `here`
+#' package is loaded, this looks every time it is called. A function in a
+#' package cannot assume the session has stayed in one project, and the
+#' test suite changes directory between tests.
+#'
+#' @param path Character. The directory to start from. Defaults to the
+#'   working directory.
+#'
+#' @return A single character string: the absolute, symlink-resolved path
+#'   to the project root.
+#'
+#' @keywords internal
+.project_root <- function(path = ".") {
+    start <- fs::path_real(path)
+
+    root <- tryCatch(
+        rprojroot::find_root(.project_root_criterion(), path = start),
+        error = function(cnd) start
+    )
+
+    as.character(fs::path_real(root))
+}
+
+
+#' Express a file path relative to the project root, when it is inside it
+#'
+#' Internal helper used by [save_output()] to record `file_path` in the
+#' accumulator. A path inside `root` is returned relative to it
+#' (`"output/fit.rds"`), whether it was given as absolute (from
+#' `here::here()`) or relative to a working directory somewhere below the
+#' root. A path outside `root` is returned exactly as given, since there is
+#' no project-relative form to offer.
+#'
+#' @param file_path Character. The path as given to [save_output()]. Its
+#'   parent directory must already exist.
+#' @param root Character. The project root, as returned by
+#'   [.project_root()].
+#'
+#' @return A single character string.
+#'
+#' @keywords internal
+.path_from_root <- function(file_path, root) {
+    parent   <- fs::path_real(fs::path_dir(fs::path_abs(file_path)))
+    absolute <- as.character(fs::path(parent, fs::path_file(file_path)))
+    root     <- as.character(fs::path_real(root))
+
+    inside <- identical(absolute, root) ||
+        startsWith(absolute, paste0(root, "/"))
+
+    if (!inside) {
+        return(file_path)
+    }
+
+    as.character(fs::path_rel(absolute, start = root))
+}
+
+
+#' Resolve the directory that holds the accumulator and the output record
+#'
+#' Internal helper shared by [save_output()] and [generate_manifest()]. An
+#' explicit `output_dir` is used exactly as given. Otherwise the directory
+#' comes from `config`'s `output_dir` convention, or is `"output"`, and a
+#' relative value is taken from the project root: the directory holding
+#' `config` when one is supplied, [.project_root()] otherwise. So
+#' `output/` means the project's own output folder whether the code runs at
+#' the project root, in a document under `reports/`, or on an execute
+#' node.
+#'
+#' @param output_dir Character or `NULL`. The caller's explicit value.
+#' @param config Character or `NULL`. Path to a project config.
+#'
+#' @return A single character string.
+#'
+#' @keywords internal
+.resolve_output_dir <- function(output_dir, config) {
+    if (!is.null(output_dir)) {
+        return(output_dir)
+    }
+
+    if (!is.null(config)) {
+        resolved <- .read_config_file(config, arg = "config")
+        dir      <- resolved$conventions$output_dir
+        cli::cli_inform(
+            "Using {.field output_dir} ({.val {dir}}) from {.path {config}}."
+        )
+        root <- fs::path_dir(fs::path_abs(config))
+    } else {
+        dir  <- "output"
+        root <- .project_root()
+    }
+
+    if (fs::is_absolute_path(dir)) {
+        return(as.character(dir))
+    }
+
+    as.character(fs::path(root, dir))
+}

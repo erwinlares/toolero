@@ -105,6 +105,18 @@ test_that("init_project() writes _toolero.yml at the project root", {
     expect_true(fs::file_exists(fs::path(proj, "_toolero.yml")))
 })
 
+test_that("init_project() writes a .here marker at the project root", {
+    # here::here() in scaffolded documents, and toolero's own
+    # project-root lookup, both need a marker; .Rproj and .git are not
+    # always there, .here always is.
+    proj <- fs::path(tmp, "here-01")
+    init_project(proj, use_renv = FALSE, use_git = FALSE)
+
+    expect_true(fs::file_exists(fs::path(proj, ".here")))
+    expect_equal(.project_root(fs::path(proj, "reports")),
+                 as.character(fs::path_real(proj)))
+})
+
 test_that("the manifest carries schema_version, folders, and conventions", {
     proj <- fs::path(tmp, "man-02")
     init_project(proj, use_renv = FALSE, use_git = FALSE)

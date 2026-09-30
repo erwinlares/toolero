@@ -301,6 +301,13 @@ project built from a `config`, one built with `custom_folders`, and one built
 from the defaults all produce the same shape of file and nobody has to replay
 anything to learn what the project looks like. Commit it.
 
+`init_project()` also writes an empty `.here` file at the project root.
+Commit that too. It marks the root for `here::here()`, which scaffolded
+documents use to build their paths (see `save_output()` below), and for
+toolero's own functions that read paths from the root. An `.Rproj` file or
+a `.git` folder would do the same job, but a project created outside
+RStudio and without git has neither.
+
 Every folder `init_project()` creates that is still empty when the call
 finishes also receives a zero-byte `.gitkeep`. git tracks files rather than
 directories, so without this a scaffolded structure survives nothing: the
@@ -573,6 +580,24 @@ create_qmd(path = "my-project", filename = "report.qmd",
 create_qmd(path = "my-project", filename = "analysis.qmd",
            header_defaults = "my-config.yml")
 ```
+
+A document can live below the project root, the usual arrangement being
+`reports/`:
+
+```r
+create_qmd(path = "my-project", filename = "reports/analysis.qmd",
+           use_style = TRUE)
+```
+
+The folder is created if needed; the sample data, the logo, `R/purl.R`, and
+`_quarto.yml` still go to the project root. Code in the document keeps
+paths that start at the project root, `data-raw/sample.csv` in `params:`
+and `here::here("output")` for results, so it runs unchanged at the root, in
+`reports/`, and on a cluster. Header paths are the exception, because Quarto
+resolves them relative to the document: `use_style` writes
+`css: ../assets/styles.css` for a document in `reports/`, and adds the
+project root to the document's `resource-path` so the logo in `header.html`
+is found.
 
 If `use_purl = TRUE` is used inside an existing website, book, or manuscript
 project, `_quarto.yml` is left untouched and a warning names what to add by
@@ -896,7 +921,7 @@ nothing else does.
 # Save a model and record it
 save_output(
   model,
-  "output/model.rds",
+  here::here("output", "model.rds"),
   .f   = saveRDS,
   note = "Final model, trained on full dataset."
 )
@@ -907,15 +932,27 @@ save_output(
 # write.csv(), write_clean_csv() -- can be passed directly.
 save_output(
   my_plot,
-  "output/figures/coefficients.png",
+  here::here("output", "figures", "coefficients.png"),
   .f     = \(object, file_path, ...) ggplot2::ggsave(file_path, object, ...),
   width  = 8,
   height = 5
 )
 
 # Write the output record at the end of the analysis
-generate_manifest(output_dir = "output")
+generate_manifest()
 ```
+
+Paths in analysis code start at the project root, so build them with
+`here::here()` rather than writing `"output/model.rds"`. A document under
+`reports/` runs with `reports/` as its working directory when rendered, and
+a bare `"output/..."` would put its results in `reports/output/`.
+`here::here()` finds the project root from wherever the code runs, and on
+a cluster, where there is no project root to find, it uses the job's
+working directory, which is where the results folder is. `save_output()`
+and `generate_manifest()` follow the same rule for their own default:
+`output_dir` is `output/` under the project root. And `save_output()`
+records each `file_path` relative to the project root (`output/model.rds`),
+so the output record never carries your home directory.
 
 `save_output()` calls the writer as `.f(object, file_path, ...)`, so a
 writer whose own signature puts the destination first needs a wrapper, as
@@ -961,7 +998,7 @@ real time, the recommended pattern is:
 tryCatch(
   {
     # ... analysis code ...
-    save_output(results, "output/results.rds", .f = saveRDS)
+    save_output(results, here::here("output", "results.rds"), .f = saveRDS)
   },
   finally = try(generate_manifest(), silent = TRUE)
 )
@@ -1036,6 +1073,13 @@ that has to be kept in step with it.
 ```r
 input_file <- resolve_input_path()
 ```
+
+In the interactive and Quarto contexts, a relative path is read from the
+project root, so a document in `reports/` can declare
+`input_file: data-raw/sample.csv` and find the file whether it is rendered
+or run chunk by chunk. The `rscript` context is left alone: on a cluster
+the path arrives as a command line argument that already points at the
+file.
 
 Set `must_exist = FALSE` when the resolved value is a URL or anything else
 that is not a local file.
@@ -1218,8 +1262,9 @@ stability surface accordingly.
 handling, data import, documentation, and workflow automation:
 
 ```text
-cli, fs, glue, janitor, jsonlite, lifecycle, parallelly, purrr, quarto,
-readr, renv, rlang, rvest, tibble, tidyr, usethis, utils, withr, xml2, yaml
+cli, fs, glue, here, janitor, jsonlite, lifecycle, parallelly, purrr,
+quarto, readr, renv, rlang, rprojroot, rvest, tibble, tidyr, usethis, utils,
+withr, xml2, yaml
 ```
 
 Some functions need a package that is suggested rather than required, so

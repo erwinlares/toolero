@@ -693,3 +693,32 @@ test_that("every artifact in the good fixture carries exactly the accumulator fi
         expect_identical(names(artifact), .accumulator_columns())
     }
 })
+
+# -- Paths from the project root (T40) ------------------------------------------
+
+test_that("the default output_dir is output/ under the project root, as for save_output()", {
+    root <- withr::local_tempdir()
+    file.create(fs::path(root, ".here"))
+    fs::dir_create(fs::path(root, "reports"))
+    make_accumulator(fs::path(root, "output"), make_row())
+    withr::local_dir(fs::path(root, "reports"))
+
+    suppressMessages(generate_manifest())
+
+    expect_true(fs::file_exists(fs::path(root, "output", "project-manifest.json")))
+    expect_false(fs::dir_exists(fs::path(root, "reports", "output")))
+})
+
+test_that("save_output() and generate_manifest() meet at the same accumulator from a subfolder", {
+    root <- withr::local_tempdir()
+    file.create(fs::path(root, ".here"))
+    fs::dir_create(fs::path(root, "reports"))
+    withr::local_dir(fs::path(root, "reports"))
+
+    save_output(mtcars, fs::path(root, "output", "a.rds"), .f = saveRDS)
+    suppressMessages(generate_manifest())
+
+    manifest <- read_manifest(fs::path(root, "output"))
+    expect_length(manifest$artifacts, 1L)
+    expect_equal(manifest$artifacts[[1L]]$file_path, "output/a.rds")
+})

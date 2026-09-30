@@ -84,6 +84,10 @@ library(toolero)
 # Only the branch matching the current context is evaluated, so the
 # params reference below is safe under Rscript, where params does not
 # exist at all.
+#
+# "data-raw/sample.csv" is read from the project root, not from the folder
+# this document sits in, so the same path works whether the document is at
+# the root or under reports/.
 
 input_file <- resolve_input_path(
   interactive = "data-raw/sample.csv",
@@ -167,12 +171,14 @@ p_plot
 ```{r}
 #| label: save-results
 
-# Write outputs to an output/ folder in the working directory.
-# When this script runs locally, results appear alongside your project.
-# When it runs on a cluster via submitr, the executable script (.sh)
-# packages this folder into a tarball for transfer.
+# here::here() builds paths from the project root, so results land in the
+# project's own output/ folder wherever this document sits and whether it
+# is rendered or run chunk by chunk. On a cluster via submitr there is no
+# project root to find, so here::here() uses the job's working directory,
+# and the executable script (.sh) packages that output/ folder into a
+# tarball for transfer.
 
-output_dir <- "output"
+output_dir <- here::here("output")
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 write_clean_csv(

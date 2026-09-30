@@ -14,10 +14,12 @@ generate_manifest(
 }
 \arguments{
 \item{output_dir}{Character or \code{NULL}. Directory containing
-\code{accumulator.csv} and receiving the output record. If \code{NULL} (the
-default) and \code{config} is supplied, resolved from the config's \code{output_dir}
-convention; if \code{config} is also \code{NULL}, falls back to \code{"output"},
-unchanged from earlier versions.}
+\code{accumulator.csv} and receiving the output record. An explicit value is
+used exactly as given. If \code{NULL} (the default), resolved from
+\code{config}'s \code{output_dir} convention when \code{config} is supplied, or
+\code{"output"} otherwise, taken from the project root rather than the
+working directory, exactly as \code{\link[=save_output]{save_output()}} resolves it, so the two
+always meet at the same accumulator.}
 
 \item{filename}{Character. Name of the output record file. Defaults to
 \code{"project-manifest.json"}.}
@@ -81,9 +83,8 @@ records which revision of the analysis script itself ran. Like
 and is not repeated per artifact.
 
 \code{config} is entirely opt-in and affects \code{output_dir} only, not \code{commit}.
-Nothing changes for a project never scaffolded by \code{\link[=init_project]{init_project()}}: pass
-\code{output_dir} (or rely on the \code{"output"} default) exactly as before. When
-\code{config} is supplied but cannot be read, this aborts with the same
+Without it, \code{output_dir} defaults to \verb{output/} under the project root.
+When \code{config} is supplied but cannot be read, this aborts with the same
 message \code{\link[=init_project]{init_project()}} gives for a bad \code{config}, rather than silently
 falling back to \code{"output"}.
 }
@@ -101,7 +102,8 @@ precision (\code{"2026-09-29T18:04:12.345Z"}).
 \item \code{commit} -- a 40-character git commit SHA, or \code{null}.
 \item \code{artifacts} -- an array, empty rather than absent when nothing was
 saved. Each entry carries the seven accumulator fields: \code{file_path}
-(the path as passed to \code{\link[=save_output]{save_output()}}), \code{r_class} (the object's
+(relative to the project root when the file is inside the project,
+as given to \code{\link[=save_output]{save_output()}} otherwise), \code{r_class} (the object's
 classes joined with \code{"|"}), \code{timestamp} (same format as
 \code{generated_at}), \code{function_used}, \code{status} (\code{"success"} or
 \code{"failure"}), \code{error_message}, and \code{note}. A field with no value is

@@ -27,7 +27,27 @@
 #'   [detect_execution_context()]. Supply it directly in tests, or when the
 #'   caller has already computed it and does not want a second call.
 #'
-#' @return A single character string: the resolved path.
+#' @return A single character string: the resolved path. In the
+#'   `interactive` and `quarto` contexts, a relative path is returned
+#'   joined to the project root (see the section below).
+#'
+#' @section Relative paths start at the project root:
+#' In the `interactive` and `quarto` contexts, a relative path such as
+#' `"data-raw/sample.csv"` is read from the project root, the same rule
+#' `here::here()` follows, not from the working directory. So a document
+#' under `reports/` can declare `input_file: data-raw/sample.csv` in its
+#' header and find the file whether it is rendered (Quarto runs the code
+#' in `reports/`) or run chunk by chunk in RStudio. The root is the
+#' nearest folder above the working directory carrying a project marker:
+#' the `.here` file [init_project()] writes, an `.Rproj` file, or a `.git`
+#' folder. For documents written before this rule, a path that exists
+#' relative to the working directory but not from the root is still used
+#' as it is.
+#'
+#' The `rscript` context is left alone. On an HTCondor execute node the
+#' path arrives as a command line argument that already points at the file:
+#' an absolute path to data baked into the image, or a bare subset file
+#' name in the job's scratch directory.
 #'
 #' @details
 #' Each of the three arguments is an ordinary R argument and therefore a
@@ -126,19 +146,55 @@ resolve_input_path <- function(interactive = NULL,
         .abort_unresolved(context)
     }
 
+    rooted <- !identical(context, "rscript") && .is_relative_local_path(path)
+    if (rooted) {
+        path <- .root_input_path(path)
+    }
+
     if (isTRUE(must_exist) && !fs::file_exists(path)) {
-        working_dir <- getwd()
+        read_from <- if (rooted) .project_root() else getwd()
+        where     <- if (rooted) "the project root" else "the working directory"
         cli::cli_abort(c(
             "The resolved input path does not exist.",
             "x" = "{.path {path}}",
             "i" = "Resolved for the {.val {context}} execution context.",
-            "i" = "Relative paths are read from {.path {working_dir}}.",
+            "i" = "Relative paths are read from {where}, {.path {read_from}}.",
             "i" = "Pass {.code must_exist = FALSE} if the path is not a
                    local file."
         ))
     }
 
     path
+}
+
+
+# -- Helper: is this a relative path on the local file system? ----------------
+#
+# A URL or other scheme-prefixed location (s3://, https://) is not a file
+# path at all, so it is never joined to the project root.
+
+.is_relative_local_path <- function(path) {
+    !fs::is_absolute_path(path) &&
+        !grepl("^[A-Za-z][A-Za-z0-9+.-]*://", path)
+}
+
+
+# -- Helper: read a relative input path from the project root -----------------
+#
+# The root-joined path wins whenever it exists, and also when neither
+# exists, so the error message names the path the rule points at. The one
+# exception keeps documents written before the rule working: a path that
+# exists relative to the working directory, and not from the root, is used
+# as it is.
+
+.root_input_path <- function(path) {
+    from_root <- as.character(fs::path(.project_root(), path))
+
+    if (!fs::file_exists(from_root) && fs::file_exists(path)) {
+        return(path)
+    }
+
+    from_root
 }
 
 

@@ -42,6 +42,7 @@ my-project/
 ├── assets/            styling and branding, when branding is requested
 ├── renv.lock          the R package environment
 ├── _toolero.yml       the project config: the project's own description of the above
+├── .here              marks the project root for here::here()
 └── my-project.Rproj
 ```
 
@@ -100,6 +101,31 @@ it is lost the next time somebody opens the document.
 
 Everything an analysis produces goes under `output/`, on the laptop and on an
 execute node alike. Not `results/`, which earlier versions of `submitr` used.
+
+**Paths in analysis code start at the project root**, and are written with
+`here::here()`: `here::here("output", "fit.rds")`, never a path relative to
+wherever the code happens to be running. The same analysis runs with three
+different working directories: the project root or the document's folder in
+RStudio, the document's folder under `quarto render`, and the job's scratch
+directory on an execute node. `here::here()` gives the right answer in all
+three: it walks up from the working directory to the first folder carrying a
+project marker, which `init_project()` guarantees by writing a `.here` file,
+and on an execute node, where no marker is uploaded, it falls back to the
+scratch directory. `output/` therefore means the project's own output folder
+whether a document sits at the root or under `reports/`. `toolero`'s own
+functions follow the same rule: `save_output()` and `generate_manifest()`
+default to `output/` under the project root, and `resolve_input_path()`
+reads a relative input path from it.
+
+Do not use `here::i_am()` in this family. It checks that a named file sits
+where it says relative to the root, and the purled script on an execute
+node sits flat in the scratch directory, not at `R/reports/analysis.R`, so
+the check fails there.
+
+Paths in a Quarto document's *header* are the one exception: Quarto resolves
+`css:`, `include-before-body:`, and the like relative to the document, so a
+document in `reports/` says `css: ../assets/styles.css`.
+`toolero::create_qmd()` writes them that way.
 
 `toolero::save_output()` writes there and records each write in
 `output/accumulator.csv`. `toolero::generate_manifest()` reads that accumulator
@@ -280,7 +306,7 @@ A version 1 output record looks like this:
 
 | Field | Type | Value |
 |---|---|---|
-| `file_path` | string | The path exactly as passed to `save_output()` |
+| `file_path` | string | The path relative to the project root (`output/fit.rds`) when the file is inside the project; as passed to `save_output()` otherwise |
 | `r_class` | string | `class(object)` joined with `"\|"`, captured before the write |
 | `timestamp` | string | When the save was attempted, same format as `generated_at` |
 | `function_used` | string | The writer as named at the call site, e.g. `"saveRDS"` or `"ggplot2::ggsave"` |
@@ -291,11 +317,12 @@ A version 1 output record looks like this:
 Three rules apply to the values. A field with no value is written as `null`,
 never as an empty string. Artifacts appear once per `file_path`, keeping the
 latest attempt, so a later failure supersedes an earlier success for the same
-file; they are ordered by `timestamp`. And `file_path` is recorded as given,
-so it is relative to the working directory the analysis ran in when the call
-used a relative path. Relative paths are the ones to use: an absolute path
-does not resolve on another machine, and it records local directory names in
-a file that may be shared.
+file; they are ordered by `timestamp`. And `file_path` is recorded relative
+to the project root whenever the file is inside the project, however the
+call spelled it, so a record never carries the local directory names an
+absolute path would; on an execute node the root is the job's scratch
+directory, so the path is `output/...` there too. A file saved outside the
+project is recorded as given.
 
 **Versioning.** `schema_version` changes only when an existing key or field
 is removed, renamed, or changes meaning or type. A reader of the output
@@ -406,6 +433,13 @@ stopped being baked into the image.)
 ## Version history
 
 Section numbers in each entry are as they stood at the time.
+
+**2026-09 (paths from the project root).** Section 3 adds the rule that
+paths in analysis code start at the project root and are written with
+`here::here()`, and notes that header paths in a Quarto document are the
+exception. Section 1's layout gains the `.here` marker `init_project()`
+writes. Section 7's `file_path` is now recorded relative to the project
+root. `toolero` gains `here` and `rprojroot` as dependencies (T40).
 
 **2026-09 (the output record specified).** A new section 7 specifies the
 output record, `project-manifest.json`: its keys, types, allowed values, and

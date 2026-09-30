@@ -185,10 +185,12 @@
 #' artifact the project produced.
 #'
 #' @param output_dir Character or `NULL`. Directory containing
-#'   `accumulator.csv` and receiving the output record. If `NULL` (the
-#'   default) and `config` is supplied, resolved from the config's `output_dir`
-#'   convention; if `config` is also `NULL`, falls back to `"output"`,
-#'   unchanged from earlier versions.
+#'   `accumulator.csv` and receiving the output record. An explicit value is
+#'   used exactly as given. If `NULL` (the default), resolved from
+#'   `config`'s `output_dir` convention when `config` is supplied, or
+#'   `"output"` otherwise, taken from the project root rather than the
+#'   working directory, exactly as [save_output()] resolves it, so the two
+#'   always meet at the same accumulator.
 #' @param filename Character. Name of the output record file. Defaults to
 #'   `"project-manifest.json"`.
 #' @param overwrite Logical. When `FALSE` (default), an existing output record
@@ -240,9 +242,8 @@
 #' and is not repeated per artifact.
 #'
 #' `config` is entirely opt-in and affects `output_dir` only, not `commit`.
-#' Nothing changes for a project never scaffolded by [init_project()]: pass
-#' `output_dir` (or rely on the `"output"` default) exactly as before. When
-#' `config` is supplied but cannot be read, this aborts with the same
+#' Without it, `output_dir` defaults to `output/` under the project root.
+#' When `config` is supplied but cannot be read, this aborts with the same
 #' message [init_project()] gives for a bad `config`, rather than silently
 #' falling back to `"output"`.
 #'
@@ -258,7 +259,8 @@
 #' * `commit` -- a 40-character git commit SHA, or `null`.
 #' * `artifacts` -- an array, empty rather than absent when nothing was
 #'   saved. Each entry carries the seven accumulator fields: `file_path`
-#'   (the path as passed to [save_output()]), `r_class` (the object's
+#'   (relative to the project root when the file is inside the project,
+#'   as given to [save_output()] otherwise), `r_class` (the object's
 #'   classes joined with `"|"`), `timestamp` (same format as
 #'   `generated_at`), `function_used`, `status` (`"success"` or
 #'   `"failure"`), `error_message`, and `note`. A field with no value is
@@ -304,15 +306,7 @@ generate_manifest <- function(output_dir = NULL,
                               config = NULL,
                               git_root = ".") {
 
-    if (is.null(output_dir) && !is.null(config)) {
-        resolved   <- .read_config_file(config, arg = "config")
-        output_dir <- resolved$conventions$output_dir
-        cli::cli_inform("Using {.field output_dir} ({.val {output_dir}}) from {.path {config}}.")
-    }
-
-    if (is.null(output_dir)) {
-        output_dir <- "output"
-    }
+    output_dir <- .resolve_output_dir(output_dir, config)
 
     if (!rlang::is_string(output_dir)) {
         cli::cli_abort(c(

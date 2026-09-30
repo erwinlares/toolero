@@ -168,7 +168,11 @@
 #' @param object The object to save.
 #' @param file_path Character. A single destination path for `object`. Its
 #'   parent directory is created if it does not already exist, and the
-#'   creation is reported.
+#'   creation is reported. Build it with `here::here()`
+#'   (`here::here("output", "fit.rds")`) so it points at the project's
+#'   `output/` folder wherever the code runs. It is recorded in the
+#'   accumulator relative to the project root (`"output/fit.rds"`) when it
+#'   lies inside the project, and as given otherwise.
 #' @param .f A function used to perform the save, called as
 #'   `.f(object, file_path, ...)`. Supply the function itself (for example
 #'   `saveRDS`, `ggplot2::ggsave`), not a call and not a string. Avoid
@@ -184,10 +188,15 @@
 #' @param note Character or `NULL`. An optional free-text note recorded
 #'   alongside this row.
 #' @param output_dir Character or `NULL`. Directory containing (or to
-#'   contain) the accumulator. If `NULL` (the default) and `config` is
-#'   supplied, resolved from the config's `output_dir` convention; if
-#'   `config` is also `NULL`, falls back to `"output"`, the family-wide
-#'   convention, unchanged from earlier versions.
+#'   contain) the accumulator. An explicit value is used exactly as given.
+#'   If `NULL` (the default), resolved from `config`'s `output_dir`
+#'   convention when `config` is supplied, or `"output"` otherwise, and in
+#'   either case taken from the project root rather than the working
+#'   directory: the folder holding `config`, or the nearest folder above
+#'   the working directory that carries a project marker (the `.here` file
+#'   [init_project()] writes, an `.Rproj` file, or a `.git` folder). With
+#'   no marker at all, as on an HTCondor execute node, the working
+#'   directory is the root.
 #' @param config Character or `NULL`. Path to a project configuration file
 #'   (typically a project's own `_toolero.yml`, as written by
 #'   [init_project()]). Only consulted when `output_dir` is not supplied;
@@ -214,11 +223,14 @@
 #' relies on this when keeping the latest row per `file_path`.
 #'
 #' @section Project conventions:
-#' `config` is entirely opt-in. Nothing changes for a project never
-#' scaffolded by [init_project()]: pass `output_dir` (or rely on the
-#' `"output"` default) exactly as before. When `config` is supplied but
-#' cannot be read, this aborts with the same message [init_project()] gives
-#' for a bad `config`, rather than silently falling back to `"output"`.
+#' Paths in analysis code start at the project root, the same rule
+#' `here::here()` follows, so the accumulator for a document under
+#' `reports/` lands in the project's own `output/` rather than in
+#' `reports/output/`. `config` is opt-in: without it, `output_dir`
+#' defaults to `output/` under the project root. When `config` is
+#' supplied but cannot be read, this aborts with the same message
+#' [init_project()] gives for a bad `config`, rather than silently falling
+#' back to `"output"`.
 #'
 #' @seealso [generate_manifest()]
 #'
@@ -247,15 +259,7 @@ save_output <- function(object,
         cli::cli_abort("{.arg .f} must be supplied.")
     }
 
-    if (is.null(output_dir) && !is.null(config)) {
-        resolved   <- .read_config_file(config, arg = "config")
-        output_dir <- resolved$conventions$output_dir
-        cli::cli_inform("Using {.field output_dir} ({.val {output_dir}}) from {.path {config}}.")
-    }
-
-    if (is.null(output_dir)) {
-        output_dir <- "output"
-    }
+    output_dir <- .resolve_output_dir(output_dir, config)
 
     f_expr <- deparse(substitute(.f))
 
@@ -301,7 +305,7 @@ save_output <- function(object,
 
     if (isTRUE(manifest)) {
         row <- data.frame(
-            file_path = file_path,
+            file_path = .path_from_root(file_path, .project_root()),
             r_class = r_class,
             timestamp = timestamp,
             function_used = function_used,

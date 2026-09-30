@@ -34,7 +34,9 @@ a database handle, or anything else \code{\link[fs:file_exists]{fs::file_exists(
 caller has already computed it and does not want a second call.}
 }
 \value{
-A single character string: the resolved path.
+A single character string: the resolved path. In the
+\code{interactive} and \code{quarto} contexts, a relative path is returned
+joined to the project root (see the section below).
 }
 \description{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
@@ -71,6 +73,26 @@ function says about each:
 most often a working directory that is not what the author assumed.
 }
 }
+\section{Relative paths start at the project root}{
+
+In the \code{interactive} and \code{quarto} contexts, a relative path such as
+\code{"data-raw/sample.csv"} is read from the project root, the same rule
+\code{here::here()} follows, not from the working directory. So a document
+under \verb{reports/} can declare \code{input_file: data-raw/sample.csv} in its
+header and find the file whether it is rendered (Quarto runs the code
+in \verb{reports/}) or run chunk by chunk in RStudio. The root is the
+nearest folder above the working directory carrying a project marker:
+the \code{.here} file \code{\link[=init_project]{init_project()}} writes, an \code{.Rproj} file, or a \code{.git}
+folder. For documents written before this rule, a path that exists
+relative to the working directory but not from the root is still used
+as it is.
+
+The \code{rscript} context is left alone. On an HTCondor execute node the
+path arrives as a command line argument that already points at the file:
+an absolute path to data baked into the image, or a bare subset file
+name in the job's scratch directory.
+}
+
 \examples{
 # Resolving for a named context. must_exist = FALSE because there is no
 # such file here; in a real document you want the default.

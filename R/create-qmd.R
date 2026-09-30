@@ -5,8 +5,11 @@
 #' branding assets from a directory of standardized files, and scaffolds a
 #' post-render purl hook for extracting R code.
 #'
-#' @param filename A string or `NULL`. Name of the generated `.qmd` file.
-#'   Must be supplied explicitly, e.g. `"analysis.qmd"`.
+#' @param filename A string or `NULL`. Name of the generated `.qmd` file,
+#'   relative to `path`. Must be supplied explicitly, e.g.
+#'   `"analysis.qmd"` or `"reports/analysis.qmd"`. A folder named in it is
+#'   created if it does not exist. See the section on documents in
+#'   subfolders below.
 #' @param path A string. Path to the directory where the document will be
 #'   created. Defaults to `"."` (the current working directory).
 #' @param header_defaults A string or `NULL`. Path to a YAML file supplying
@@ -173,6 +176,24 @@
 #'    Station Antarctica LTER, a member of the Long Term Ecological
 #'    Research Network.
 #'
+#' @section Documents in subfolders:
+#' `path` is the project root; `filename` may place the document below it,
+#' as in `create_qmd("reports/analysis.qmd")`. The sample data, the
+#' placeholder logo, `R/purl.R`, and `_quarto.yml` still go to the project
+#' root. Paths in the document follow two rules:
+#'
+#' - **Code paths start at the project root.** The example template writes
+#'   its results with `here::here("output", ...)`, and its
+#'   `params: input_file: "data-raw/sample.csv"` is read from the root by
+#'   [resolve_input_path()], so the same code works at the root, in
+#'   `reports/`, and on an HTCondor execute node.
+#' - **Header paths are relative to the document**, because that is how
+#'   Quarto resolves them. For a document in `reports/`, `use_style`
+#'   writes `css: ../assets/styles.css`, and likewise for the two
+#'   `include-*` entries. When a header include is wired in, the
+#'   document's `resource-path` also lists the project root, so the logo
+#'   `header.html` refers to as `assets/logo.png` is found.
+#'
 #' Every edit to the document's YAML header is made line by line rather
 #' than by parsing the header and writing it back out. Keys the edit does
 #' not touch keep the template's own quoting, indentation, comments, and
@@ -333,6 +354,11 @@ create_qmd <- function(
     qmd_src <- .package_template(template_name)
     qmd_dst <- fs::path(path, filename)
 
+    # The folder the document lives in, which may be below the project
+    # root. Header paths (css, include-*) are written relative to it,
+    # since Quarto resolves them from the document, not from the root.
+    doc_dir <- fs::path_dir(qmd_dst)
+
     if (fs::file_exists(qmd_dst) && !overwrite) {
         cli::cli_abort(
             "{.path {qmd_dst}} already exists.
@@ -393,10 +419,28 @@ create_qmd <- function(
             } else {
                 qmd_content <- .inject_style_yaml(
                     qmd_content,
-                    css_file    = if (has_css)    .relative_style_path(css_file, path),
-                    header_file = if (has_header) .relative_style_path(header_file, path),
-                    footer_file = if (has_footer) .relative_style_path(footer_file, path)
+                    css_file    = if (has_css)    .relative_style_path(css_file, doc_dir),
+                    header_file = if (has_header) .relative_style_path(header_file, doc_dir),
+                    footer_file = if (has_footer) .relative_style_path(footer_file, doc_dir)
                 )
+
+                # header.html and footer.html refer to assets/logo.png from
+                # the project root. For a document below the root, list the
+                # root on the document's resource path so that reference is
+                # found when the page is rendered and its images embedded.
+                root_from_doc <- as.character(
+                    fs::path_rel(fs::path_abs(path), start = fs::path_abs(doc_dir))
+                )
+                if ((has_header || has_footer) && !identical(root_from_doc, ".")) {
+                    qmd_content <- .set_yaml_keys(
+                        qmd_content,
+                        list(list(
+                            path  = c("format", "html", "resource-path"),
+                            value = c(".", root_from_doc)
+                        )),
+                        what = "the resource path"
+                    )
+                }
             }
         }
     }
@@ -423,6 +467,7 @@ create_qmd <- function(
         qmd_content <- .substitute_yaml(qmd_content, user_yaml)
     }
 
+    fs::dir_create(doc_dir)
     readr::write_file(qmd_content, qmd_dst)
     cli::cli_alert_success("Created {.path {qmd_dst}}")
 
@@ -536,10 +581,14 @@ create_qmd <- function(
 }
 
 
-# -- Helper: compute relative path from project root to style asset ----------
+# -- Helper: compute the path from the document's folder to a style asset ----
+#
+# Quarto resolves css: and include-*: relative to the document, so the path
+# is taken from the folder the document lives in: assets/styles.css for a
+# document at the project root, ../assets/styles.css for one in reports/.
 
-.relative_style_path <- function(abs_path, project_root) {
-    fs::path_rel(abs_path, start = fs::path_abs(project_root))
+.relative_style_path <- function(abs_path, doc_dir) {
+    fs::path_rel(abs_path, start = fs::path_abs(doc_dir))
 }
 
 

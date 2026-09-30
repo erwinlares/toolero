@@ -518,3 +518,77 @@ test_that("an unreadable config aborts rather than silently falling back to \"ou
         save_output(mtcars, fs::path(root, "x.rds"), .f = saveRDS, config = config)
     )
 })
+
+# -- Paths from the project root (T40) ------------------------------------------
+# A document under reports/ runs with reports/ as its working directory. The
+# accumulator still belongs in the project's own output/, and file_path is
+# recorded relative to the project root so the output record never carries a
+# home directory.
+
+local_marked_project <- function(env = parent.frame()) {
+    root <- withr::local_tempdir(.local_envir = env)
+    file.create(fs::path(root, ".here"))
+    fs::dir_create(fs::path(root, "reports"))
+    as.character(fs::path_real(root))
+}
+
+test_that("the default output_dir is output/ under the project root, not the working directory", {
+    root <- local_marked_project()
+    withr::local_dir(fs::path(root, "reports"))
+
+    save_output(mtcars, fs::path(root, "output", "x.rds"), .f = saveRDS)
+
+    expect_true(fs::file_exists(fs::path(root, "output", "accumulator.csv")))
+    expect_false(fs::dir_exists(fs::path(root, "reports", "output")))
+})
+
+test_that("an absolute file_path inside the project is recorded relative to the root", {
+    root <- local_marked_project()
+    withr::local_dir(fs::path(root, "reports"))
+
+    save_output(mtcars, fs::path(root, "output", "x.rds"), .f = saveRDS)
+
+    expect_equal(
+        read_accumulator_file(fs::path(root, "output"))$file_path,
+        "output/x.rds"
+    )
+})
+
+test_that("a relative file_path is recorded relative to the root, not the working directory", {
+    root <- local_marked_project()
+    withr::local_dir(fs::path(root, "reports"))
+
+    save_output(mtcars, "figures/x.rds", .f = saveRDS)
+
+    expect_true(fs::file_exists(fs::path(root, "reports", "figures", "x.rds")))
+    expect_equal(
+        read_accumulator_file(fs::path(root, "output"))$file_path,
+        "reports/figures/x.rds"
+    )
+})
+
+test_that("a file_path outside the project is recorded as given", {
+    root    <- local_marked_project()
+    outside <- as.character(fs::path(withr::local_tempdir(), "x.rds"))
+    withr::local_dir(root)
+
+    save_output(mtcars, outside, .f = saveRDS)
+
+    expect_equal(
+        read_accumulator_file(fs::path(root, "output"))$file_path,
+        outside
+    )
+})
+
+test_that("a relative output_dir convention in config is taken from the config's folder", {
+    root   <- local_marked_project()
+    config <- make_toolero_config(root, output_dir = "results")
+    withr::local_dir(fs::path(root, "reports"))
+
+    suppressMessages(
+        save_output(mtcars, fs::path(root, "results", "x.rds"), .f = saveRDS,
+                    config = config)
+    )
+
+    expect_true(fs::file_exists(fs::path(root, "results", "accumulator.csv")))
+})

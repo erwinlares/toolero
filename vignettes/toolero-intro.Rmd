@@ -127,7 +127,8 @@ my-project/
 │   ├── figures/       # generated visualizations
 │   └── tables/        # generated tables
 ├── reports/           # rendered .qmd/.html output meant to be shared
-└── _toolero.yml        # records the folder set and naming conventions
+├── _toolero.yml       # records the folder set and naming conventions
+└── .here              # marks the project root for here::here()
 ```
 
 > **Why this structure?** The folder layout is opinionated but not arbitrary.
@@ -542,10 +543,20 @@ write succeeded:
 #| eval: false
 save_output(
   results,
-  "output/results.rds",
+  here::here("output", "results.rds"),
   .f = saveRDS
 )
 ```
+
+The path is built with `here::here()`, which starts at the project root
+(the folder holding the `.here` file `init_project()` writes) rather than
+at wherever the code happens to be running. That matters as soon as a
+document lives in `reports/`: rendering runs its code with `reports/` as the
+working directory, so a bare `"output/results.rds"` would land in
+`reports/output/`. On a cluster, where there is no project root to find,
+`here::here()` uses the job's working directory, which is exactly where
+the results folder is. `save_output()` records the path relative to the
+project root, as `output/results.rds`.
 
 At the end of the run, `generate_manifest()` reads that accumulator,
 collapses it to one row per output file, and writes the *output record*,
@@ -557,8 +568,11 @@ is never confused with the job manifest `write_by_group()` writes.)
 
 ```{r}
 #| eval: false
-generate_manifest(output_dir = "output")
+generate_manifest()
 ```
+
+With no `output_dir`, both functions use `output/` under the project root,
+so they always meet at the same accumulator.
 
 Like `write_by_group()`, both `save_output()` and `generate_manifest()`
 accept a `config` argument that resolves `output_dir` from the project
@@ -573,7 +587,7 @@ package versions alone can't supply:
 
 ```{r}
 #| eval: false
-generate_manifest(output_dir = "output", git_root = ".")
+generate_manifest(git_root = ".")
 ```
 
 `commit` comes back `NULL` when the project isn't a git repository, has no
@@ -634,6 +648,12 @@ defaults to the first command line argument, and `interactive` and `quarto`
 both fall back to the document's own `params$input_file`, so a document
 whose header declares `input_file` can call `resolve_input_path()` with no
 arguments at all.
+
+In the interactive and Quarto contexts, a relative path is read from the
+project root, like `here::here()`, so `input_file: data-raw/sample.csv`
+works for a document in `reports/` as well as for one at the root. The
+`rscript` branch is left as it is, since on a cluster the path arrives as
+an argument that already points at the file.
 
 This pattern is built into the template scaffolded by `create_qmd()`, so you
 get it for free without having to write it yourself. See

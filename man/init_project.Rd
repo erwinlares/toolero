@@ -135,6 +135,19 @@ The format is experimental and may gain keys before it settles. The
 understands what it is holding.
 }
 
+\section{The \code{.here} marker}{
+
+\code{init_project()} also writes an empty \code{.here} file at the project root.
+It marks the root for \code{here::here()}, which the documents
+\code{\link[=create_qmd]{create_qmd()}} scaffolds use to build paths, and for toolero's own
+functions that take paths from the project root (\code{\link[=resolve_input_path]{resolve_input_path()}},
+\code{\link[=save_output]{save_output()}}, \code{\link[=generate_manifest]{generate_manifest()}}). An \code{.Rproj} file or a \code{.git}
+folder would serve too, but a project created outside RStudio and
+without git has neither, so \code{.here} guarantees a marker. Commit it. It
+is never sent to an execute node, so there the job's scratch directory
+stands in for the root. An existing \code{.here} is left as it is.
+}
+
 \section{Empty folders and git}{
 
 Each folder \code{init_project()} creates that is still empty when the call
