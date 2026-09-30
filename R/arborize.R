@@ -87,7 +87,12 @@
 #'
 #' Records the tree string and all rendering arguments that produced a
 #' given PNG file. The provenance file has the same name as the PNG but
-#' with a `.yaml` extension, and is written to the same directory.
+#' with a `.yml` extension, and is written to the same directory.
+#'
+#' toolero 0.5.x and earlier wrote the provenance file with a `.yaml`
+#' extension. When one of those older files sits next to the PNG, it is
+#' left in place, untouched, and a message names both files so the reader
+#' knows which one describes the current render.
 #'
 #' @param output A character string. Absolute path to the PNG output file.
 #' @param tree A character string. The tree string passed to `arborize()`.
@@ -109,7 +114,8 @@
                                        papersize,
                                        margin) {
 
-    provenance_path <- fs::path_ext_set(output, "yaml")
+    provenance_path <- fs::path_ext_set(output, "yml")
+    legacy_path     <- fs::path_ext_set(output, "yaml")
 
     provenance <- list(
         rendered_by   = paste("toolero::arborize(), version",
@@ -129,6 +135,18 @@
     cli::cli_alert_success(
         "Provenance recorded at {.path {provenance_path}}"
     )
+
+    if (fs::file_exists(legacy_path)) {
+        # cli_inform() rather than cli_alert_info(): cli_inform() signals a
+        # standard R message, which expect_message() sees; the alert did
+        # not reach it in the test suite.
+        cli::cli_inform(c(
+            "i" = "{.path {legacy_path}} looks like a provenance file from an
+                   earlier version of {.pkg toolero} and has been left in
+                   place. It does not describe this render;
+                   {.path {provenance_path}} does."
+        ))
+    }
 
     invisible(provenance_path)
 }
@@ -170,11 +188,12 @@
 #' @param margin A character string. Page margin for the intermediate
 #'   PDF. Defaults to `"0.5cm"`. Reduce for tighter crops around the
 #'   tree.
-#' @param provenance A logical. Whether to write a companion `.yaml` file
+#' @param provenance A logical. Whether to write a companion `.yml` file
 #'   recording the tree string and all rendering arguments alongside the
 #'   PNG. Defaults to `TRUE`. The provenance file has the same name as
-#'   the PNG but with a `.yaml` extension and lives in the same directory.
-#'   Pass `FALSE` to suppress it.
+#'   the PNG but with a `.yml` extension and lives in the same directory.
+#'   Pass `FALSE` to suppress it. (toolero 0.5.x and earlier used
+#'   `.yaml`.)
 #' @param overwrite A logical. Whether to overwrite existing output files.
 #'   When `TRUE`, overwrites both the PNG and the provenance file if they
 #'   exist. Defaults to `FALSE`.
@@ -193,7 +212,7 @@
 #' 5. Converts the PDF to PNG using `pdftools::pdf_convert()`.
 #' 6. Reads the PNG bytes into memory before the temporary directory is
 #'    deleted, then writes them to the specified output path.
-#' 7. If `provenance = TRUE`, writes a companion `.yaml` file recording
+#' 7. If `provenance = TRUE`, writes a companion `.yml` file recording
 #'    the tree string and all rendering arguments.
 #'
 #' On first use, Typst will download the required package from the Typst
@@ -213,7 +232,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' # Simple bracket notation (default) -- also writes tree-1.yaml
+#' # Simple bracket notation (default) -- also writes tree-1.yml
 #' arborize("[NP [Det the] [N cat]]", output = "my-trees/tree-1.png")
 #'
 #' # Suppress provenance file

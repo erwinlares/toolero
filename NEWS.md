@@ -1,5 +1,17 @@
 # toolero 0.6.0
 
+## Breaking changes
+
+* `arborize()` now writes its provenance file with a `.yml` extension
+  (`figures/np-tree.yml`) instead of `.yaml`, following the family-wide rule
+  in `CONVENTIONS.md` that every YAML file a toolero-family package names for
+  itself ends in `.yml`. The file's contents are unchanged, and
+  `yaml::read_yaml()` reads either spelling, so the only code affected is
+  code that builds the provenance path by hand. When `arborize()` re-renders
+  a tree that already has a `.yaml` file next to it from an earlier version,
+  it leaves that file in place and says so, naming both files, so it is clear
+  which one describes the new PNG.
+
 ## New features
 
 * Added `generate_profile()`, which writes a YAML skeleton -- pre-filled

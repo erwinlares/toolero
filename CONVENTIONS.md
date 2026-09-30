@@ -376,6 +376,24 @@ compatibility, so `generate_manifest()` writes the output record and
 file name in code. Unqualified, the word "manifest" means none of these; use
 one of the four terms instead.
 
+**YAML files end in `.yml`.** Every YAML file a family package names for
+itself uses the `.yml` extension: the project config (`_toolero.yml`), the
+provenance file `arborize()` writes next to each tree
+(`figures/np-tree.yml`), `submitr`'s submission state and resource settings,
+and the run record `submitr` will keep for each submission
+(`htc-runs/<cluster_id>/run.yml`). One extension means one thing to type, one
+pattern to search for, and no second guess about which spelling a given file
+uses. The rule is about the names the packages choose, not the names they
+accept: a file the user names explicitly, such as a profile passed to
+`create_qmd(header_defaults = )` or a project config passed to
+`init_project(config = )`, is read whatever its extension. GitHub Actions
+workflow files under `.github/workflows/` keep `.yaml`, since that is what
+`usethis` and GitHub's own templates write, and they belong to the repository
+rather than to the family. At the time of writing, `submitr`'s two files are
+still `htc-manifest.yaml` and `htc-resources.yaml`; both move to `.yml` in
+`submitr` 0.2.0, which reads an existing `htc-resources.yaml` as a fallback for
+one release.
+
 **Development packages** are what you install with `apt-get` to build an R
 package from source: `libfreetype-dev`, `libpng-dev`. **Headers** are one of the
 things inside such a package. Say "the `libfreetype` and `libpng` development
@@ -433,6 +451,15 @@ stopped being baked into the image.)
 ## Version history
 
 Section numbers in each entry are as they stood at the time.
+
+**2026-09 (YAML files end in `.yml`).** Section 8 adds the rule that every
+YAML file a family package names for itself uses the `.yml` extension, with
+GitHub Actions workflow files as the one exception. `toolero`'s
+`arborize()` now writes its provenance files as `.yml` (toolero 0.6.0), the
+first half of the change. `submitr` follows in 0.2.0, renaming
+`htc-manifest.yaml` (unreleased, so no fallback) and `htc-resources.yaml`
+(released, so read as a fallback for one release) to `.yml`; section 8's
+vocabulary names them by their new spelling once that ships.
 
 **2026-09 (paths from the project root).** Section 3 adds the rule that
 paths in analysis code start at the project root and are written with

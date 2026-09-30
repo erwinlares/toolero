@@ -36,6 +36,12 @@ Invisibly returns the path to the provenance file.
 \description{
 Records the tree string and all rendering arguments that produced a
 given PNG file. The provenance file has the same name as the PNG but
-with a \code{.yaml} extension, and is written to the same directory.
+with a \code{.yml} extension, and is written to the same directory.
+}
+\details{
+toolero 0.5.x and earlier wrote the provenance file with a \code{.yaml}
+extension. When one of those older files sits next to the PNG, it is
+left in place, untouched, and a message names both files so the reader
+knows which one describes the current render.
 }
 \keyword{internal}

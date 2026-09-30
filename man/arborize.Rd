@@ -38,11 +38,12 @@ wide trees.}
 PDF. Defaults to \code{"0.5cm"}. Reduce for tighter crops around the
 tree.}
 
-\item{provenance}{A logical. Whether to write a companion \code{.yaml} file
+\item{provenance}{A logical. Whether to write a companion \code{.yml} file
 recording the tree string and all rendering arguments alongside the
 PNG. Defaults to \code{TRUE}. The provenance file has the same name as
-the PNG but with a \code{.yaml} extension and lives in the same directory.
-Pass \code{FALSE} to suppress it.}
+the PNG but with a \code{.yml} extension and lives in the same directory.
+Pass \code{FALSE} to suppress it. (toolero 0.5.x and earlier used
+\code{.yaml}.)}
 
 \item{overwrite}{A logical. Whether to overwrite existing output files.
 When \code{TRUE}, overwrites both the PNG and the provenance file if they
@@ -81,7 +82,7 @@ Typst.
 \item Converts the PDF to PNG using \code{pdftools::pdf_convert()}.
 \item Reads the PNG bytes into memory before the temporary directory is
 deleted, then writes them to the specified output path.
-\item If \code{provenance = TRUE}, writes a companion \code{.yaml} file recording
+\item If \code{provenance = TRUE}, writes a companion \code{.yml} file recording
 the tree string and all rendering arguments.
 }
 
@@ -95,7 +96,7 @@ package for PDF-to-PNG conversion. Install \code{pdftools} with
 }
 \examples{
 \dontrun{
-# Simple bracket notation (default) -- also writes tree-1.yaml
+# Simple bracket notation (default) -- also writes tree-1.yml
 arborize("[NP [Det the] [N cat]]", output = "my-trees/tree-1.png")
 
 # Suppress provenance file
