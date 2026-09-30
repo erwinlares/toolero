@@ -327,6 +327,26 @@ below), and for toolero’s own functions that read paths from the root.
 An `.Rproj` file or a `.git` folder would do the same job, but a project
 created outside RStudio and without git has neither.
 
+Neither file is there only for the benefit of `containr` or `submitr`,
+and a project that never leaves your laptop still needs both. `toolero`
+itself uses them:
+[`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
+audits against `_toolero.yml`,
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+and its relatives read it through `config`, and every path built from
+the project root depends on `.here`. They also serve a longer game.
+Together with `renv.lock` and the output record
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+writes, they describe what a project is, what it needs, and what it
+produced. That description is what the family’s planned fourth package,
+`encapsulr`, is being designed to assemble into a self-describing
+research object: the analysis, its data, its software environment, and
+the provenance that ties them together, packaged to be archived with a
+paper, handed to a reviewer, or deposited in a repository. None of that
+requires a cluster, and a project started with
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+will be ready for it without being rebuilt.
+
 Every folder
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
 creates that is still empty when the call finishes also receives a
