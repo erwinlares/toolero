@@ -111,7 +111,8 @@ following folder structure already in place:
     │   ├── figures/       # generated visualizations
     │   └── tables/        # generated tables
     ├── reports/           # rendered .qmd/.html output meant to be shared
-    └── _toolero.yml        # records the folder set and naming conventions
+    ├── _toolero.yml       # records the folder set and naming conventions
+    └── .here              # marks the project root for here::here()
 
 > **Why this structure?** The folder layout is opinionated but not
 > arbitrary. Separating `data/` from `data-raw/` makes it clear which
@@ -583,10 +584,24 @@ the function used, and whether the write succeeded:
 
 save_output(
   results,
-  "output/results.rds",
+  here::here("output", "results.rds"),
   .f = saveRDS
 )
 ```
+
+The path is built with
+[`here::here()`](https://here.r-lib.org/reference/here.html), which
+starts at the project root (the folder holding the `.here` file
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+writes) rather than at wherever the code happens to be running. That
+matters as soon as a document lives in `reports/`: rendering runs its
+code with `reports/` as the working directory, so a bare
+`"output/results.rds"` would land in `reports/output/`. On a cluster,
+where there is no project root to find,
+[`here::here()`](https://here.r-lib.org/reference/here.html) uses the
+job’s working directory, which is exactly where the results folder is.
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+records the path relative to the project root, as `output/results.rds`.
 
 At the end of the run,
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
@@ -602,8 +617,11 @@ writes.)
 
 ``` r
 
-generate_manifest(output_dir = "output")
+generate_manifest()
 ```
+
+With no `output_dir`, both functions use `output/` under the project
+root, so they always meet at the same accumulator.
 
 Like
 [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md),
@@ -624,12 +642,54 @@ alone can’t supply:
 
 ``` r
 
-generate_manifest(output_dir = "output", git_root = ".")
+generate_manifest(git_root = ".")
 ```
 
 `commit` comes back `NULL` when the project isn’t a git repository, has
 no commits yet, or `git` isn’t installed, so recording it is always safe
 to leave on.
+
+### Reading output records back: `read_output_records()`
+
+The output record is a file for machines, but the question it answers is
+one you will ask yourself: what did that run produce, and did anything
+fail?
+[`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md)
+reads the record and returns a tibble with one row per artifact:
+
+``` r
+
+records <- read_output_records()
+records[records$status == "failure", c("file_path", "error_message")]
+```
+
+With no arguments it reads `output/` under the project root, the same
+folder
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+and
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+use. Given several output folders, it reads each and stacks the results,
+with a `source` column saying which folder a row came from. That is how
+a multi-job run comes back from a cluster: one results folder per job.
+With `submitr` (0.2.0 or later) it takes two calls, one to bring the
+results back and one to read them:
+
+``` r
+
+jobs    <- submitr::htc_collect()
+jobs    <- jobs[!is.na(jobs$output_dir), ]
+records <- read_output_records(setNames(jobs$output_dir, jobs$group_id))
+```
+
+`htc_collect()` knows where each job’s results landed;
+[`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md)
+knows what the record inside means, because `toolero` wrote it. When a
+job crashed before
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+ran, its accumulator is usually still there, and
+[`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md)
+reads that instead, with a warning, so the rows for that job still show
+what was saved before it stopped.
 
 ### Auditing a project: `check_project()`
 
@@ -690,6 +750,14 @@ and `quarto` both fall back to the document’s own `params$input_file`,
 so a document whose header declares `input_file` can call
 [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
 with no arguments at all.
+
+In the interactive and Quarto contexts, a relative path is read from the
+project root, like
+[`here::here()`](https://here.r-lib.org/reference/here.html), so
+`input_file: data-raw/sample.csv` works for a document in `reports/` as
+well as for one at the root. The `rscript` branch is left as it is,
+since on a cluster the path arrives as an argument that already points
+at the file.
 
 This pattern is built into the template scaffolded by
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md),
@@ -796,6 +864,7 @@ since the notation and sizing options deserve room of their own.
 | [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md) | Applies a function to each group from a job manifest or a named list, sequentially or in parallel. |
 | [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md) | Writes an object to disk via a user-supplied function and records the write in a project-level accumulator. `output_dir` can be resolved from `_toolero.yml` via `config`. |
 | [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md) | Reads the accumulator and writes the output record, a deduplicated `project-manifest.json` describing everything the analysis produced, including the git commit checked out at the time (when available). |
+| [`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md) | Reads one or more output records back as a tibble, one row per artifact, falling back to the accumulator when a record is missing. Experimental. |
 | [`detect_execution_context()`](https://erwinlares.github.io/toolero/reference/detect_execution_context.md) | Detects whether code is running interactively, during `quarto render`, or as an `Rscript` job. |
 | [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md) | Resolves the input data path for the current execution context, and explains what went wrong when it cannot. |
 | [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md) | Converts a rendered Quarto HTML document into UW-Madison Knowledge Base-ready XML with embedded resources and metadata extracted from the source `.qmd`. |

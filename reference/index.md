@@ -30,6 +30,8 @@
   : Extract R code from a Quarto document
 - [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md)
   : Read and clean a CSV file
+- [`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md)
+  **\[experimental\]** : Read one or more output records
 - [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
   **\[experimental\]** : Resolve the input data path for the current
   execution context

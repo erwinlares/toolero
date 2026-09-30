@@ -2,7 +2,7 @@
 
 Records the tree string and all rendering arguments that produced a
 given PNG file. The provenance file has the same name as the PNG but
-with a `.yaml` extension, and is written to the same directory.
+with a `.yml` extension, and is written to the same directory.
 
 ## Usage
 
@@ -52,3 +52,10 @@ with a `.yaml` extension, and is written to the same directory.
 ## Value
 
 Invisibly returns the path to the provenance file.
+
+## Details
+
+toolero 0.5.x and earlier wrote the provenance file with a `.yaml`
+extension. When one of those older files sits next to the PNG, it is
+left in place, untouched, and a message names both files so the reader
+knows which one describes the current render.

@@ -85,7 +85,11 @@ output record, <code>project-manifest.json</code>.</p>
 <dt id="arg-file-path">file_path<a class="anchor" aria-label="anchor" href="#arg-file-path"></a></dt>
 <dd><p>Character. A single destination path for <code>object</code>. Its
 parent directory is created if it does not already exist, and the
-creation is reported.</p></dd>
+creation is reported. Build it with <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>
+(<code>here::here("output", "fit.rds")</code>) so it points at the project's
+<code>output/</code> folder wherever the code runs. It is recorded in the
+accumulator relative to the project root (<code>"output/fit.rds"</code>) when it
+lies inside the project, and as given otherwise.</p></dd>
 
 
 <dt id="arg--f">.f<a class="anchor" aria-label="anchor" href="#arg--f"></a></dt>
@@ -116,10 +120,15 @@ alongside this row.</p></dd>
 
 <dt id="arg-output-dir">output_dir<a class="anchor" aria-label="anchor" href="#arg-output-dir"></a></dt>
 <dd><p>Character or <code>NULL</code>. Directory containing (or to
-contain) the accumulator. If <code>NULL</code> (the default) and <code>config</code> is
-supplied, resolved from the config's <code>output_dir</code> convention; if
-<code>config</code> is also <code>NULL</code>, falls back to <code>"output"</code>, the family-wide
-convention, unchanged from earlier versions.</p></dd>
+contain) the accumulator. An explicit value is used exactly as given.
+If <code>NULL</code> (the default), resolved from <code>config</code>'s <code>output_dir</code>
+convention when <code>config</code> is supplied, or <code>"output"</code> otherwise, and in
+either case taken from the project root rather than the working
+directory: the folder holding <code>config</code>, or the nearest folder above
+the working directory that carries a project marker (the <code>.here</code> file
+<code><a href="init_project.html">init_project()</a></code> writes, an <code>.Rproj</code> file, or a <code>.git</code> folder). With
+no marker at all, as on an HTCondor execute node, the working
+directory is the root.</p></dd>
 
 
 <dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
@@ -155,11 +164,14 @@ relies on this when keeping the latest row per <code>file_path</code>.</p>
     <h2 id="project-conventions">Project conventions<a class="anchor" aria-label="anchor" href="#project-conventions"></a></h2>
 
 
-<p><code>config</code> is entirely opt-in. Nothing changes for a project never
-scaffolded by <code><a href="init_project.html">init_project()</a></code>: pass <code>output_dir</code> (or rely on the
-<code>"output"</code> default) exactly as before. When <code>config</code> is supplied but
-cannot be read, this aborts with the same message <code><a href="init_project.html">init_project()</a></code> gives
-for a bad <code>config</code>, rather than silently falling back to <code>"output"</code>.</p>
+<p>Paths in analysis code start at the project root, the same rule
+<code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code> follows, so the accumulator for a document under
+<code>reports/</code> lands in the project's own <code>output/</code> rather than in
+<code>reports/output/</code>. <code>config</code> is opt-in: without it, <code>output_dir</code>
+defaults to <code>output/</code> under the project root. When <code>config</code> is
+supplied but cannot be read, this aborts with the same message
+<code><a href="init_project.html">init_project()</a></code> gives for a bad <code>config</code>, rather than silently falling
+back to <code>"output"</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -177,7 +189,7 @@ for a bad <code>config</code>, rather than silently falling back to <code>"outpu
 <span class="r-in"><span>  note <span class="op">=</span> <span class="st">"Unmodified example data."</span>,</span></span>
 <span class="r-in"><span>  output_dir <span class="op">=</span> <span class="va">output_dir</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Created the directory <span style="color: #0000BB;">/tmp/RtmpW98hhs/file1dca7af29077</span> to hold <span style="color: #0000BB;">mtcars.rds</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Created the directory <span style="color: #0000BB;">/tmp/RtmpnUDNSl/file1b10eb2fc79</span> to hold <span style="color: #0000BB;">mtcars.rds</span>.</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

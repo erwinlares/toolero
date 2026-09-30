@@ -187,8 +187,9 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 9. Save outputs and record each write in the project accumulator.</span></span>
-<span><span class="co">#    output_dir is where the accumulator goes; it defaults to "output"</span></span>
-<span><span class="co">#    relative to the working directory, so it is given explicitly here.</span></span>
+<span><span class="co">#    output_dir is where the accumulator goes. It defaults to output/</span></span>
+<span><span class="co">#    under the project root, and the working directory here is not inside</span></span>
+<span><span class="co">#    project_dir, so it is given explicitly.</span></span>
 <span><span class="fu"><a href="reference/save_output.html">save_output</a></span><span class="op">(</span></span>
 <span>  <span class="va">results</span>,</span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"output"</span>, <span class="st">"results.rds"</span><span class="op">)</span>,</span>
@@ -197,7 +198,10 @@
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># 10. Write the output record, summarizing what was produced</span></span>
-<span><span class="fu"><a href="reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"output"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"output"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 11. Read it back as a table, one row per artifact</span></span>
+<span><span class="fu"><a href="reference/read_output_records.html">read_output_records</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">project_dir</span>, <span class="st">"output"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>In a real project, replace <code>project_dir</code> with the path where you want the project to live. The important idea is that <code>toolero</code> helps you start with a structure that can grow: local analysis first, reproducible execution later, and scalable computing when needed.</p>
 <hr>
 </div>
@@ -263,6 +267,10 @@
 <td>Reads the project accumulator, deduplicates by path, and writes the output record, <code>project-manifest.json</code>, describing every artifact the analysis produced, along with the git commit checked out at the time (when available).</td>
 </tr>
 <tr>
+<td><code><a href="reference/read_output_records.html">read_output_records()</a></code></td>
+<td>Reads one or more output records back as a tibble, one row per artifact, labeled by folder. Falls back to the accumulator, with a warning, when a folder has no usable record. Experimental.</td>
+</tr>
+<tr>
 <td><code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code></td>
 <td>Returns <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code> so one codebase can adapt to local exploration, document rendering, or batch execution.</td>
 </tr>
@@ -325,6 +333,7 @@
 <code class="sourceCode R"><span><span class="co"># Write a config skeleton to your home directory</span></span>
 <span><span class="fu"><a href="reference/generate_project_config.html">generate_project_config</a></span><span class="op">(</span><span class="st">"linguistics-project.yml"</span>, path <span class="op">=</span> <span class="st">"~"</span><span class="op">)</span></span></code></pre></div>
 <p>Every project <code><a href="reference/init_project.html">init_project()</a></code> creates carries a <code>_toolero.yml</code> at its root recording the folder set it resolved and the naming conventions in force. It records the <em>resolved</em> structure, never the inputs that produced it, so a project built from a <code>config</code>, one built with <code>custom_folders</code>, and one built from the defaults all produce the same shape of file and nobody has to replay anything to learn what the project looks like. Commit it.</p>
+<p><code><a href="reference/init_project.html">init_project()</a></code> also writes an empty <code>.here</code> file at the project root. Commit that too. It marks the root for <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>, which scaffolded documents use to build their paths (see <code><a href="reference/save_output.html">save_output()</a></code> below), and for toolero’s own functions that read paths from the root. An <code>.Rproj</code> file or a <code>.git</code> folder would do the same job, but a project created outside RStudio and without git has neither.</p>
 <p>Every folder <code><a href="reference/init_project.html">init_project()</a></code> creates that is still empty when the call finishes also receives a zero-byte <code>.gitkeep</code>. git tracks files rather than directories, so without this a scaffolded structure survives nothing: the opening commit carries the files at the project root and none of the layout, and a collaborator cloning the repository gets a project with no folders in it.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Generic placeholder branding</span></span>
@@ -430,6 +439,11 @@
 <span><span class="co"># Pre-populate YAML from a personal config file</span></span>
 <span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"my-project"</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span>
 <span>           header_defaults <span class="op">=</span> <span class="st">"my-config.yml"</span><span class="op">)</span></span></code></pre></div>
+<p>A document can live below the project root, the usual arrangement being <code>reports/</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="reference/create_qmd.html">create_qmd</a></span><span class="op">(</span>path <span class="op">=</span> <span class="st">"my-project"</span>, filename <span class="op">=</span> <span class="st">"reports/analysis.qmd"</span>,</span>
+<span>           use_style <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p>The folder is created if needed; the sample data, the logo, <code>R/purl.R</code>, and <code>_quarto.yml</code> still go to the project root. Code in the document keeps paths that start at the project root, <code>data-raw/sample.csv</code> in <code>params:</code> and <code>here::here("output")</code> for results, so it runs unchanged at the root, in <code>reports/</code>, and on a cluster. Header paths are the exception, because Quarto resolves them relative to the document: <code>use_style</code> writes <code>css: ../assets/styles.css</code> for a document in <code>reports/</code>, and adds the project root to the document’s <code>resource-path</code> so the logo in <code>header.html</code> is found.</p>
 <p>If <code>use_purl = TRUE</code> is used inside an existing website, book, or manuscript project, <code>_quarto.yml</code> is left untouched and a warning names what to add by hand: a <code>post-render: R/purl.R</code> entry under the <code>project:</code> key. The document’s <code>purl: true</code> header stamp is written either way, and <code>R/purl.R</code> is scaffolded either way. Only the automatic <code>_quarto.yml</code> edit is skipped.</p>
 <p>Both bundled templates set <code>embed-resources: true</code>. A non-self-contained HTML depends on the <code>_files/</code> sidecar directory rendered beside it, and nothing that moves these documents around knows about sidecars: an archived cluster run brings back a folder, an emailed report is one file, and a rendered document committed next to its analysis quietly depends on a directory nobody thinks to copy. The cost of <code>true</code> is a larger file; the cost of <code>false</code> is an artifact that works only on the machine that made it.</p>
 <hr>
@@ -439,7 +453,7 @@
 <code>generate_profile()</code><a class="anchor" aria-label="anchor" href="#generate_profile"></a>
 </h3>
 <p>Scaffolds a personal configuration template – author name, affiliation, ORCID, email, and a handful of common document format settings – meant to be filled in once and reused as the <code>header_defaults</code> argument to <code><a href="reference/create_qmd.html">create_qmd()</a></code> or the <code>profile</code> argument to <code><a href="reference/generate_citation.html">generate_citation()</a></code>, rather than retyping the same author block into every new document or citation file.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/generate_profile.html">generate_profile</a></span><span class="op">(</span>filename <span class="op">=</span> <span class="st">"toolero-profile.yml"</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Arguments:</strong></p>
 <ul>
@@ -460,7 +474,7 @@
 </h3>
 <p>Extracts R code chunks from any <code>.qmd</code> file into a standalone <code>.R</code> script. This is the direct counterpart to the purl hook in <code><a href="reference/create_qmd.html">create_qmd()</a></code>, and it works on any Quarto document regardless of how it was created.</p>
 <p>The output path defaults to the same directory as the input with the <code>.qmd</code> extension replaced by <code>.R</code>. Its parent directory is created if it does not already exist, so writing into <code>R/</code> works whether or not the project was scaffolded by <code><a href="reference/init_project.html">init_project()</a></code>. The <code>documentation</code> argument controls how much context is preserved in the extracted script: chunk labels only (<code>1</code>, the default), full roxygen blocks (<code>2</code>), or pure code with no comments (<code>0</code>).</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Default output: same directory, .R extension</span></span>
 <span><span class="fu"><a href="reference/qmd_to_r.html">qmd_to_r</a></span><span class="op">(</span>input <span class="op">=</span> <span class="st">"analysis.qmd"</span><span class="op">)</span></span>
 <span></span>
@@ -477,7 +491,7 @@
 <code>read_clean_csv()</code><a class="anchor" aria-label="anchor" href="#read_clean_csv"></a>
 </h3>
 <p>Reads a CSV file into a tibble and cleans the column names in one step. Column names become lowercase, spaces become underscores, and special characters are removed. Beyond name cleaning, the function supports explicit missing-value handling, selective row dropping, and an optional ingest summary that surfaces common data problems immediately.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Basic usage</span></span>
 <span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data-raw/input.csv"</span><span class="op">)</span></span>
 <span></span>
@@ -501,7 +515,7 @@
 </h3>
 <p>Writes a cleaned data frame to a CSV file with cli feedback. The natural counterpart to <code><a href="reference/read_clean_csv.html">read_clean_csv()</a></code>, reinforcing the convention that <code>data-raw/</code> holds original inputs and <code>data/</code> holds analysis-ready outputs.</p>
 <p>If the data frame’s column names are not already clean, <code><a href="reference/write_clean_csv.html">write_clean_csv()</a></code> applies <code><a href="https://sfirke.github.io/janitor/reference/clean_names.html" class="external-link">janitor::clean_names()</a></code> before writing and warns you about the affected columns, so the output file always has consistent names regardless of what was passed in.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">data</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="st">"data-raw/input.csv"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="reference/write_clean_csv.html">write_clean_csv</a></span><span class="op">(</span><span class="va">data</span>, <span class="st">"data/clean.csv"</span><span class="op">)</span></span>
@@ -520,7 +534,7 @@
 <p><code>output_dir</code> can be supplied explicitly, or resolved from a project’s own <code>_toolero.yml</code> by passing its path as <code>config</code>: <code><a href="reference/write_by_group.html">write_by_group()</a></code> reads the config’s <code>split_dir</code> convention (the folder <code><a href="reference/init_project.html">init_project()</a></code> set aside for split-by-group output) and uses that when <code>output_dir</code> is not supplied directly. An explicit <code>output_dir</code> always wins over <code>config</code>; <code>config</code> only fills in what you did not already say. This is opt-in – a project never scaffolded by <code><a href="reference/init_project.html">init_project()</a></code>, or a call that supplies <code>output_dir</code> directly, behaves exactly as it always has.</p>
 <p>Groups are written, and job manifest rows recorded, in order of first appearance in the data rather than in sort order. This is more than cosmetic: <code>submitr</code> writes its <code>subdatasets.csv</code> in job manifest order, HTCondor assigns <code>ProcId</code> in that order, and log filenames are reconstructed from position, so job manifest row order is the mapping from a job number back to a group.</p>
 <p><code><a href="reference/run_by_group.html">run_by_group()</a></code> handles the apply. It reads each subset from the job manifest, calls your function on each one, and assembles the results into a single tibble. If your function returns a data frame, the output is automatically unnested into a flat tibble with a group ID column prepended. If it returns anything else, a model, a plot, a file path, the results come back as a nested tibble with a list-column.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sample_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"templates"</span>, <span class="st">"sample.csv"</span>, package <span class="op">=</span> <span class="st">"toolero"</span><span class="op">)</span></span>
 <span><span class="va">penguins</span>    <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_clean_csv.html">read_clean_csv</a></span><span class="op">(</span><span class="va">sample_path</span><span class="op">)</span></span>
 <span></span>
@@ -556,7 +570,7 @@
 <span><span class="op">)</span></span></code></pre></div>
 <p><code>group_col</code> also accepts more than one column name. Grouping by <code>c("species", "sex")</code> writes one file per combination that actually appears in the data, <code>adelie--female.csv</code>, <code>adelie--male.csv</code>, and so on, rather than the full cross-product of possible values. The <code>--</code> separator is load bearing: because sanitizing collapses any run of non-alphanumeric characters to exactly one dash, a sanitized value can contain a single <code>-</code> but never two consecutive ones, which is what leaves <code>--</code> free to mark a column boundary unambiguously.</p>
 <p>The job manifest has one schema regardless of how many grouping columns were supplied: one column per grouping variable holding the raw value, then <code>group_value</code> (the raw values joined with <code>" | "</code>), <code>n_rows</code>, and <code>file_path</code>. Grouping on a single column produces the same shape, with the grouping column’s value repeating <code>group_value</code> exactly. That redundancy is deliberate, since one schema with a varying column count is easier to read, validate and rely on than two schemas selected by how many columns you happened to group on.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
 <span>  <span class="va">penguins</span>,</span>
 <span>  group_col  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"species"</span>, <span class="st">"sex"</span><span class="op">)</span>,</span>
@@ -564,7 +578,7 @@
 <span>  manifest   <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The <code>prefix</code> argument prepends a namespace to every output filename, so <code>a.csv</code> becomes <code>data-a.csv</code> and <code>a--female.csv</code> becomes <code>data-a--female.csv</code>. It is worth using before a high-throughput run: <code>submitr::htc_gen_submit()</code> reduces the job manifest’s paths to <code><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename()</a></code>, so subsets from two datasets split on the same short column would otherwise land in one flat directory on the access point and overwrite each other.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/write_by_group.html">write_by_group</a></span><span class="op">(</span></span>
 <span>  <span class="va">penguins</span>,</span>
 <span>  group_col  <span class="op">=</span> <span class="st">"species"</span>,</span>
@@ -575,7 +589,7 @@
 <p>Anything else you pass to <code><a href="reference/run_by_group.html">run_by_group()</a></code> is forwarded to your analysis function on every call. Ordinary values – a number, a string, a logical, a file path – need nothing special. The one case that does is a bare column name, such as <code>x = flipper_length_mm</code>, since a symbol like that has no meaning until it meets the data. A function accepting one has to capture it with <code>{{ }}</code> rather than evaluate it, which is a property of how that function is written rather than anything <code><a href="reference/run_by_group.html">run_by_group()</a></code> asks for: calling it directly has the same requirement. Passing the column name as a string instead, and indexing with <code>.data[[x]]</code> inside the function, avoids the question entirely.</p>
 <p>Bare column names do not survive <code>workers &gt; 1</code>, because parallel execution has to serialize every argument to send it to a worker session and a symbol that only means something inside the data has nothing to send. <code><a href="reference/run_by_group.html">run_by_group()</a></code> says so directly if you try. Moving the column name inside the analysis function, with a lambda, works in both modes.</p>
 <p>For analyses that are slow or computationally independent across groups, <code><a href="reference/run_by_group.html">run_by_group()</a></code> supports parallel execution via <code>furrr</code>. The <code>workers</code> argument controls how many R sessions to use. The ceiling is <code>max(1L, parallelly::availableCores() - 1L)</code>, which is environment-aware and reserves one core for the main session. <code>workers = 1L</code> (the default) or <code>workers = NULL</code> runs sequentially.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Parallel execution using available cores</span></span>
 <span><span class="va">workers</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fl">1L</span>, <span class="fu">parallelly</span><span class="fu">::</span><span class="fu"><a href="https://parallelly.futureverse.org/reference/availableCores.html" class="external-link">availableCores</a></span><span class="op">(</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1L</span><span class="op">)</span></span>
 <span></span>
@@ -595,11 +609,11 @@
 <p>These two functions form the record half of the toolero workflow. Once an analysis has produced its results, <code><a href="reference/save_output.html">save_output()</a></code> writes each object to disk and appends a row to a project-level accumulator tracking what was saved, how, and whether the write succeeded. <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> reads that accumulator at the end of the analysis and writes a <code>project-manifest.json</code> describing every artifact the project produced.</p>
 <p>This is the <em>output record</em>, a record of outputs from a computation that has already happened. It is a different document from the <em>job manifest</em> <code><a href="reference/write_by_group.html">write_by_group()</a></code> produces, which lists inputs to a computation about to happen. The file is named <code>project-manifest.json</code>, and the function that writes it <code><a href="reference/generate_manifest.html">generate_manifest()</a></code>, for compatibility; the family calls it the output record so that the word “manifest” is not doing two jobs. The <a href="https://github.com/erwinlares/toolero/blob/main/CONVENTIONS.md#8-vocabulary" class="external-link">vocabulary section of CONVENTIONS.md</a> lists all four terms.</p>
 <p><code><a href="reference/save_output.html">save_output()</a></code> wraps any write function behind a narrowly-scoped <code><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch()</a></code>. A failed write is recorded with <code>status = "failure"</code> and the caught error message before the original condition is rethrown unmodified, so the output record captures what went wrong on an unattended run even if nothing else does.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Save a model and record it</span></span>
 <span><span class="fu"><a href="reference/save_output.html">save_output</a></span><span class="op">(</span></span>
 <span>  <span class="va">model</span>,</span>
-<span>  <span class="st">"output/model.rds"</span>,</span>
+<span>  <span class="fu">here</span><span class="fu">::</span><span class="fu"><a href="https://here.r-lib.org/reference/here.html" class="external-link">here</a></span><span class="op">(</span><span class="st">"output"</span>, <span class="st">"model.rds"</span><span class="op">)</span>,</span>
 <span>  .f   <span class="op">=</span> <span class="va">saveRDS</span>,</span>
 <span>  note <span class="op">=</span> <span class="st">"Final model, trained on full dataset."</span></span>
 <span><span class="op">)</span></span>
@@ -610,30 +624,50 @@
 <span><span class="co"># write.csv(), write_clean_csv() -- can be passed directly.</span></span>
 <span><span class="fu"><a href="reference/save_output.html">save_output</a></span><span class="op">(</span></span>
 <span>  <span class="va">my_plot</span>,</span>
-<span>  <span class="st">"output/figures/coefficients.png"</span>,</span>
+<span>  <span class="fu">here</span><span class="fu">::</span><span class="fu"><a href="https://here.r-lib.org/reference/here.html" class="external-link">here</a></span><span class="op">(</span><span class="st">"output"</span>, <span class="st">"figures"</span>, <span class="st">"coefficients.png"</span><span class="op">)</span>,</span>
 <span>  .f     <span class="op">=</span> \<span class="op">(</span><span class="va">object</span>, <span class="va">file_path</span>, <span class="va">...</span><span class="op">)</span> <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu">ggsave</span><span class="op">(</span><span class="va">file_path</span>, <span class="va">object</span>, <span class="va">...</span><span class="op">)</span>,</span>
 <span>  width  <span class="op">=</span> <span class="fl">8</span>,</span>
 <span>  height <span class="op">=</span> <span class="fl">5</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Write the output record at the end of the analysis</span></span>
-<span><span class="fu"><a href="reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span>output_dir <span class="op">=</span> <span class="st">"output"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Paths in analysis code start at the project root, so build them with <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code> rather than writing <code>"output/model.rds"</code>. A document under <code>reports/</code> runs with <code>reports/</code> as its working directory when rendered, and a bare <code>"output/..."</code> would put its results in <code>reports/output/</code>. <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code> finds the project root from wherever the code runs, and on a cluster, where there is no project root to find, it uses the job’s working directory, which is where the results folder is. <code><a href="reference/save_output.html">save_output()</a></code> and <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> follow the same rule for their own default: <code>output_dir</code> is <code>output/</code> under the project root. And <code><a href="reference/save_output.html">save_output()</a></code> records each <code>file_path</code> relative to the project root (<code>output/model.rds</code>), so the output record never carries your home directory.</p>
 <p><code><a href="reference/save_output.html">save_output()</a></code> calls the writer as <code>.f(object, file_path, ...)</code>, so a writer whose own signature puts the destination first needs a wrapper, as <code>ggsave()</code> does above. The cost is that the accumulator records the <code>function_used</code> column as <code>anonymous function: ...</code> rather than a clean name, which is a small loss of provenance in exchange for the write working at all.</p>
 <p>The accumulator at <code>output/accumulator.csv</code> is append-only and written incrementally throughout the analysis. The output record at <code>output/project-manifest.json</code> is the deduplicated, end-of-run summary: <code>execution_context</code> and <code>generated_at</code> recorded once at the top level, followed by an <code>artifacts</code> array with one entry per output file. When an analysis re-runs within a session and overwrites an earlier output, the output record keeps only the most recent write per path.</p>
 <p>Like <code><a href="reference/write_by_group.html">write_by_group()</a></code>, both functions accept a <code>config</code> argument: a path to a project’s <code>_toolero.yml</code>, from which <code>output_dir</code> is resolved (via the config’s <code>output_dir</code> convention) when not supplied directly. An explicit <code>output_dir</code> still wins, and a project without a config behaves exactly as before.</p>
 <p><code><a href="reference/generate_manifest.html">generate_manifest()</a></code> also accepts a <code>git_root</code> argument (default <code>"."</code>) and records a <code>commit</code> field in the output record – the git commit checked out in <code>git_root</code> at the moment the record was written, recorded once at the top level alongside <code>execution_context</code> and <code>generated_at</code>. This is the one piece of provenance package versions cannot supply: <code>renv.lock</code> already records which package versions were in play, but nothing else records which revision of the analysis script itself produced a given set of outputs. <code>commit</code> is <code>null</code> when <code>git_root</code> is not a git repository, has no commits yet, or <code>git</code> is not installed, so its absence is informative rather than a failure.</p>
 <p>A missing accumulator when <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> runs is an error, since no <code><a href="reference/save_output.html">save_output()</a></code> calls were ever recorded. An accumulator with no rows produces an empty output record with a warning, since that is a truthful result rather than a setup mistake.</p>
 <p>For unattended execution on CHTC where nobody is watching the job log in real time, the recommended pattern is:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="op">{</span></span>
 <span>    <span class="co"># ... analysis code ...</span></span>
-<span>    <span class="fu"><a href="reference/save_output.html">save_output</a></span><span class="op">(</span><span class="va">results</span>, <span class="st">"output/results.rds"</span>, .f <span class="op">=</span> <span class="va">saveRDS</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="reference/save_output.html">save_output</a></span><span class="op">(</span><span class="va">results</span>, <span class="fu">here</span><span class="fu">::</span><span class="fu"><a href="https://here.r-lib.org/reference/here.html" class="external-link">here</a></span><span class="op">(</span><span class="st">"output"</span>, <span class="st">"results.rds"</span><span class="op">)</span>, .f <span class="op">=</span> <span class="va">saveRDS</span><span class="op">)</span></span>
 <span>  <span class="op">}</span>,</span>
 <span>  finally <span class="op">=</span> <span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu"><a href="reference/generate_manifest.html">generate_manifest</a></span><span class="op">(</span><span class="op">)</span>, silent <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The <code><a href="https://rdrr.io/r/base/try.html" class="external-link">try()</a></code> inside <code>finally</code> ensures that a crash before the first <code><a href="reference/save_output.html">save_output()</a></code> call, which leaves no accumulator on disk, does not replace the original error with <code><a href="reference/generate_manifest.html">generate_manifest()</a></code>’s missing-accumulator error in the job log.</p>
 <p><strong>What holds still.</strong> The accumulator’s column set is the contract between these two functions and anything downstream that reads what an analysis produced, <code>encapsulr::describe()</code> included. Those columns are <code>file_path</code>, <code>r_class</code>, <code>timestamp</code>, <code>function_used</code>, <code>status</code>, <code>error_message</code> and <code>note</code>, and a change to them gets a <code>NEWS.md</code> entry and a deprecation cycle rather than a straight swap. <code><a href="reference/save_output.html">save_output()</a></code> checks the header of an existing accumulator against that schema before appending and aborts on a mismatch rather than writing misaligned rows. The functions themselves are newer and may still move; the schema is what to build against.</p>
+</div>
+<div class="section level3">
+<h3 id="read_output_records">
+<code>read_output_records()</code><a class="anchor" aria-label="anchor" href="#read_output_records"></a>
+</h3>
+<p><code><a href="reference/read_output_records.html">read_output_records()</a></code> is the reader for the output record, and it is experimental: its columns may still move before it settles. It returns a tibble with one row per artifact. The seven artifact fields come first, exactly as recorded; after them come <code>read_from</code>, <code>schema_version</code>, and the run-level facts (<code>execution_context</code>, <code>generated_at</code>, <code>commit</code>), repeated on each of that run’s rows; and a <code>source</code> column at the front says which folder each row came from.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># The project's own output/, found the same way save_output() finds it</span></span>
+<span><span class="va">records</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_output_records.html">read_output_records</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># What failed?</span></span>
+<span><span class="va">records</span><span class="op">[</span><span class="va">records</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"failure"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"file_path"</span>, <span class="st">"error_message"</span><span class="op">)</span><span class="op">]</span></span></code></pre></div>
+<p>Given several folders, it reads each one and stacks the results. That is the shape a multi-job run comes back in. <code>submitr::htc_collect()</code> (submitr 0.2.0 or later) extracts each job’s results folder and returns an index of where they landed; <code><a href="reference/read_output_records.html">read_output_records()</a></code> then reads what those folders say about themselves. Name the folders, and the names become <code>source</code>:</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">jobs</span>    <span class="op">&lt;-</span> <span class="fu">submitr</span><span class="fu">::</span><span class="fu">htc_collect</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">jobs</span>    <span class="op">&lt;-</span> <span class="va">jobs</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NA.html" class="external-link">is.na</a></span><span class="op">(</span><span class="va">jobs</span><span class="op">$</span><span class="va">output_dir</span><span class="op">)</span>, <span class="op">]</span>  <span class="co"># drop jobs whose results never arrived</span></span>
+<span><span class="va">records</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/read_output_records.html">read_output_records</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="va">jobs</span><span class="op">$</span><span class="va">output_dir</span>, <span class="va">jobs</span><span class="op">$</span><span class="va">group_id</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>The two calls split the work the way the family does. <code>submitr</code> knows where the results landed and whether each job brought a record back; <code>toolero</code> wrote the record, so <code>toolero</code> is the package that interprets it (see <a href="https://github.com/erwinlares/toolero/blob/main/CONVENTIONS.md#7-the-output-record-project-manifestjson" class="external-link">section 7 of CONVENTIONS.md</a>).</p>
+<p>A folder with no usable output record, such as a job that crashed before <code><a href="reference/generate_manifest.html">generate_manifest()</a></code> ran, is read from its accumulator instead, keeping the latest row per file, with a warning; its run-level columns are <code>NA</code>. A folder with neither contributes no rows, also with a warning, so one incomplete job never stops the rest from being read. A record written by toolero 0.5.x, which has no <code>schema_version</code>, reads as version 1; a record from a newer toolero reads as far as possible, with a warning.</p>
 <hr>
 </div>
 <div class="section level3">
@@ -643,13 +677,13 @@
 </h3>
 <p>An analysis written in a <code>.qmd</code> runs in three places over its life: in your console while you develop it, under <code>quarto render</code> when you produce the document, and under <code>Rscript</code> when a cluster runs the derived script. Each one finds its input data somewhere different.</p>
 <p><code><a href="reference/detect_execution_context.html">detect_execution_context()</a></code> identifies which of the three you are in and returns <code>"interactive"</code>, <code>"quarto"</code>, or <code>"rscript"</code>. Use it directly for anything that varies by context but is not about data.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Progress output is useful at a console and only clutters a job log</span></span>
 <span><span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="reference/detect_execution_context.html">detect_execution_context</a></span><span class="op">(</span><span class="op">)</span> <span class="op">==</span> <span class="st">"rscript"</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/options.html" class="external-link">options</a></span><span class="op">(</span>cli.progress_show_after <span class="op">=</span> <span class="cn">Inf</span><span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
 <p>For the data path specifically, use <code><a href="reference/resolve_input_path.html">resolve_input_path()</a></code>. It picks the branch, checks that the result is usable, and says what to fix when it is not.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resolve_input_path.html">resolve_input_path</a></span><span class="op">(</span></span>
 <span>  interactive <span class="op">=</span> <span class="st">"data-raw/sample.csv"</span>,</span>
 <span>  quarto      <span class="op">=</span> <span class="va">params</span><span class="op">$</span><span class="va">input_file</span>,</span>
@@ -658,8 +692,9 @@
 <p>Only the branch matching the current context is evaluated, so the <code>params</code> reference is safe under <code>Rscript</code>, where <code>params</code> does not exist at all.</p>
 <p>The checking is the point. Each of those branches can quietly produce something that is not a path. <code>commandArgs(trailingOnly = TRUE)[1]</code> is <code>NA_character_</code> when no argument was passed, which is what you get from a <code>submitr</code> single-mode job with no <code>data_files</code> set. <code>params</code> exists only if the YAML header declares it, and <code>params$input_file</code> is <code>NULL</code> if the block exists without that key. Without the check, all of these surface one call later as a message about <code>NA</code> or <code>NULL</code> from whatever tried to read the file, naming neither the context nor the fix, from a job log on a machine you are not sitting at.</p>
 <p>You can also leave the arguments off. The <code>rscript</code> branch defaults to the first command line argument, and the other two fall back to the document’s own <code>params$input_file</code>, which makes the YAML header the single place the path is written rather than one place in the header and another in a chunk that has to be kept in step with it.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">input_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/resolve_input_path.html">resolve_input_path</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>In the interactive and Quarto contexts, a relative path is read from the project root, so a document in <code>reports/</code> can declare <code>input_file: data-raw/sample.csv</code> and find the file whether it is rendered or run chunk by chunk. The <code>rscript</code> context is left alone: on a cluster the path arrives as a command line argument that already points at the file.</p>
 <p>Set <code>must_exist = FALSE</code> when the resolved value is a URL or anything else that is not a local file.</p>
 <hr>
 </div>
@@ -672,7 +707,7 @@
 <code>generate_kb_xml()</code><a class="anchor" aria-label="anchor" href="#generate_kb_xml"></a>
 </h3>
 <p>Produces a UW-Madison Knowledge Base importable XML file from a rendered Quarto document. Write and maintain the guide in Quarto, then generate the KB-ready XML from that source. The Quarto document remains the maintained version and the XML becomes a derived artifact, reducing documentation drift.</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/generate_kb_xml.html">generate_kb_xml</a></span><span class="op">(</span></span>
 <span>  html_path  <span class="op">=</span> <span class="st">"docs/analysis.html"</span>,</span>
 <span>  output_dir <span class="op">=</span> <span class="st">"exports"</span></span>
@@ -685,7 +720,7 @@
 <code>generate_citation()</code><a class="anchor" aria-label="anchor" href="#generate_citation"></a>
 </h3>
 <p>Writes a <code>CITATION.cff</code> skeleton – the <a href="https://citation-file-format.github.io/" class="external-link">Citation File Format</a> GitHub and other tools use to render a “Cite this repository” button and machine-readable citation metadata – so a project’s citation file does not have to be built by hand.</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/generate_citation.html">generate_citation</a></span><span class="op">(</span>profile <span class="op">=</span> <span class="st">"~/toolero-profile.yml"</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Arguments:</strong></p>
 <ul>
@@ -708,7 +743,7 @@
 <code>generate_license()</code><a class="anchor" aria-label="anchor" href="#generate_license"></a>
 </h3>
 <p>Writes a plain-text <code>LICENSE</code> file at a project’s root from one of a small set of common license templates, with the copyright holder and year filled in.</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/generate_license.html">generate_license</a></span><span class="op">(</span>license <span class="op">=</span> <span class="st">"MIT"</span>, holder <span class="op">=</span> <span class="st">"Jane Researcher"</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Arguments:</strong></p>
 <ul>
@@ -732,7 +767,7 @@
 <code>generate_data_doc()</code><a class="anchor" aria-label="anchor" href="#generate_data_doc"></a>
 </h3>
 <p>Writes a Markdown documentation stub for a single dataset, with the sections a data-management plan typically asks for: source, date obtained, license and usage terms, collection method, a variables table, and known issues. The dataset’s file name and today’s date are pre-filled; everything else is left as a placeholder to complete by hand – the same skeleton-you-complete-yourself approach <code><a href="reference/generate_citation.html">generate_citation()</a></code> uses for <code>CITATION.cff</code>.</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="reference/generate_data_doc.html">generate_data_doc</a></span><span class="op">(</span><span class="st">"survey_responses.csv"</span><span class="op">)</span></span></code></pre></div>
 <p><strong>Arguments:</strong></p>
 <ul>
@@ -750,7 +785,7 @@
 <code>arborize()</code><a class="anchor" aria-label="anchor" href="#arborize"></a>
 </h3>
 <p>Renders a syntactic tree as a standalone PNG image using Quarto’s Typst engine. Accepts bracket notation for simple trees or structured notation for trees requiring movement arrows and per-node styling. A provenance <code>.yaml</code> file is written alongside the PNG by default, recording the tree string and render settings so the image can be reproduced or modified later.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Simple bracket notation</span></span>
 <span><span class="fu"><a href="reference/arborize.html">arborize</a></span><span class="op">(</span></span>
 <span>  <span class="st">"[NP [Det the] [N cat]]"</span>,</span>
@@ -773,8 +808,9 @@
 <h2 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a>
 </h2>
 <p><code>toolero</code> builds on a focused set of R packages for project setup, file handling, data import, documentation, and workflow automation:</p>
-<pre class="text"><code>cli, fs, glue, janitor, jsonlite, lifecycle, parallelly, purrr, quarto,
-readr, renv, rlang, rvest, tibble, tidyr, usethis, utils, withr, xml2, yaml</code></pre>
+<pre class="text"><code>cli, fs, glue, here, janitor, jsonlite, lifecycle, parallelly, purrr,
+quarto, readr, renv, rlang, rprojroot, rvest, tibble, tidyr, usethis, utils,
+withr, xml2, yaml</code></pre>
 <p>Some functions need a package that is suggested rather than required, so that installing <code>toolero</code> does not drag in more than most users need:</p>
 <pre class="text"><code>knitr      required by qmd_to_r()
 furrr      required by run_by_group() when workers &gt; 1
@@ -802,7 +838,7 @@ dplyr      used in the examples throughout this README</code></pre>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
 </h2>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"toolero"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">

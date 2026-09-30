@@ -57,7 +57,9 @@ resolve_input_path(
 
 ## Value
 
-A single character string: the resolved path.
+A single character string: the resolved path. In the `interactive` and
+`quarto` contexts, a relative path is returned joined to the project
+root (see the section below).
 
 ## Details
 
@@ -89,6 +91,26 @@ function says about each:
 
 - In any context, the resolved path may simply not be there, which is
   most often a working directory that is not what the author assumed.
+
+## Relative paths start at the project root
+
+In the `interactive` and `quarto` contexts, a relative path such as
+`"data-raw/sample.csv"` is read from the project root, the same rule
+[`here::here()`](https://here.r-lib.org/reference/here.html) follows,
+not from the working directory. So a document under `reports/` can
+declare `input_file: data-raw/sample.csv` in its header and find the
+file whether it is rendered (Quarto runs the code in `reports/`) or run
+chunk by chunk in RStudio. The root is the nearest folder above the
+working directory carrying a project marker: the `.here` file
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+writes, an `.Rproj` file, or a `.git` folder. For documents written
+before this rule, a path that exists relative to the working directory
+but not from the root is still used as it is.
+
+The `rscript` context is left alone. On an HTCondor execute node the
+path arrives as a command line argument that already points at the file:
+an absolute path to data baked into the image, or a bare subset file
+name in the job's scratch directory.
 
 ## See also
 

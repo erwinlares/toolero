@@ -23,10 +23,12 @@ generate_manifest(
 - output_dir:
 
   Character or `NULL`. Directory containing `accumulator.csv` and
-  receiving the output record. If `NULL` (the default) and `config` is
-  supplied, resolved from the config's `output_dir` convention; if
-  `config` is also `NULL`, falls back to `"output"`, unchanged from
-  earlier versions.
+  receiving the output record. An explicit value is used exactly as
+  given. If `NULL` (the default), resolved from `config`'s `output_dir`
+  convention when `config` is supplied, or `"output"` otherwise, taken
+  from the project root rather than the working directory, exactly as
+  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+  resolves it, so the two always meet at the same accumulator.
 
 - filename:
 
@@ -94,9 +96,7 @@ records which revision of the analysis script itself ran. Like
 and is not repeated per artifact.
 
 `config` is entirely opt-in and affects `output_dir` only, not `commit`.
-Nothing changes for a project never scaffolded by
-[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
-pass `output_dir` (or rely on the `"output"` default) exactly as before.
+Without it, `output_dir` defaults to `output/` under the project root.
 When `config` is supplied but cannot be read, this aborts with the same
 message
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
@@ -121,12 +121,13 @@ order:
 
 - `artifacts` – an array, empty rather than absent when nothing was
   saved. Each entry carries the seven accumulator fields: `file_path`
-  (the path as passed to
-  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)),
-  `r_class` (the object's classes joined with `"|"`), `timestamp` (same
-  format as `generated_at`), `function_used`, `status` (`"success"` or
-  `"failure"`), `error_message`, and `note`. A field with no value is
-  written as `null`, never as an empty string.
+  (relative to the project root when the file is inside the project, as
+  given to
+  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+  otherwise), `r_class` (the object's classes joined with `"|"`),
+  `timestamp` (same format as `generated_at`), `function_used`, `status`
+  (`"success"` or `"failure"`), `error_message`, and `note`. A field
+  with no value is written as `null`, never as an empty string.
 
 `schema_version` increments only when an existing key is removed,
 renamed, or changes meaning or type. A record with no `schema_version`
@@ -134,8 +135,9 @@ was written by toolero 0.5.x and has the version 1 shape without the
 key. The full specification, including the rules for readers, is in the
 family's `CONVENTIONS.md`.
 
-The output record is toolero's own format. Other packages should treat
-it as an opaque file rather than parse it.
+The output record is toolero's own format. Read it with
+[`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md);
+other packages should treat the file as opaque rather than parse it.
 
 ## The output record and the job manifest
 
@@ -150,7 +152,10 @@ compatibility; the file defaults to `project-manifest.json` rather than
 
 ## See also
 
-[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md),
+which feeds the accumulator, and
+[`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md),
+which reads the output record back.
 
 ## Examples
 
@@ -163,9 +168,9 @@ save_output(
   .f = saveRDS,
   output_dir = output_dir
 )
-#> ℹ Created the directory /tmp/RtmpW98hhs/file1dca74c5c83b to hold mtcars.rds.
+#> ℹ Created the directory /tmp/RtmpnUDNSl/file1b1043629d9a to hold mtcars.rds.
 
 generate_manifest(output_dir = output_dir)
-#> ✔ Wrote /tmp/RtmpW98hhs/file1dca74c5c83b/project-manifest.json describing 1
+#> ✔ Wrote /tmp/RtmpnUDNSl/file1b1043629d9a/project-manifest.json describing 1
 #>   artifact.
 ```

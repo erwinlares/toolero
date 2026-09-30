@@ -205,6 +205,20 @@ machine it was created on.</p>
 understands what it is holding.</p>
     </div>
     <div class="section level2">
+    <h2 id="the-here-marker">The <code>.here</code> marker<a class="anchor" aria-label="anchor" href="#the-here-marker"></a></h2>
+
+
+<p><code>init_project()</code> also writes an empty <code>.here</code> file at the project root.
+It marks the root for <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>, which the documents
+<code><a href="create_qmd.html">create_qmd()</a></code> scaffolds use to build paths, and for toolero's own
+functions that take paths from the project root (<code><a href="resolve_input_path.html">resolve_input_path()</a></code>,
+<code><a href="save_output.html">save_output()</a></code>, <code><a href="generate_manifest.html">generate_manifest()</a></code>). An <code>.Rproj</code> file or a <code>.git</code>
+folder would serve too, but a project created outside RStudio and
+without git has neither, so <code>.here</code> guarantees a marker. Commit it. It
+is never sent to an execute node, so there the job's scratch directory
+stands in for the root. An existing <code>.here</code> is left as it is.</p>
+    </div>
+    <div class="section level2">
     <h2 id="empty-folders-and-git">Empty folders and git<a class="anchor" aria-label="anchor" href="#empty-folders-and-git"></a></h2>
 
 

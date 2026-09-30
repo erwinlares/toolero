@@ -65,7 +65,7 @@
       <img src="../logo.png" class="logo" alt=""><h1>Rendering Syntactic Trees with arborize()</h1>
             
             <h4 data-toc-skip class="date">Created 2026-04-30 | Last
-updated 2026-09-29</h4>
+updated 2026-09-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/vignettes/arborize.Rmd" class="external-link"><code>vignettes/arborize.Rmd</code></a></small>
       <div class="d-none name"><code>arborize.Rmd</code></div>
@@ -110,9 +110,8 @@ tree</li>
 <li>Quarto renders the document via Typst to an intermediate PDF</li>
 <li>The PDF is converted to PNG at the requested resolution</li>
 <li>Temporary files are cleaned up automatically</li>
-<li>Optionally, a provenance <code>.yaml</code> file is written
-alongside the PNG recording the tree string and all rendering
-arguments</li>
+<li>Optionally, a provenance <code>.yml</code> file is written alongside
+the PNG recording the tree string and all rendering arguments</li>
 </ol>
 <p>No LaTeX required. No intermediate files left on disk. One function
 call, one PNG.</p>
@@ -379,7 +378,7 @@ output will be incorrect.</p>
 <h3 id="suppressing-the-provenance-file">Suppressing the provenance file<a class="anchor" aria-label="anchor" href="#suppressing-the-provenance-file"></a>
 </h3>
 <p>By default <code><a href="../reference/arborize.html">arborize()</a></code> writes a companion
-<code>.yaml</code> file alongside the PNG recording the tree string and
+<code>.yml</code> file alongside the PNG recording the tree string and
 all rendering arguments. Pass <code>provenance = FALSE</code> to
 suppress it.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
@@ -395,7 +394,7 @@ suppress it.</p>
 <h2 id="working-with-provenance-files">Working with provenance files<a class="anchor" aria-label="anchor" href="#working-with-provenance-files"></a>
 </h2>
 <p>When <code>provenance = TRUE</code> (the default),
-<code><a href="../reference/arborize.html">arborize()</a></code> writes a <code>.yaml</code> file with the same
+<code><a href="../reference/arborize.html">arborize()</a></code> writes a <code>.yml</code> file with the same
 stem as the PNG. For a call like:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/arborize.html">arborize</a></span><span class="op">(</span></span>
@@ -407,10 +406,10 @@ stem as the PNG. For a call like:</p>
 <p>The directory will contain:</p>
 <pre><code>figures/
 ├── np-tree.png
-└── np-tree.yaml</code></pre>
-<p>The <code>.yaml</code> file records everything needed to reproduce
-the render:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">rendered_by</span><span class="kw">:</span><span class="at"> toolero::arborize(), version 0.5.0</span></span>
+└── np-tree.yml</code></pre>
+<p>The <code>.yml</code> file records everything needed to reproduce the
+render:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">rendered_by</span><span class="kw">:</span><span class="at"> toolero::arborize(), version 0.6.0</span></span>
 <span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="fu">rendered_at</span><span class="kw">:</span><span class="at"> 2026-04-30 14:23:11 CDT</span></span>
 <span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="fu">output</span><span class="kw">:</span><span class="at"> /path/to/figures/np-tree.png</span></span>
 <span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="fu">tree_notation</span><span class="kw">:</span><span class="at"> simple</span></span>
@@ -421,10 +420,10 @@ the render:</p>
 <span id="cb12-9"><a href="#cb12-9" tabindex="-1"></a><span class="fu">tree</span><span class="kw">:</span><span class="at"> </span><span class="st">'[NP [Det the] [N cat]]'</span></span></code></pre></div>
 <p>To re-render from a provenance file – for example to increase the DPI
 for a journal submission while keeping the exact same tree and crop
-settings – read the <code>.yaml</code> and pass its fields back to
+settings – read the <code>.yml</code> file and pass its fields back to
 <code><a href="../reference/arborize.html">arborize()</a></code>:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">yaml</span><span class="fu">::</span><span class="fu"><a href="https://yaml.r-lib.org/reference/read_yaml.html" class="external-link">read_yaml</a></span><span class="op">(</span><span class="st">"figures/np-tree.yaml"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">p</span> <span class="op">&lt;-</span> <span class="fu">yaml</span><span class="fu">::</span><span class="fu"><a href="https://yaml.r-lib.org/reference/read_yaml.html" class="external-link">read_yaml</a></span><span class="op">(</span><span class="st">"figures/np-tree.yml"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/arborize.html">arborize</a></span><span class="op">(</span></span>
 <span>  tree          <span class="op">=</span> <span class="va">p</span><span class="op">$</span><span class="va">tree</span>,</span>
@@ -438,6 +437,14 @@ settings – read the <code>.yaml</code> and pass its fields back to
 <p>The provenance file ensures that the high-resolution version is
 cropped identically to the original – same <code>papersize</code>, same
 <code>margin</code>, different <code>dpi</code>.</p>
+<p>Provenance files written by toolero 0.5.x and earlier end in
+<code>.yaml</code> rather than <code>.yml</code>. They read exactly the
+same way (<code><a href="https://yaml.r-lib.org/reference/read_yaml.html" class="external-link">yaml::read_yaml()</a></code> does not care about the
+extension), so the pattern above works on either. When
+<code><a href="../reference/arborize.html">arborize()</a></code> re-renders a tree that has one of these older
+files next to it, it writes the new <code>.yml</code> file and leaves
+the old one where it is, with a message naming both, so that it is clear
+which of the two describes the PNG on disk.</p>
 <p>A dedicated <code>rearborize()</code> function that wraps this
 pattern is not yet implemented. If this would be useful to you, please
 file an issue at <a href="https://github.com/erwinlares/toolero/issues" class="external-link uri">https://github.com/erwinlares/toolero/issues</a> – user
@@ -512,7 +519,7 @@ lingotree</td>
 <tr class="odd">
 <td><code>provenance</code></td>
 <td><code>TRUE</code></td>
-<td>Write companion <code>.yaml</code> provenance file</td>
+<td>Write companion <code>.yml</code> provenance file</td>
 </tr>
 <tr class="even">
 <td><code>overwrite</code></td>

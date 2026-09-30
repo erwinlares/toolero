@@ -165,6 +165,24 @@ The format is experimental and may gain keys before it settles. The
 `schema_version` field exists so that a reader can tell whether it
 understands what it is holding.
 
+## The `.here` marker
+
+`init_project()` also writes an empty `.here` file at the project root.
+It marks the root for
+[`here::here()`](https://here.r-lib.org/reference/here.html), which the
+documents
+[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+scaffolds use to build paths, and for toolero's own functions that take
+paths from the project root
+([`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md),
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md),
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)).
+An `.Rproj` file or a `.git` folder would serve too, but a project
+created outside RStudio and without git has neither, so `.here`
+guarantees a marker. Commit it. It is never sent to an execute node, so
+there the job's scratch directory stands in for the root. An existing
+`.here` is left as it is.
+
 ## Empty folders and git
 
 Each folder `init_project()` creates that is still empty when the call

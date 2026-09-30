@@ -54,11 +54,11 @@ arborize(
 
 - provenance:
 
-  A logical. Whether to write a companion `.yaml` file recording the
-  tree string and all rendering arguments alongside the PNG. Defaults to
+  A logical. Whether to write a companion `.yml` file recording the tree
+  string and all rendering arguments alongside the PNG. Defaults to
   `TRUE`. The provenance file has the same name as the PNG but with a
-  `.yaml` extension and lives in the same directory. Pass `FALSE` to
-  suppress it.
+  `.yml` extension and lives in the same directory. Pass `FALSE` to
+  suppress it. (toolero 0.5.x and earlier used `.yaml`.)
 
 - overwrite:
 
@@ -106,8 +106,8 @@ without requiring a full LaTeX installation.
 6.  Reads the PNG bytes into memory before the temporary directory is
     deleted, then writes them to the specified output path.
 
-7.  If `provenance = TRUE`, writes a companion `.yaml` file recording
-    the tree string and all rendering arguments.
+7.  If `provenance = TRUE`, writes a companion `.yml` file recording the
+    tree string and all rendering arguments.
 
 On first use, Typst will download the required package from the Typst
 package registry. This requires an internet connection. Subsequent
@@ -129,7 +129,7 @@ lingotree Typst package (v1.0.0):
 
 ``` r
 if (FALSE) { # \dontrun{
-# Simple bracket notation (default) -- also writes tree-1.yaml
+# Simple bracket notation (default) -- also writes tree-1.yml
 arborize("[NP [Det the] [N cat]]", output = "my-trees/tree-1.png")
 
 # Suppress provenance file

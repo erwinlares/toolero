@@ -2,6 +2,22 @@
 
 ## toolero 0.6.0
 
+### Breaking changes
+
+- [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
+  now writes its provenance file with a `.yml` extension
+  (`figures/np-tree.yml`) instead of `.yaml`, following the family-wide
+  rule in `CONVENTIONS.md` that every YAML file a toolero-family package
+  names for itself ends in `.yml`. The file’s contents are unchanged,
+  and
+  [`yaml::read_yaml()`](https://yaml.r-lib.org/reference/read_yaml.html)
+  reads either spelling, so the only code affected is code that builds
+  the provenance path by hand. When
+  [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
+  re-renders a tree that already has a `.yaml` file next to it from an
+  earlier version, it leaves that file in place and says so, naming both
+  files, so it is clear which one describes the new PNG.
+
 ### New features
 
 - Added
@@ -121,6 +137,69 @@
   key is removed, renamed, or changes meaning or type. Reference
   examples of the format live in
   `tests/testthat/fixtures/output-records/`.
+
+- Added
+  [`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md)
+  (experimental), the reader that goes with
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md).
+  It reads one or more output folders (or record files) and returns a
+  tibble with one row per artifact: the seven artifact fields as
+  recorded, then `read_from`, `schema_version`, and the run-level
+  `execution_context`, `generated_at`, and `commit`, with a `source`
+  column labeling each folder’s rows (by name when `path` is named). It
+  follows the reading rules in `CONVENTIONS.md`: a record without
+  `schema_version` reads as version 1, a record with an unknown version
+  is read as far as possible with a warning, and unrecognized keys are
+  ignored. A folder with no usable record falls back to its
+  `accumulator.csv`, deduplicated as
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+  would, with a warning; a folder with neither contributes no rows, also
+  with a warning, so one incomplete job never stops the rest from being
+  read. Paired with `submitr::htc_collect()`, it turns a multi-job run
+  into one table in two calls.
+
+- Paths in analysis code now start at the project root, the rule
+  [`here::here()`](https://here.r-lib.org/reference/here.html) follows,
+  so a document can live in `reports/` (or any folder below the root)
+  and run unchanged there, at the root, and on a cluster. toolero gains
+  `here` and `rprojroot` as dependencies.
+
+  - [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+    writes an empty `.here` file at the project root, a marker
+    [`here::here()`](https://here.r-lib.org/reference/here.html) finds
+    even in a project created outside RStudio and without git. Commit
+    it.
+  - [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+    accepts a `filename` in a subfolder (`"reports/analysis.qmd"`) and
+    creates the folder. The sample data, logo, `R/purl.R`, and
+    `_quarto.yml` still go to the project root. Header paths from
+    `use_style` are written relative to the document
+    (`css: ../assets/styles.css`), since Quarto resolves them from
+    there, and a document below the root that includes `header.html` or
+    `footer.html` also lists the root on its `resource-path`, so the
+    logo those files refer to is found. The example template writes its
+    results to `here::here("output")`.
+  - [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+    reads a relative path from the project root in the `interactive` and
+    `quarto` contexts, so `input_file: data-raw/sample.csv` works from
+    any folder. A path that exists only relative to the working
+    directory is still used as it is, so documents written with `../`
+    paths keep working. The `rscript` context is left alone.
+  - [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+    and
+    [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+    default `output_dir` to `output/` under the project root rather than
+    under the working directory, and a relative `output_dir` convention
+    in `config` is taken from the folder holding the config. An explicit
+    `output_dir` is still used exactly as given.
+    [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+    records `file_path` relative to the project root when the file is
+    inside the project, so the output record never carries a home
+    directory.
+
+  On an HTCondor execute node no marker is uploaded, so the job’s
+  scratch directory stands in for the project root and `output/` means
+  the job’s own results folder.
 
 - [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md)
   gains a stale purled scripts check. Every `.qmd` under the project

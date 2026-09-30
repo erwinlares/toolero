@@ -38,7 +38,7 @@ The function handles the entire pipeline internally:
 2.  Quarto renders the document via Typst to an intermediate PDF
 3.  The PDF is converted to PNG at the requested resolution
 4.  Temporary files are cleaned up automatically
-5.  Optionally, a provenance `.yaml` file is written alongside the PNG
+5.  Optionally, a provenance `.yml` file is written alongside the PNG
     recording the tree string and all rendering arguments
 
 No LaTeX required. No intermediate files left on disk. One function
@@ -282,7 +282,7 @@ arborize(
 
 By default
 [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
-writes a companion `.yaml` file alongside the PNG recording the tree
+writes a companion `.yml` file alongside the PNG recording the tree
 string and all rendering arguments. Pass `provenance = FALSE` to
 suppress it.
 
@@ -300,7 +300,7 @@ arborize(
 
 When `provenance = TRUE` (the default),
 [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
-writes a `.yaml` file with the same stem as the PNG. For a call like:
+writes a `.yml` file with the same stem as the PNG. For a call like:
 
 ``` r
 
@@ -316,12 +316,12 @@ The directory will contain:
 
     figures/
     ├── np-tree.png
-    └── np-tree.yaml
+    └── np-tree.yml
 
-The `.yaml` file records everything needed to reproduce the render:
+The `.yml` file records everything needed to reproduce the render:
 
 ``` yaml
-rendered_by: toolero::arborize(), version 0.5.0
+rendered_by: toolero::arborize(), version 0.6.0
 rendered_at: 2026-04-30 14:23:11 CDT
 output: /path/to/figures/np-tree.png
 tree_notation: simple
@@ -334,12 +334,12 @@ tree: '[NP [Det the] [N cat]]'
 
 To re-render from a provenance file – for example to increase the DPI
 for a journal submission while keeping the exact same tree and crop
-settings – read the `.yaml` and pass its fields back to
+settings – read the `.yml` file and pass its fields back to
 [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md):
 
 ``` r
 
-p <- yaml::read_yaml("figures/np-tree.yaml")
+p <- yaml::read_yaml("figures/np-tree.yml")
 
 arborize(
   tree          = p$tree,
@@ -355,6 +355,17 @@ arborize(
 The provenance file ensures that the high-resolution version is cropped
 identically to the original – same `papersize`, same `margin`, different
 `dpi`.
+
+Provenance files written by toolero 0.5.x and earlier end in `.yaml`
+rather than `.yml`. They read exactly the same way
+([`yaml::read_yaml()`](https://yaml.r-lib.org/reference/read_yaml.html)
+does not care about the extension), so the pattern above works on
+either. When
+[`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
+re-renders a tree that has one of these older files next to it, it
+writes the new `.yml` file and leaves the old one where it is, with a
+message naming both, so that it is clear which of the two describes the
+PNG on disk.
 
 A dedicated `rearborize()` function that wraps this pattern is not yet
 implemented. If this would be useful to you, please file an issue at
@@ -399,7 +410,7 @@ uploaded directly to any content management system.
 | `tree_notation` | `"simple"` | `"simple"` for syntree, `"structured"` for lingotree |
 | `papersize` | `"a5"` | Typst paper size; match to tree complexity |
 | `margin` | `"0.5cm"` | Page margin; controls buffer around the tree |
-| `provenance` | `TRUE` | Write companion `.yaml` provenance file |
+| `provenance` | `TRUE` | Write companion `.yml` provenance file |
 | `overwrite` | `FALSE` | Overwrite existing output files |
 
 ## References

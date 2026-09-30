@@ -101,11 +101,12 @@ tree.</p></dd>
 
 
 <dt id="arg-provenance">provenance<a class="anchor" aria-label="anchor" href="#arg-provenance"></a></dt>
-<dd><p>A logical. Whether to write a companion <code>.yaml</code> file
+<dd><p>A logical. Whether to write a companion <code>.yml</code> file
 recording the tree string and all rendering arguments alongside the
 PNG. Defaults to <code>TRUE</code>. The provenance file has the same name as
-the PNG but with a <code>.yaml</code> extension and lives in the same directory.
-Pass <code>FALSE</code> to suppress it.</p></dd>
+the PNG but with a <code>.yml</code> extension and lives in the same directory.
+Pass <code>FALSE</code> to suppress it. (toolero 0.5.x and earlier used
+<code>.yaml</code>.)</p></dd>
 
 
 <dt id="arg-overwrite">overwrite<a class="anchor" aria-label="anchor" href="#arg-overwrite"></a></dt>
@@ -139,7 +140,7 @@ Typst.</p></li>
 <li><p>Converts the PDF to PNG using <code><a href="https://docs.ropensci.org/pdftools//reference/pdf_render_page.html" class="external-link">pdftools::pdf_convert()</a></code>.</p></li>
 <li><p>Reads the PNG bytes into memory before the temporary directory is
 deleted, then writes them to the specified output path.</p></li>
-<li><p>If <code>provenance = TRUE</code>, writes a companion <code>.yaml</code> file recording
+<li><p>If <code>provenance = TRUE</code>, writes a companion <code>.yml</code> file recording
 the tree string and all rendering arguments.</p></li>
 </ol><p>On first use, Typst will download the required package from the Typst
 package registry. This requires an internet connection. Subsequent
@@ -157,7 +158,7 @@ package for PDF-to-PNG conversion. Install <code>pdftools</code> with
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Simple bracket notation (default) -- also writes tree-1.yaml</span></span></span>
+<span class="r-in"><span><span class="co"># Simple bracket notation (default) -- also writes tree-1.yml</span></span></span>
 <span class="r-in"><span><span class="fu">arborize</span><span class="op">(</span><span class="st">"[NP [Det the] [N cat]]"</span>, output <span class="op">=</span> <span class="st">"my-trees/tree-1.png"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Suppress provenance file</span></span></span>

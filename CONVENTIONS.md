@@ -46,6 +46,7 @@ my-project/
 ├── assets/            styling and branding, when branding is requested
 ├── renv.lock          the R package environment
 ├── _toolero.yml       the project config: the project's own description of the above
+├── .here              marks the project root for here::here()
 └── my-project.Rproj
 ```
 
@@ -110,6 +111,41 @@ edit to it is lost the next time somebody opens the document.
 Everything an analysis produces goes under `output/`, on the laptop and
 on an execute node alike. Not `results/`, which earlier versions of
 `submitr` used.
+
+**Paths in analysis code start at the project root**, and are written
+with [`here::here()`](https://here.r-lib.org/reference/here.html):
+`here::here("output", "fit.rds")`, never a path relative to wherever the
+code happens to be running. The same analysis runs with three different
+working directories: the project root or the document’s folder in
+RStudio, the document’s folder under `quarto render`, and the job’s
+scratch directory on an execute node.
+[`here::here()`](https://here.r-lib.org/reference/here.html) gives the
+right answer in all three: it walks up from the working directory to the
+first folder carrying a project marker, which
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+guarantees by writing a `.here` file, and on an execute node, where no
+marker is uploaded, it falls back to the scratch directory. `output/`
+therefore means the project’s own output folder whether a document sits
+at the root or under `reports/`. `toolero`’s own functions follow the
+same rule:
+[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+and
+[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
+default to `output/` under the project root, and
+[`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+reads a relative input path from it.
+
+Do not use [`here::i_am()`](https://here.r-lib.org/reference/i_am.html)
+in this family. It checks that a named file sits where it says relative
+to the root, and the purled script on an execute node sits flat in the
+scratch directory, not at `R/reports/analysis.R`, so the check fails
+there.
+
+Paths in a Quarto document’s *header* are the one exception: Quarto
+resolves `css:`, `include-before-body:`, and the like relative to the
+document, so a document in `reports/` says `css: ../assets/styles.css`.
+[`toolero::create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+writes them that way.
 
 [`toolero::save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
 writes there and records each write in `output/accumulator.csv`.
@@ -212,10 +248,8 @@ schema_version: 1
 folders:
   - data-raw
   - data
-  - data/jobs
   - R
   - scripts
-  - output
   - output/figures
   - output/tables
   - reports
@@ -223,9 +257,15 @@ conventions:
   output_dir: output
   script_dir: R
   split_dir: data/jobs
-  raw_dir: data-raw
-  clean_dir: data
 ```
+
+That is what
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+writes with its defaults, minus the comments the template adds;
+`branding = TRUE` or `"uw-madison"` adds `assets` to `folders:`.
+`data/jobs` is not created up front:
+[`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
+creates it the first time it splits data there.
 
 Four rules govern it.
 
@@ -269,13 +309,14 @@ apply to all of it. This section is its specification.
 
 It is `toolero`’s own format. Unlike `_toolero.yml` and the `file_path`
 column of the job manifest, it is not a contract between packages:
-`toolero` writes it, and `toolero` is the package that reads it. Other
-packages should treat it as an opaque file, noting that it exists if
-they need to, but not parsing it; `submitr::htc_collect()`, for example,
-reports whether each job brought one back without opening it. The reason
-is practical: every package that parses a format carries its own copy of
-the schema, and copies drift. One parser, in the package that writes the
-file, cannot disagree with itself.
+`toolero` writes it, and `toolero` is the package that reads it, with
+[`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md).
+Other packages should treat it as an opaque file, noting that it exists
+if they need to, but not parsing it; `submitr::htc_collect()`, for
+example, reports whether each job brought one back without opening it.
+The reason is practical: every package that parses a format carries its
+own copy of the schema, and copies drift. One parser, in the package
+that writes the file, cannot disagree with itself.
 
 A version 1 output record looks like this:
 
@@ -313,7 +354,7 @@ A version 1 output record looks like this:
 
 | Field | Type | Value |
 |----|----|----|
-| `file_path` | string | The path exactly as passed to [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md) |
+| `file_path` | string | The path relative to the project root (`output/fit.rds`) when the file is inside the project; as passed to [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md) otherwise |
 | `r_class` | string | `class(object)` joined with `"\|"`, captured before the write |
 | `timestamp` | string | When the save was attempted, same format as `generated_at` |
 | `function_used` | string | The writer as named at the call site, e.g. `"saveRDS"` or `"ggplot2::ggsave"` |
@@ -325,11 +366,12 @@ Three rules apply to the values. A field with no value is written as
 `null`, never as an empty string. Artifacts appear once per `file_path`,
 keeping the latest attempt, so a later failure supersedes an earlier
 success for the same file; they are ordered by `timestamp`. And
-`file_path` is recorded as given, so it is relative to the working
-directory the analysis ran in when the call used a relative path.
-Relative paths are the ones to use: an absolute path does not resolve on
-another machine, and it records local directory names in a file that may
-be shared.
+`file_path` is recorded relative to the project root whenever the file
+is inside the project, however the call spelled it, so a record never
+carries the local directory names an absolute path would; on an execute
+node the root is the job’s scratch directory, so the path is
+`output/...` there too. A file saved outside the project is recorded as
+given.
 
 **Versioning.** `schema_version` changes only when an existing key or
 field is removed, renamed, or changes meaning or type. A reader of the
@@ -382,16 +424,37 @@ the raw, append-only log; the output record is its deduplicated,
 end-of-run summary (section 7).
 
 The **submission state** is `submitr`’s working memory for the job in
-progress, kept in `htc-manifest.yaml`: which files were generated, where
+progress, kept in `htc-manifest.yml`: which files were generated, where
 they were uploaded, and which cluster ID came back. It is updated as the
 work proceeds and read only by `submitr` itself.
 
 The file and function names predate these terms and are kept for
 compatibility, so
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)
-writes the output record and `htc-manifest.yaml` holds the submission
+writes the output record and `htc-manifest.yml` holds the submission
 state. Use the term in prose and the file name in code. Unqualified, the
 word “manifest” means none of these; use one of the four terms instead.
+
+**YAML files end in `.yml`.** Every YAML file a family package names for
+itself uses the `.yml` extension: the project config (`_toolero.yml`),
+the provenance file
+[`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
+writes next to each tree (`figures/np-tree.yml`), `submitr`’s submission
+state and resource settings, and the run record `submitr` will keep for
+each submission (`htc-runs/<cluster_id>/run.yml`). One extension means
+one thing to type, one pattern to search for, and no second guess about
+which spelling a given file uses. The rule is about the names the
+packages choose, not the names they accept: a file the user names
+explicitly, such as a profile passed to `create_qmd(header_defaults = )`
+or a project config passed to `init_project(config = )`, is read
+whatever its extension. GitHub Actions workflow files under
+`.github/workflows/` keep `.yaml`, since that is what `usethis` and
+GitHub’s own templates write, and they belong to the repository rather
+than to the family. `submitr` 0.2.0 made the last two renames:
+`htc-manifest.yaml` became `htc-manifest.yml` with no fallback, since no
+release ever wrote it, and `htc-resources.yaml` became
+`htc-resources.yml`, with a project’s own `htc-resources.yaml` still
+read, with a warning, for that one release.
 
 **Development packages** are what you install with `apt-get` to build an
 R package from source: `libfreetype-dev`, `libpng-dev`. **Headers** are
@@ -457,6 +520,42 @@ into the image.)
 ## Version history
 
 Section numbers in each entry are as they stood at the time.
+
+**2026-09 (the `.yml` renames complete).** Section 8’s vocabulary names
+the submission state by its new file name, `htc-manifest.yml`, and the
+`.yml` paragraph records that `submitr` 0.2.0 made both of its renames.
+Section 6’s example file is corrected to what
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+actually writes: it had shown `output` and `data/jobs` among the folders
+and `raw_dir` and `clean_dir` among the conventions, none of which the
+function writes. The conventions themselves do not change.
+
+**2026-09 (the output record’s reader).** Section 7 names
+[`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md)
+as `toolero`’s reader for the output record (T37). It follows the
+reading rules section 7 already set out, so the conventions themselves
+do not change.
+
+**2026-09 (YAML files end in `.yml`).** Section 8 adds the rule that
+every YAML file a family package names for itself uses the `.yml`
+extension, with GitHub Actions workflow files as the one exception.
+`toolero`’s
+[`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md)
+now writes its provenance files as `.yml` (toolero 0.6.0), the first
+half of the change. `submitr` follows in 0.2.0, renaming
+`htc-manifest.yaml` (unreleased, so no fallback) and
+`htc-resources.yaml` (released, so read as a fallback for one release)
+to `.yml`; section 8’s vocabulary names them by their new spelling once
+that ships.
+
+**2026-09 (paths from the project root).** Section 3 adds the rule that
+paths in analysis code start at the project root and are written with
+[`here::here()`](https://here.r-lib.org/reference/here.html), and notes
+that header paths in a Quarto document are the exception. Section 1’s
+layout gains the `.here` marker
+[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+writes. Section 7’s `file_path` is now recorded relative to the project
+root. `toolero` gains `here` and `rprojroot` as dependencies (T40).
 
 **2026-09 (the output record specified).** A new section 7 specifies the
 output record, `project-manifest.json`: its keys, types, allowed values,

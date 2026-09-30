@@ -35,7 +35,12 @@ save_output(
 
   Character. A single destination path for `object`. Its parent
   directory is created if it does not already exist, and the creation is
-  reported.
+  reported. Build it with
+  [`here::here()`](https://here.r-lib.org/reference/here.html)
+  (`here::here("output", "fit.rds")`) so it points at the project's
+  `output/` folder wherever the code runs. It is recorded in the
+  accumulator relative to the project root (`"output/fit.rds"`) when it
+  lies inside the project, and as given otherwise.
 
 - .f:
 
@@ -65,10 +70,15 @@ save_output(
 - output_dir:
 
   Character or `NULL`. Directory containing (or to contain) the
-  accumulator. If `NULL` (the default) and `config` is supplied,
-  resolved from the config's `output_dir` convention; if `config` is
-  also `NULL`, falls back to `"output"`, the family-wide convention,
-  unchanged from earlier versions.
+  accumulator. An explicit value is used exactly as given. If `NULL`
+  (the default), resolved from `config`'s `output_dir` convention when
+  `config` is supplied, or `"output"` otherwise, and in either case
+  taken from the project root rather than the working directory: the
+  folder holding `config`, or the nearest folder above the working
+  directory that carries a project marker (the `.here` file
+  [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  writes, an `.Rproj` file, or a `.git` folder). With no marker at all,
+  as on an HTCondor execute node, the working directory is the root.
 
 - config:
 
@@ -106,10 +116,11 @@ relies on this when keeping the latest row per `file_path`.
 
 ## Project conventions
 
-`config` is entirely opt-in. Nothing changes for a project never
-scaffolded by
-[`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md):
-pass `output_dir` (or rely on the `"output"` default) exactly as before.
+Paths in analysis code start at the project root, the same rule
+[`here::here()`](https://here.r-lib.org/reference/here.html) follows, so
+the accumulator for a document under `reports/` lands in the project's
+own `output/` rather than in `reports/output/`. `config` is opt-in:
+without it, `output_dir` defaults to `output/` under the project root.
 When `config` is supplied but cannot be read, this aborts with the same
 message
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
@@ -132,5 +143,5 @@ save_output(
   note = "Unmodified example data.",
   output_dir = output_dir
 )
-#> ℹ Created the directory /tmp/RtmpW98hhs/file1dca7af29077 to hold mtcars.rds.
+#> ℹ Created the directory /tmp/RtmpnUDNSl/file1b10eb2fc79 to hold mtcars.rds.
 ```
