@@ -208,6 +208,23 @@
 #' says so -- most often a sign of a typo -- but the guard is written
 #' regardless, since the file may simply not exist yet.
 #'
+#' R has no mechanism for merging profiles, so the two files stack rather
+#' than combine: the personal file runs in the same session, top to bottom,
+#' at the point where the block appears. Settings that do not overlap
+#' coexist without trouble. If both files set the same option (`repos`, for
+#' example), the later line wins, and because the block is appended at the
+#' end of the project `.Rprofile`, the personal value overrides anything set
+#' above it, including values renv established during activation. A
+#' personal profile that must not touch such options inside a project can
+#' guard them, for instance with `if (!file.exists("renv.lock"))`.
+#'
+#' The personal file runs under renv's restricted library paths. Packages
+#' it attaches or relies on -- `devtools`, or a clipboard helper that uses
+#' `clipr` -- are found only if they are installed in the project library,
+#' so a startup line such as `require(devtools)` may warn, and a helper
+#' that depends on an optional package should fall back gracefully when
+#' that package is absent.
+#'
 #' Defaults to `FALSE` because it cuts against renv's own isolation goal: a
 #' project that automatically re-sources a personal environment is no
 #' longer fully isolated from it. The `TRUE` mode is also written
