@@ -251,6 +251,23 @@ file does not exist yet when \code{init_project()} itself runs, a warning
 says so -- most often a sign of a typo -- but the guard is written
 regardless, since the file may simply not exist yet.
 
+R has no mechanism for merging profiles, so the two files stack rather
+than combine: the personal file runs in the same session, top to bottom,
+at the point where the block appears. Settings that do not overlap
+coexist without trouble. If both files set the same option (\code{repos}, for
+example), the later line wins, and because the block is appended at the
+end of the project \code{.Rprofile}, the personal value overrides anything set
+above it, including values renv established during activation. A
+personal profile that must not touch such options inside a project can
+guard them, for instance with \verb{if (!file.exists("renv.lock"))}.
+
+The personal file runs under renv's restricted library paths. Packages
+it attaches or relies on -- \code{devtools}, or a clipboard helper that uses
+\code{clipr} -- are found only if they are installed in the project library,
+so a startup line such as \code{require(devtools)} may warn, and a helper
+that depends on an optional package should fall back gracefully when
+that package is absent.
+
 Defaults to \code{FALSE} because it cuts against renv's own isolation goal: a
 project that automatically re-sources a personal environment is no
 longer fully isolated from it. The \code{TRUE} mode is also written
