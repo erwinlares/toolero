@@ -121,16 +121,16 @@ save_output(
   .f = saveRDS,
   output_dir = output_dir
 )
-#> ℹ Created the directory /tmp/RtmpUJ0NL0/file1a3c4bc05a8 to hold mtcars.rds.
+#> ℹ Created the directory /tmp/RtmplBCetp/file1c2540bb19d1 to hold mtcars.rds.
 generate_manifest(output_dir = output_dir, git_root = output_dir)
-#> ✔ Wrote /tmp/RtmpUJ0NL0/file1a3c4bc05a8/project-manifest.json describing 1
+#> ✔ Wrote /tmp/RtmplBCetp/file1c2540bb19d1/project-manifest.json describing 1
 #>   artifact.
 
 read_output_records(output_dir)
 #> # A tibble: 1 × 13
 #>   source    file_path r_class timestamp function_used status error_message note 
 #>   <chr>     <chr>     <chr>   <chr>     <chr>         <chr>  <chr>         <chr>
-#> 1 /tmp/Rtm… /tmp/Rtm… data.f… 2026-09-… saveRDS       succe… NA            NA   
+#> 1 /tmp/Rtm… /tmp/Rtm… data.f… 2026-10-… saveRDS       succe… NA            NA   
 #> # ℹ 5 more variables: read_from <chr>, schema_version <int>,
 #> #   execution_context <chr>, generated_at <chr>, commit <chr>
 
