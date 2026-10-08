@@ -273,6 +273,10 @@ create_qmd <- function(
     }
 
     # -- 2. Validate path exists ------------------------------------------------
+    # A relative path is read from the project root, so a call from
+    # reports/ lands in the same place as one from the root.
+    path <- .resolve_from_project_root(path)
+
     if (!fs::dir_exists(path)) {
         cli::cli_abort(
             "Directory {.path {path}} does not exist.

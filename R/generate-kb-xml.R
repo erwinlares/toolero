@@ -134,6 +134,8 @@ generate_kb_xml <- function(
     # -- 8. Determine output path -----------------------------------------------
     if (is.null(output_dir)) {
         output_dir <- fs::path_dir(html_path)
+    } else {
+        output_dir <- .resolve_from_project_root(output_dir)
     }
 
     fs::dir_create(output_dir)

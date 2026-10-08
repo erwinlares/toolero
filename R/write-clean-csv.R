@@ -57,6 +57,9 @@ write_clean_csv <- function(
         )
     }
 
+    # A relative path is read from the project root, wherever the code runs.
+    path <- .resolve_from_project_root(path)
+
     # -- 3. Check for existing file ---------------------------------------------
     if (fs::file_exists(path) && !overwrite) {
         cli::cli_abort(

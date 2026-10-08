@@ -576,29 +576,64 @@
 }
 
 
+#' The scratch directory of a batch job, when there is one
+#'
+#' Internal helper. HTCondor starts every job in its own scratch directory
+#' and names it in the `_CONDOR_SCRATCH_DIR` environment variable, which
+#' HTCondor sets itself; nobody has to set it. The directory is different
+#' for every job and is where transferred inputs arrive and where
+#' `transfer_output_files` are collected from, so on an execute node it is
+#' the only sensible project root. `$HOME` is not: on an execute node it
+#' can be the submit node's home path, which does not exist there.
+#'
+#' @return A single character string (the absolute, symlink-resolved
+#'   directory), or `NULL` when the variable is unset, empty, or names a
+#'   directory that does not exist.
+#'
+#' @keywords internal
+.job_scratch_dir <- function() {
+    dir <- Sys.getenv("_CONDOR_SCRATCH_DIR", unset = "")
+
+    if (!nzchar(dir) || !fs::dir_exists(dir)) {
+        return(NULL)
+    }
+
+    as.character(fs::path_real(dir))
+}
+
+
 #' Find the project root from a directory
 #'
-#' Internal helper used by [resolve_input_path()], [save_output()], and
-#' [generate_manifest()]. Walks up from `path` looking for any marker in
-#' [.project_root_criterion()] and returns the first directory that has
-#' one. When none is found, returns `path` itself: that is what happens on
-#' an HTCondor execute node, where no marker is uploaded, so the job's
-#' scratch directory stands in for the project root and `output/` means
-#' the same thing there as it does on the laptop.
+#' Internal helper behind every relative path in the package. The order is:
+#'
+#' 1. The job's scratch directory, when `_CONDOR_SCRATCH_DIR` names one (see
+#'    [.job_scratch_dir()]). On an HTCondor execute node it wins over
+#'    everything else, so the answer does not depend on a transferred
+#'    marker file or on what happens to sit above the scratch directory.
+#' 2. The first directory, walking up from `path`, that has any marker in
+#'    [.project_root_criterion()].
+#' 3. `path` itself, when no marker is found.
 #'
 #' Unlike `here::here()`, which fixes the root once when the `here`
 #' package is loaded, this looks every time it is called. A function in a
 #' package cannot assume the session has stayed in one project, and the
 #' test suite changes directory between tests.
 #'
-#' @param path Character. The directory to start from. Defaults to the
-#'   working directory.
+#' @param path Character. The directory to start from when looking for a
+#'   marker. Defaults to the working directory. Ignored when a job
+#'   scratch directory is in effect.
 #'
 #' @return A single character string: the absolute, symlink-resolved path
 #'   to the project root.
 #'
 #' @keywords internal
 .project_root <- function(path = ".") {
+    scratch <- .job_scratch_dir()
+
+    if (!is.null(scratch)) {
+        return(scratch)
+    }
+
     start <- fs::path_real(path)
 
     root <- tryCatch(
@@ -643,10 +678,144 @@
 }
 
 
+#' Which paths are relative paths on the local file system
+#'
+#' Internal helper. A value is *not* a relative local path when it is
+#' `NA`, empty, absolute (including a leading `~`, and a Windows drive),
+#' or prefixed with a URL scheme (`https://`, `s3://`): a URL is not a file
+#' path at all, so it is never joined to the project root.
+#'
+#' @param path Character vector.
+#'
+#' @return A logical vector the length of `path`.
+#'
+#' @keywords internal
+.is_relative_local_path <- function(path) {
+    out <- rep(FALSE, length(path))
+    ok  <- !is.na(path) & nzchar(path)
+
+    out[ok] <- !fs::is_absolute_path(path[ok]) &
+        !grepl("^[A-Za-z][A-Za-z0-9+.-]*://", path[ok])
+
+    out
+}
+
+
+#' Resolve relative paths from the project root
+#'
+#' Internal helper, the one place the package's path rule is implemented:
+#' a relative path is read as relative to the project root, wherever the
+#' code happens to be running. `NULL` stays `NULL`. Absolute paths
+#' (including `~`), URLs, `NA` and empty strings pass through untouched.
+#' Everything else is joined to `root`. The helper is vectorised and
+#' keeps the names of `path`, so a named vector of folders still carries
+#' its labels. A value that is not a character vector comes back
+#' untouched, for the caller's own validation to reject. `..` is not
+#' interpreted and `./` is not stripped: use an absolute path to opt out
+#' of the rule. The one tidy-up is a bare `"."`, the default of several
+#' arguments, which means the root itself and so becomes `root`, not
+#' `root/.`.
+#'
+#' The helper does not look at the file system and never falls back to
+#' anything. Callers that *write* use it as is. Callers that *read* use
+#' [.resolve_input_from_project_root()], which adds the migration
+#' fallback.
+#'
+#' @param path Character vector or `NULL`.
+#' @param root Character or `NULL`. The project root. Defaults to
+#'   [.project_root()], which is only evaluated when at least one value
+#'   needs it.
+#'
+#' @return `NULL`, or a character vector the same length and with the same
+#'   names as `path`.
+#'
+#' @keywords internal
+.resolve_from_project_root <- function(path, root = NULL) {
+    # Validation is the caller's job. A value that is not a character
+    # vector is handed back untouched so the caller's own check can reject
+    # it, rather than being coerced here into something that looks like a
+    # path (123 becoming "<root>/123").
+    if (is.null(path) || !is.character(path)) {
+        return(path)
+    }
+
+    rel <- .is_relative_local_path(path)
+
+    if (any(rel)) {
+        root <- root %||% .project_root()
+        is_dot <- rel & path %in% "."
+        joined <- rel & !is_dot
+
+        if (any(joined)) {
+            path[joined] <- as.character(fs::path(root, unname(path[joined])))
+        }
+
+        # "." is the identity: the root itself, not "<root>/.".
+        path[is_dot] <- as.character(root)
+    }
+
+    path
+}
+
+
+#' Resolve relative input paths from the project root, with a fallback
+#'
+#' Internal helper for functions that *read*. It applies
+#' [.resolve_from_project_root()], then makes one exception for documents
+#' written before the root rule: a relative path that does not exist at
+#' the project root but does exist relative to the working directory is
+#' used as typed, and the caller is told so. The fallback never applies to
+#' a path that exists at the root, to an absolute path, or to a URL, and
+#' writers never use it, since guessing could put a file in the wrong
+#' place.
+#'
+#' @param path Character vector or `NULL`.
+#' @param root Character or `NULL`. The project root. Defaults to
+#'   [.project_root()].
+#'
+#' @return `NULL`, or a character vector the same length and with the same
+#'   names as `path`.
+#'
+#' @keywords internal
+.resolve_input_from_project_root <- function(path, root = NULL) {
+    if (is.null(path)) {
+        return(NULL)
+    }
+
+    resolved <- .resolve_from_project_root(path, root = root)
+    typed_all <- unname(as.character(path))
+    rel      <- .is_relative_local_path(typed_all)
+
+    fallback <- rep(FALSE, length(rel))
+    idx      <- which(rel)
+
+    if (length(idx) > 0L) {
+        at_root <- unname(fs::file_exists(unname(resolved[idx])))
+        in_wd   <- unname(fs::file_exists(typed_all[idx]))
+        fallback[idx] <- !at_root & in_wd
+    }
+
+    if (any(fallback)) {
+        root_used <- root %||% .project_root()
+        typed     <- typed_all[fallback]
+        resolved[fallback] <- typed
+
+        cli::cli_inform(c(
+            "i" = "Read {.path {typed}} from the working directory because nothing exists at the project root.",
+            " " = "Relative paths are read from the project root, {.path {root_used}}.",
+            " " = "Reading from the working directory may stop working in a future version."
+        ))
+    }
+
+    resolved
+}
+
+
 #' Resolve the directory that holds the accumulator and the output record
 #'
 #' Internal helper shared by [save_output()] and [generate_manifest()]. An
-#' explicit `output_dir` is used exactly as given. Otherwise the directory
+#' explicit `output_dir` is read from the project root when it is
+#' relative, and used as given when it is absolute. Otherwise the directory
 #' comes from `config`'s `output_dir` convention, or is `"output"`, and a
 #' relative value is taken from the project root: the directory holding
 #' `config` when one is supplied, [.project_root()] otherwise. So
@@ -662,7 +831,7 @@
 #' @keywords internal
 .resolve_output_dir <- function(output_dir, config) {
     if (!is.null(output_dir)) {
-        return(output_dir)
+        return(.resolve_from_project_root(output_dir))
     }
 
     if (!is.null(config)) {

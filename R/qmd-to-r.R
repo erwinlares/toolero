@@ -91,7 +91,9 @@ qmd_to_r <- function(
     }
 
     # -- 4. Resolve output path -------------------------------------------------
-    if (is.null(output)) {
+    is_default_output <- is.null(output)
+
+    if (is_default_output) {
         output <- fs::path_ext_set(input, "R")
     }
 
@@ -99,6 +101,12 @@ qmd_to_r <- function(
         cli::cli_abort(
             "{.arg output} must be a single character string."
         )
+    }
+
+    # An explicit output is read from the project root. The default, beside
+    # the input, is left as derived: it follows wherever input was read from.
+    if (!is_default_output) {
+        output <- .resolve_from_project_root(output)
     }
 
     # -- 5. Create the output directory if it is missing -------------------------

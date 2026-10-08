@@ -554,17 +554,65 @@ test_that("an absolute file_path inside the project is recorded relative to the 
     )
 })
 
-test_that("a relative file_path is recorded relative to the root, not the working directory", {
+test_that("a relative file_path is written under the project root, not the working directory", {
     root <- local_marked_project()
     withr::local_dir(fs::path(root, "reports"))
 
     save_output(mtcars, "figures/x.rds", .f = saveRDS)
 
-    expect_true(fs::file_exists(fs::path(root, "reports", "figures", "x.rds")))
+    expect_true(fs::file_exists(fs::path(root, "figures", "x.rds")))
+    expect_false(fs::dir_exists(fs::path(root, "reports", "figures")))
+})
+
+test_that("a relative file_path is recorded relative to the root", {
+    root <- local_marked_project()
+    withr::local_dir(fs::path(root, "reports"))
+
+    save_output(mtcars, "figures/x.rds", .f = saveRDS)
+
     expect_equal(
         read_accumulator_file(fs::path(root, "output"))$file_path,
-        "reports/figures/x.rds"
+        "figures/x.rds"
     )
+})
+
+test_that(".f receives the resolved path", {
+    root     <- local_marked_project()
+    received <- NULL
+    withr::local_dir(fs::path(root, "reports"))
+
+    save_output(
+        mtcars, "figures/x.rds",
+        .f = function(object, file) {
+            received <<- file
+            saveRDS(object, file)
+        }
+    )
+
+    expect_equal(
+        as.character(received),
+        as.character(fs::path(root, "figures", "x.rds"))
+    )
+})
+
+test_that("a relative explicit output_dir is read from the project root", {
+    root <- local_marked_project()
+    withr::local_dir(fs::path(root, "reports"))
+
+    save_output(mtcars, "x.rds", .f = saveRDS, output_dir = "results")
+
+    expect_true(fs::file_exists(fs::path(root, "results", "accumulator.csv")))
+    expect_false(fs::dir_exists(fs::path(root, "reports", "results")))
+})
+
+test_that("an absolute file_path outside the project is written where it says", {
+    root    <- local_marked_project()
+    outside <- as.character(fs::path(withr::local_tempdir(), "sub", "x.rds"))
+    withr::local_dir(fs::path(root, "reports"))
+
+    save_output(mtcars, outside, .f = saveRDS)
+
+    expect_true(fs::file_exists(outside))
 })
 
 test_that("a file_path outside the project is recorded as given", {

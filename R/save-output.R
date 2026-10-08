@@ -289,6 +289,8 @@ save_output <- function(object,
         ))
     }
 
+    file_path <- .resolve_from_project_root(file_path)
+
     .ensure_directory(file_path)
 
     function_used <- .capture_function_name(f_expr)

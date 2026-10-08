@@ -159,6 +159,8 @@ generate_citation <- function(filename = "CITATION.cff",
         ))
     }
 
+    path <- .resolve_from_project_root(path)
+
     if (!fs::dir_exists(path)) {
         cli::cli_abort(
             "Directory {.path {path}} does not exist.

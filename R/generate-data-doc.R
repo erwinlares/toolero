@@ -44,6 +44,8 @@ generate_data_doc <- function(dataset,
     }
 
     # -- 2. Validate path -------------------------------------------------
+    path <- .resolve_from_project_root(path)
+
     if (!fs::dir_exists(path)) {
         cli::cli_abort(c(
             "{.path {path}} does not exist.",

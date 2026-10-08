@@ -71,6 +71,8 @@ generate_license <- function(license   = "MIT",
     }
 
     # -- 3. Validate path -------------------------------------------------
+    path <- .resolve_from_project_root(path)
+
     if (!fs::dir_exists(path)) {
         cli::cli_abort(c(
             "{.path {path}} does not exist.",

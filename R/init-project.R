@@ -820,6 +820,7 @@ generate_project_config <- function(filename, path = ".", overwrite = FALSE) {
     }
 
     # -- 2. Resolve destination path -----------------------------------------
+    path <- .resolve_from_project_root(path)
     dest <- fs::path_abs(fs::path(path, filename))
 
     # -- 3. Guard against overwriting ----------------------------------------

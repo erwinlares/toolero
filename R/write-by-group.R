@@ -174,7 +174,10 @@ write_by_group <- function(
         config = NULL) {
 
     # -- 0. Resolve output_dir, from config's split_dir if not supplied ---------
+    from_config <- FALSE
+
     if (is.null(output_dir) && !is.null(config)) {
+        from_config <- TRUE
         resolved     <- .read_config_file(config, arg = "config")
         output_dir   <- resolved$conventions$split_dir
         cli::cli_inform("Using {.field split_dir} ({.val {output_dir}}) from {.path {config}}.")
@@ -186,6 +189,14 @@ write_by_group <- function(
        Use {.code tempdir()} for temporary output or provide an explicit path."
         )
     }
+
+    # A relative output_dir is read from the project root; a relative
+    # convention taken from a config is read from the config's own folder,
+    # the same rule .resolve_output_dir() applies to output_dir.
+    output_dir <- .resolve_from_project_root(
+        output_dir,
+        root = if (from_config) fs::path_dir(fs::path_abs(config))
+    )
 
     # -- 1. Validate data -------------------------------------------------------
     if (!is.data.frame(data)) {

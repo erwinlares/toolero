@@ -7,23 +7,28 @@
 .project_root(path = ".")
 }
 \arguments{
-\item{path}{Character. The directory to start from. Defaults to the
-working directory.}
+\item{path}{Character. The directory to start from when looking for a
+marker. Defaults to the working directory. Ignored when a job
+scratch directory is in effect.}
 }
 \value{
 A single character string: the absolute, symlink-resolved path
 to the project root.
 }
 \description{
-Internal helper used by \code{\link[=resolve_input_path]{resolve_input_path()}}, \code{\link[=save_output]{save_output()}}, and
-\code{\link[=generate_manifest]{generate_manifest()}}. Walks up from \code{path} looking for any marker in
-\code{\link[=.project_root_criterion]{.project_root_criterion()}} and returns the first directory that has
-one. When none is found, returns \code{path} itself: that is what happens on
-an HTCondor execute node, where no marker is uploaded, so the job's
-scratch directory stands in for the project root and \verb{output/} means
-the same thing there as it does on the laptop.
+Internal helper behind every relative path in the package. The order is:
 }
 \details{
+\enumerate{
+\item The job's scratch directory, when \verb{_CONDOR_SCRATCH_DIR} names one (see
+\code{\link[=.job_scratch_dir]{.job_scratch_dir()}}). On an HTCondor execute node it wins over
+everything else, so the answer does not depend on a transferred
+marker file or on what happens to sit above the scratch directory.
+\item The first directory, walking up from \code{path}, that has any marker in
+\code{\link[=.project_root_criterion]{.project_root_criterion()}}.
+\item \code{path} itself, when no marker is found.
+}
+
 Unlike \code{here::here()}, which fixes the root once when the \code{here}
 package is loaded, this looks every time it is called. A function in a
 package cannot assume the session has stayed in one project, and the

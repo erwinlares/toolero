@@ -286,7 +286,7 @@ arborize <- function(tree,
         cli::cli_abort("{.arg tree} must be a non-empty character string.")
     }
 
-    output <- fs::path_abs(output)
+    output <- fs::path_abs(.resolve_from_project_root(output))
 
     if (fs::file_exists(output) && !overwrite) {
         cli::cli_abort(

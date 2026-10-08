@@ -16,7 +16,8 @@ A single character string.
 }
 \description{
 Internal helper shared by \code{\link[=save_output]{save_output()}} and \code{\link[=generate_manifest]{generate_manifest()}}. An
-explicit \code{output_dir} is used exactly as given. Otherwise the directory
+explicit \code{output_dir} is read from the project root when it is
+relative, and used as given when it is absolute. Otherwise the directory
 comes from \code{config}'s \code{output_dir} convention, or is \code{"output"}, and a
 relative value is taken from the project root: the directory holding
 \code{config} when one is supplied, \code{\link[=.project_root]{.project_root()}} otherwise. So

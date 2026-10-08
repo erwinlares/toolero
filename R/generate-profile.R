@@ -74,6 +74,8 @@ generate_profile <- function(filename, path = fs::path_home(), overwrite = FALSE
         ))
     }
 
+    path <- .resolve_from_project_root(path)
+
     if (!fs::dir_exists(path)) {
         cli::cli_abort(
             "Directory {.path {path}} does not exist.

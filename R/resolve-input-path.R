@@ -168,17 +168,6 @@ resolve_input_path <- function(interactive = NULL,
 }
 
 
-# -- Helper: is this a relative path on the local file system? ----------------
-#
-# A URL or other scheme-prefixed location (s3://, https://) is not a file
-# path at all, so it is never joined to the project root.
-
-.is_relative_local_path <- function(path) {
-    !fs::is_absolute_path(path) &&
-        !grepl("^[A-Za-z][A-Za-z0-9+.-]*://", path)
-}
-
-
 # -- Helper: read a relative input path from the project root -----------------
 #
 # The root-joined path wins whenever it exists, and also when neither
