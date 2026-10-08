@@ -1,5 +1,116 @@
 # Changelog
 
+## toolero (development version)
+
+### Breaking changes
+
+- A relative path given to a toolero function is now read from the
+  project root, not from the working directory. Called from the project
+  root, or with an absolute path, nothing changes. Called from anywhere
+  else, such as a document under `reports/`, a relative path now means
+  the same file it would mean from the root. For instance,
+  `save_output(fit, "figures/fit.rds", saveRDS)` used to write
+  `reports/figures/fit.rds` when it ran in a document under `reports/`,
+  and it now writes `figures/fit.rds` at the project root. The rule
+  applies to
+  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+  (including an explicit `output_dir`),
+  [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md),
+  [`read_clean_csv()`](https://erwinlares.github.io/toolero/reference/read_clean_csv.md),
+  [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md),
+  [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md),
+  [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md),
+  [`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md),
+  [`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md),
+  [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md),
+  [`arborize()`](https://erwinlares.github.io/toolero/reference/arborize.md),
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md),
+  [`generate_citation()`](https://erwinlares.github.io/toolero/reference/generate_citation.md),
+  [`generate_license()`](https://erwinlares.github.io/toolero/reference/generate_license.md),
+  [`generate_data_doc()`](https://erwinlares.github.io/toolero/reference/generate_data_doc.md),
+  [`generate_project_config()`](https://erwinlares.github.io/toolero/reference/generate_project_config.md),
+  [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md)
+  and
+  [`check_project()`](https://erwinlares.github.io/toolero/reference/check_project.md),
+  and to every `config` argument. The default `path = "."` of the
+  functions that take one now means the project root, so
+  [`generate_license()`](https://erwinlares.github.io/toolero/reference/generate_license.md)
+  called from `reports/` writes `LICENSE` at the root. Wrapping a path
+  in [`here::here()`](https://here.r-lib.org/reference/here.html) still
+  works, because
+  [`here::here()`](https://here.r-lib.org/reference/here.html) returns
+  an absolute path and absolute paths are used as given. `..` and `./`
+  are not interpreted, so an absolute path is the way to leave the
+  project.
+
+- Reading is forgiving. A relative path that does not exist at the
+  project root but does exist relative to the working directory is still
+  read from there, and a message names both locations. This keeps
+  documents written before the rule working, and it may stop working in
+  a future version. Writing never guesses: a relative path is always
+  written under the root.
+
+- The `file_path` column of the job manifest that
+  [`write_by_group()`](https://erwinlares.github.io/toolero/reference/write_by_group.md)
+  writes (`manifest = TRUE`) is now relative to the project root when
+  the file is inside the project (`data/jobs/adelie.csv`), and the
+  absolute path otherwise.
+  [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md)
+  reads each entry from the root, so a manifest means the same thing
+  wherever it is read from. A manifest written by an earlier version
+  holds paths relative to the working directory at the time, and still
+  works through the fallback above.
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  is the one function that keeps reading `path`, `config` and
+  `use_rprofile` from the working directory, because the project it
+  creates does not exist yet and so has no root. Under `Rscript`,
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+  also leaves the command line argument as given. Run `Rscript` from the
+  project root, or pass an absolute path.
+
+### New features
+
+- The project root is found in a new order, on every call: the job’s
+  scratch directory when HTCondor names one in `_CONDOR_SCRATCH_DIR`,
+  then the nearest folder above the working directory with a project
+  marker (`.here`, an `.Rproj` file, a package `DESCRIPTION`, a version
+  control folder), then the working directory. On an execute node the
+  root is therefore the scratch directory without any marker file having
+  to be transferred.
+
+- [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md)
+  creates the folder of its `path` when it does not exist, as
+  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
+  already did, and returns the resolved path.
+
+- [`read_output_records()`](https://erwinlares.github.io/toolero/reference/read_output_records.md)
+  labels each folder in the `source` column with the string you typed,
+  not the resolved path, so the table never carries a home directory you
+  did not write. A named vector keeps its names as labels.
+
+- A new help topic,
+  [`?"project-paths"`](https://erwinlares.github.io/toolero/reference/project-paths.md),
+  states the path rule once. The help page of every function that takes
+  a path shows it in a “Paths” section.
+
+### Minor changes
+
+- The example document that
+  [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
+  scaffolds no longer calls
+  [`here::here()`](https://here.r-lib.org/reference/here.html). It
+  writes its table with
+  [`write_clean_csv()`](https://erwinlares.github.io/toolero/reference/write_clean_csv.md)
+  and its plot through
+  [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md),
+  so both land in the project’s `output/` folder wherever the document
+  sits.
+
+- The test suite now builds its temporary projects with a shared
+  `local_project()` helper, unsets `_CONDOR_SCRATCH_DIR` for the whole
+  run, and fails the test that writes into the package source tree.
+
 ## toolero 0.6.0
 
 ### Breaking changes

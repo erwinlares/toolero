@@ -112,7 +112,7 @@ following folder structure already in place:
     │   └── tables/        # generated tables
     ├── reports/           # rendered .qmd/.html output meant to be shared
     ├── _toolero.yml       # records the folder set and naming conventions
-    └── .here              # marks the project root for here::here()
+    └── .here              # marks the project root
 
 > **Why this structure?** The folder layout is opinionated but not
 > arbitrary. Separating `data/` from `data-raw/` makes it clear which
@@ -584,22 +584,26 @@ the function used, and whether the write succeeded:
 
 save_output(
   results,
-  here::here("output", "results.rds"),
+  "output/results.rds",
   .f = saveRDS
 )
 ```
 
-The path is built with
-[`here::here()`](https://here.r-lib.org/reference/here.html), which
-starts at the project root (the folder holding the `.here` file
+The path is relative, and toolero reads a relative path from the project
+root (the folder holding the `.here` file
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
-writes) rather than at wherever the code happens to be running. That
+writes) rather than from wherever the code happens to be running. That
 matters as soon as a document lives in `reports/`: rendering runs its
-code with `reports/` as the working directory, so a bare
-`"output/results.rds"` would land in `reports/output/`. On a cluster,
-where there is no project root to find,
-[`here::here()`](https://here.r-lib.org/reference/here.html) uses the
-job’s working directory, which is exactly where the results folder is.
+code with `reports/` as the working directory, so reading
+`"output/results.rds"` from there would put the file in
+`reports/output/`. On a cluster the root is the job’s scratch directory,
+which is exactly where the results folder is. In other words, you do not
+need to build the path with
+[`here::here()`](https://here.r-lib.org/reference/here.html), although
+it keeps working. The same rule applies to every toolero function that
+takes a path, and
+[`?"project-paths"`](https://erwinlares.github.io/toolero/reference/project-paths.md)
+states it once.
 [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
 records the path relative to the project root, as `output/results.rds`.
 
@@ -752,12 +756,12 @@ so a document whose header declares `input_file` can call
 with no arguments at all.
 
 In the interactive and Quarto contexts, a relative path is read from the
-project root, like
-[`here::here()`](https://here.r-lib.org/reference/here.html), so
+project root, as it is everywhere in toolero, so
 `input_file: data-raw/sample.csv` works for a document in `reports/` as
 well as for one at the root. The `rscript` branch is left as it is,
 since on a cluster the path arrives as an argument that already points
-at the file.
+at the file. Run `Rscript` from the project root, or pass an absolute
+path.
 
 This pattern is built into the template scaffolded by
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md),

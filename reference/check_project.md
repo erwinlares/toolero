@@ -17,8 +17,9 @@ check_project(path = ".", config = NULL, error = TRUE)
 
 - path:
 
-  Character. Path to the project directory. Defaults to `"."` (the
-  current working directory).
+  Character. Path to the project directory. A relative path is read from
+  the project root (see the Paths section). Defaults to `"."`, the
+  project root, so calling it from a subfolder audits the project.
 
 - config:
 
@@ -120,6 +121,69 @@ and a container or cluster job that bakes in the `.R` file would run the
 old analysis without any error to say so. Documents never opted into
 purl produce no row – nothing to check.
 
+## Paths
+
+A relative path is read from the project root, not from the working
+directory. So `save_output(fit, "output/fit.rds", saveRDS)` writes into
+the project's own `output/` folder whether you call it from the project
+root, from a document under `reports/`, or from a job on an HTCondor
+execute node. You never need to wrap a path in
+[`here::here()`](https://here.r-lib.org/reference/here.html). Doing so
+still works, because
+[`here::here()`](https://here.r-lib.org/reference/here.html) returns an
+absolute path and absolute paths are used as given.
+
+The project root is found afresh on every call, in this order:
+
+1.  The job's scratch directory, when `_CONDOR_SCRATCH_DIR` names one.
+    HTCondor sets that variable itself, inside every job.
+
+2.  The nearest folder above the working directory that carries a
+    project marker: the `.here` file
+    [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+    writes, an `.Rproj` file, a package `DESCRIPTION`, or a version
+    control folder such as `.git`.
+
+3.  The working directory, when neither of the above applies.
+
+Absolute paths (including those starting with `~`, or a drive letter on
+Windows) and URLs such as `https://` or `s3://` are used as given. `..`
+and `./` are not interpreted, so `"../data/x.csv"` means the folder
+above the root; write an absolute path to leave the project. A bare
+`"."` means the root itself.
+
+Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.
+
+A few arguments are deliberately left alone:
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  reads `path`, `config` and `use_rprofile` from the working directory,
+  because the project does not exist yet and so has no root.
+
+- Under `Rscript`,
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+  reads the command line argument as given. Run `Rscript` from the
+  project root or pass an absolute path.
+
+- Arguments passed on through `...` to another function reach it
+  untouched.
+
+- Where a default is "beside the input"
+  ([`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+  and
+  [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)),
+  the output follows wherever the input was read from.
+
+Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node `~` and `$HOME` cannot
+be trusted (`$HOME` can be the submit node's path), so prefer relative
+paths in job scripts.
+
 ## See also
 
 [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md),
@@ -134,25 +198,25 @@ check_project()
 #> 
 #> ── Project check ───────────────────────────────────────────────────────────────
 #> ! No _toolero.yml found -- create one with `generate_project_config("_toolero.yml")` and edit it to match this project
-#> ✖ No .Rproj file found -- use `usethis::create_project()` to initialize one
+#> ✔ Found toolero.Rproj
 #> ✖ No renv.lock found -- use `renv::init()` to get started
-#> ✖ No git repository found -- use `usethis::use_git()` to initialize one
-#> ! No .gitignore found -- consider adding one to avoid committing unwanted files
+#> ✔ git repository initialized
+#> ✔ Found .gitignore
 #> ! No data-raw/ folder found -- consider adding one for raw input data
 #> ! No data/ folder found -- consider adding one for cleaned data
-#> ! No R/ folder found -- consider adding one for the .R script derived from your .qmd
+#> ✔ Found R/
 #> ! No scripts/ folder found -- consider adding one for hand-written scripts
 #> ! No output/figures/ folder found -- consider adding one for figures
 #> ! No output/tables/ folder found -- consider adding one for tables
 #> ! No reports/ folder found -- consider adding one for reports
-#> ! No README found -- consider adding one to document the project
+#> ✔ Found README.md
 # }
 
 # Audit a specific project directory
 # \donttest{
 project_dir <- withr::local_tempdir()
 check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/RtmpLziJOC/file1af639620b3f does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/Rtmp6kXUCf/file19e74197b3b does not exist.
 # }
 
 # Audit against a custom folder structure
@@ -160,19 +224,19 @@ check_project(path = project_dir)
 project_dir <- withr::local_tempdir()
 config_path <- file.path(tempdir(), "my-config.yml")
 generate_project_config("my-config.yml", path = tempdir())
-#> ✔ Created /tmp/RtmpLziJOC/my-config.yml
-#> ℹ Edit /tmp/RtmpLziJOC/my-config.yml to define your custom folder structure,
+#> ✔ Created /tmp/Rtmp6kXUCf/my-config.yml
+#> ℹ Edit /tmp/Rtmp6kXUCf/my-config.yml to define your custom folder structure,
 #>   then pass it to `init_project()` via `config =
-#>   "/tmp/RtmpLziJOC/my-config.yml"`.
+#>   "/tmp/Rtmp6kXUCf/my-config.yml"`.
 #> ℹ For easy reuse across projects, consider moving this file to /home/runner.
 check_project(path = project_dir, config = config_path)
-#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/RtmpLziJOC/file1af6417c5c8c does not exist.
+#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/Rtmp6kXUCf/file19e74163a9da does not exist.
 # }
 
 # Access results programmatically
 # \donttest{
 project_dir <- withr::local_tempdir()
 out <- check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/RtmpLziJOC/file1af6796f1a6d does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/Rtmp6kXUCf/file19e72b2491b3 does not exist.
 # }
 ```

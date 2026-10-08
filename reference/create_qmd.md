@@ -31,13 +31,15 @@ create_qmd(
 
 - path:
 
-  A string. Path to the directory where the document will be created.
-  Defaults to `"."` (the current working directory).
+  A string. Path to the directory where the document will be created. A
+  relative path is read from the project root (see the Paths section).
+  Defaults to `"."`, the project root.
 
 - header_defaults:
 
-  A string or `NULL`. Path to a YAML file supplying values to
-  pre-populate the document header – typically a profile written by
+  A string or `NULL`. Path to a YAML file (a relative path is read from
+  the project root) supplying values to pre-populate the document header
+  – typically a profile written by
   [`generate_profile()`](https://erwinlares.github.io/toolero/reference/generate_profile.md),
   but any YAML file following the same shape works. If `NULL` (the
   default), the template is copied as-is with placeholder prompts
@@ -144,11 +146,11 @@ create_qmd(
     `styles.css`, `header.html`, and `footer.html` by name, and wires up
     whichever of these are present.
 
-  - A directory path (e.g. `"my-branding/"`): looks in the given
-    directory for the same three standardized filenames. The caller is
-    responsible for ensuring the directory contains the files it needs
-    under these exact names; `create_qmd()` does not rename or infer
-    from other file names.
+  - A directory path (e.g. `"my-branding/"`, read from the project root
+    when relative): looks in the given directory for the same three
+    standardized filenames. The caller is responsible for ensuring the
+    directory contains the files it needs under these exact names;
+    `create_qmd()` does not rename or infer from other file names.
 
   `styles.css` is added as `css:`, `header.html` as
   `include-before-body:`, and `footer.html` as `include-after-body:`.
@@ -242,7 +244,7 @@ placeholder logo, `R/purl.R`, and `_quarto.yml` still go to the project
 root. Paths in the document follow two rules:
 
 - **Code paths start at the project root.** The example template writes
-  its results with `here::here("output", ...)`, and its
+  its results to `"output/..."` through toolero functions, and its
   `params: input_file: "data-raw/sample.csv"` is read from the root by
   [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md),
   so the same code works at the root, in `reports/`, and on an HTCondor
@@ -265,6 +267,69 @@ Note: `filename` has no default value and must always be supplied
 explicitly. Use [`tempdir()`](https://rdrr.io/r/base/tempfile.html) for
 temporary output during testing or exploration.
 
+## Paths
+
+A relative path is read from the project root, not from the working
+directory. So `save_output(fit, "output/fit.rds", saveRDS)` writes into
+the project's own `output/` folder whether you call it from the project
+root, from a document under `reports/`, or from a job on an HTCondor
+execute node. You never need to wrap a path in
+[`here::here()`](https://here.r-lib.org/reference/here.html). Doing so
+still works, because
+[`here::here()`](https://here.r-lib.org/reference/here.html) returns an
+absolute path and absolute paths are used as given.
+
+The project root is found afresh on every call, in this order:
+
+1.  The job's scratch directory, when `_CONDOR_SCRATCH_DIR` names one.
+    HTCondor sets that variable itself, inside every job.
+
+2.  The nearest folder above the working directory that carries a
+    project marker: the `.here` file
+    [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+    writes, an `.Rproj` file, a package `DESCRIPTION`, or a version
+    control folder such as `.git`.
+
+3.  The working directory, when neither of the above applies.
+
+Absolute paths (including those starting with `~`, or a drive letter on
+Windows) and URLs such as `https://` or `s3://` are used as given. `..`
+and `./` are not interpreted, so `"../data/x.csv"` means the folder
+above the root; write an absolute path to leave the project. A bare
+`"."` means the root itself.
+
+Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.
+
+A few arguments are deliberately left alone:
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  reads `path`, `config` and `use_rprofile` from the working directory,
+  because the project does not exist yet and so has no root.
+
+- Under `Rscript`,
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+  reads the command line argument as given. Run `Rscript` from the
+  project root or pass an absolute path.
+
+- Arguments passed on through `...` to another function reach it
+  untouched.
+
+- Where a default is "beside the input"
+  ([`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+  and
+  [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)),
+  the output follows wherever the input was read from.
+
+Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node `~` and `$HOME` cannot
+be trusted (`$HOME` can be the submit node's path), so prefer relative
+paths in job scripts.
+
 ## Examples
 
 ``` r
@@ -272,51 +337,51 @@ temporary output during testing or exploration.
 # Minimal blank document -- no examples, no styling, no purl
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            include_examples = FALSE)
-#> ✔ Created /tmp/RtmpLziJOC/analysis.qmd
+#> ✔ Created /tmp/Rtmp6kXUCf/analysis.qmd
 
 # Full worked example with sample data and placeholder logo
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE)
-#> ✔ Created /tmp/RtmpLziJOC/data-raw/sample.csv
-#> ✔ Created /tmp/RtmpLziJOC/assets/logo.png
-#> ✔ Created /tmp/RtmpLziJOC/analysis.qmd
+#> ✔ Created /tmp/Rtmp6kXUCf/data-raw/sample.csv
+#> ✔ Created /tmp/Rtmp6kXUCf/assets/logo.png
+#> ✔ Created /tmp/Rtmp6kXUCf/analysis.qmd
 
 # Opt this document into purl: stamps purl: true and wires up
 # R/purl.R + the _quarto.yml post-render hook (merged if the file
 # already exists, e.g. inside a larger Quarto website project)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            overwrite = TRUE, use_purl = TRUE)
-#> ✔ Created /tmp/RtmpLziJOC/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmpLziJOC/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmpLziJOC/analysis.qmd
-#> ✔ Created /tmp/RtmpLziJOC/R/purl.R
-#> ✔ Created /tmp/RtmpLziJOC/_quarto.yml
+#> ✔ Created /tmp/Rtmp6kXUCf/data-raw/sample.csv
+#> ℹ Skipping /tmp/Rtmp6kXUCf/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/Rtmp6kXUCf/analysis.qmd
+#> ✔ Created /tmp/Rtmp6kXUCf/R/purl.R
+#> ✔ Created /tmp/Rtmp6kXUCf/_quarto.yml
 
 # Blank document wired to branding assets (assumes assets/ exists,
 # e.g. from init_project(branding = "uw-madison"))
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = TRUE,
            overwrite = TRUE)
-#> Warning: No styles.css, header.html, or footer.html found in /tmp/RtmpLziJOC/assets.
+#> Warning: No styles.css, header.html, or footer.html found in /tmp/Rtmp6kXUCf/assets.
 #> Skipping style injection.
-#> ✔ Created /tmp/RtmpLziJOC/report.qmd
+#> ✔ Created /tmp/Rtmp6kXUCf/report.qmd
 
 # Blank document with custom branding from a different directory
 create_qmd(path = tempdir(), filename = "report.qmd",
            include_examples = FALSE, use_style = "my-branding/",
            overwrite = TRUE)
-#> Warning: Style directory /home/runner/work/toolero/toolero/docs/reference/my-branding
-#> does not exist. Skipping style injection. Create the directory and add your
-#> branding assets, or set `use_style = FALSE`.
-#> ✔ Created /tmp/RtmpLziJOC/report.qmd
+#> Warning: Style directory /home/runner/work/toolero/toolero/my-branding does not exist.
+#> Skipping style injection. Create the directory and add your branding assets, or
+#> set `use_style = FALSE`.
+#> ✔ Created /tmp/Rtmp6kXUCf/report.qmd
 
 # Pre-populated YAML header, typically from generate_profile()
 profile_file <- tempfile(fileext = ".yml")
 writeLines("author:\n  - name: 'Your Name'", profile_file)
 create_qmd(path = tempdir(), filename = "analysis.qmd",
            header_defaults = profile_file, overwrite = TRUE)
-#> ✔ Created /tmp/RtmpLziJOC/data-raw/sample.csv
-#> ℹ Skipping /tmp/RtmpLziJOC/assets/logo.png -- existing logo left in place.
-#> ✔ Created /tmp/RtmpLziJOC/analysis.qmd
+#> ✔ Created /tmp/Rtmp6kXUCf/data-raw/sample.csv
+#> ℹ Skipping /tmp/Rtmp6kXUCf/assets/logo.png -- existing logo left in place.
+#> ✔ Created /tmp/Rtmp6kXUCf/analysis.qmd
 # }
 ```

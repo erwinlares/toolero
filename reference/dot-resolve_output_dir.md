@@ -4,10 +4,11 @@ Internal helper shared by
 [`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md)
 and
 [`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md).
-An explicit `output_dir` is used exactly as given. Otherwise the
-directory comes from `config`'s `output_dir` convention, or is
-`"output"`, and a relative value is taken from the project root: the
-directory holding `config` when one is supplied,
+An explicit `output_dir` is read from the project root when it is
+relative, and used as given when it is absolute. Otherwise the directory
+comes from `config`'s `output_dir` convention, or is `"output"`, and a
+relative value is taken from the project root: the directory holding
+`config` when one is supplied,
 [`.project_root()`](https://erwinlares.github.io/toolero/reference/dot-project_root.md)
 otherwise. So `output/` means the project's own output folder whether
 the code runs at the project root, in a document under `reports/`, or on

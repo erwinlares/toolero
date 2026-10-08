@@ -61,8 +61,9 @@ projects that were created independently.</p>
 
 
 <dl><dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
-<dd><p>Character. Path to the project directory. Defaults to <code>"."</code>
-(the current working directory).</p></dd>
+<dd><p>Character. Path to the project directory. A relative path is
+read from the project root (see the Paths section). Defaults to <code>"."</code>,
+the project root, so calling it from a subfolder audits the project.</p></dd>
 
 
 <dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
@@ -159,6 +160,51 @@ not yet re-rendered, and a container or cluster job that bakes in the
 Documents never opted into purl produce no row – nothing to check.</p>
     </div>
     <div class="section level2">
+    <h2 id="paths">Paths<a class="anchor" aria-label="anchor" href="#paths"></a></h2>
+
+
+<p>A relative path is read from the project root, not from the working
+directory. So <code>save_output(fit, "output/fit.rds", saveRDS)</code> writes into
+the project's own <code>output/</code> folder whether you call it from the project
+root, from a document under <code>reports/</code>, or from a job on an HTCondor
+execute node. You never need to wrap a path in <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>. Doing so
+still works, because <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code> returns an absolute path and
+absolute paths are used as given.</p>
+<p>The project root is found afresh on every call, in this order:</p><ol><li><p>The job's scratch directory, when <code>_CONDOR_SCRATCH_DIR</code> names one.
+HTCondor sets that variable itself, inside every job.</p></li>
+<li><p>The nearest folder above the working directory that carries a
+project marker: the <code>.here</code> file <code><a href="init_project.html">init_project()</a></code> writes, an <code>.Rproj</code>
+file, a package <code>DESCRIPTION</code>, or a version control folder such as
+<code>.git</code>.</p></li>
+<li><p>The working directory, when neither of the above applies.</p></li>
+</ol><p>Absolute paths (including those starting with <code>~</code>, or a drive letter
+on Windows) and URLs such as <code>https://</code> or <code>s3://</code> are used as given.
+<code>..</code> and <code>./</code> are not interpreted, so <code>"../data/x.csv"</code> means the folder
+above the root; write an absolute path to leave the project. A bare
+<code>"."</code> means the root itself.</p>
+<p>Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.</p>
+<p>A few arguments are deliberately left alone:</p><ul><li><p><code><a href="init_project.html">init_project()</a></code> reads <code>path</code>, <code>config</code> and <code>use_rprofile</code> from the
+working directory, because the project does not exist yet and so has
+no root.</p></li>
+<li><p>Under <code>Rscript</code>, <code><a href="resolve_input_path.html">resolve_input_path()</a></code> reads the command line
+argument as given. Run <code>Rscript</code> from the project root or pass an
+absolute path.</p></li>
+<li><p>Arguments passed on through <code>...</code> to another function reach it
+untouched.</p></li>
+<li><p>Where a default is "beside the input" (<code><a href="qmd_to_r.html">qmd_to_r()</a></code> and
+<code><a href="generate_kb_xml.html">generate_kb_xml()</a></code>), the output follows wherever the input was read
+from.</p></li>
+</ul><p>Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node <code>~</code> and <code>$HOME</code> cannot
+be trusted (<code>$HOME</code> can be the submit node's path), so prefer relative
+paths in job scripts.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="init_project.html">init_project()</a></code>, <code><a href="generate_project_config.html">generate_project_config()</a></code></p></div>
     </div>
@@ -171,25 +217,25 @@ Documents never opted into purl produce no row – nothing to check.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">Project check</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────</span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No _toolero.yml found -- create one with `generate_project_config("_toolero.yml")` and edit it to match this project</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000;">✖</span> No .Rproj file found -- use `usethis::create_project()` to initialize one</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Found toolero.Rproj</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000;">✖</span> No renv.lock found -- use `renv::init()` to get started</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BB0000;">✖</span> No git repository found -- use `usethis::use_git()` to initialize one</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No .gitignore found -- consider adding one to avoid committing unwanted files</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> git repository initialized</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Found .gitignore</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No data-raw/ folder found -- consider adding one for raw input data</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No data/ folder found -- consider adding one for cleaned data</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No R/ folder found -- consider adding one for the .R script derived from your .qmd</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Found R/</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No scripts/ folder found -- consider adding one for hand-written scripts</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No output/figures/ folder found -- consider adding one for figures</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No output/tables/ folder found -- consider adding one for tables</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No reports/ folder found -- consider adding one for reports</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> No README found -- consider adding one to document the project</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Found README.md</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Audit a specific project directory</span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">project_dir</span> <span class="op">&lt;-</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="va">project_dir</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir):</span> Directory <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af639620b3f</span> does not exist.</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir):</span> Directory <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e74197b3b</span> does not exist.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Audit against a custom folder structure</span></span></span>
@@ -197,20 +243,20 @@ Documents never opted into purl produce no row – nothing to check.</p>
 <span class="r-in"><span><span class="va">project_dir</span> <span class="op">&lt;-</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">config_path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"my-config.yml"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="generate_project_config.html">generate_project_config</a></span><span class="op">(</span><span class="st">"my-config.yml"</span>, path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpLziJOC/my-config.yml</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Edit <span style="color: #0000BB;">/tmp/RtmpLziJOC/my-config.yml</span> to define your custom folder structure,</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/my-config.yml</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Edit <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/my-config.yml</span> to define your custom folder structure,</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   then pass it to `init_project()` via `config =</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   "<span style="color: #0000BB;">/tmp/RtmpLziJOC/my-config.yml</span>"`.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   "<span style="color: #0000BB;">/tmp/Rtmp6kXUCf/my-config.yml</span>"`.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> For easy reuse across projects, consider moving this file to <span style="color: #0000BB;">/home/runner</span>.</span>
 <span class="r-in"><span><span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="va">project_dir</span>, config <span class="op">=</span> <span class="va">config_path</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir, config = config_path):</span> Directory <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af6417c5c8c</span> does not exist.</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir, config = config_path):</span> Directory <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e74163a9da</span> does not exist.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Access results programmatically</span></span></span>
 <span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="va">project_dir</span> <span class="op">&lt;-</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_tempfile.html" class="external-link">local_tempdir</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu">check_project</span><span class="op">(</span>path <span class="op">=</span> <span class="va">project_dir</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir):</span> Directory <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af6796f1a6d</span> does not exist.</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in check_project(path = project_dir):</span> Directory <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e72b2491b3</span> does not exist.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

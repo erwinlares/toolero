@@ -67,7 +67,7 @@
 Lares</h4>
             
             <h4 data-toc-skip class="date">Created 2026-04-30 | Last
-updated 2026-10-01</h4>
+updated 2026-10-08</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/vignettes/toolero-intro.Rmd" class="external-link"><code>vignettes/toolero-intro.Rmd</code></a></small>
       <div class="d-none name"><code>toolero-intro.Rmd</code></div>
@@ -173,7 +173,7 @@ following folder structure already in place:</p>
 │   └── tables/        # generated tables
 ├── reports/           # rendered .qmd/.html output meant to be shared
 ├── _toolero.yml       # records the folder set and naming conventions
-└── .here              # marks the project root for here::here()</code></pre>
+└── .here              # marks the project root</code></pre>
 <blockquote>
 <p><strong>Why this structure?</strong> The folder layout is opinionated
 but not arbitrary. Separating <code>data/</code> from
@@ -623,21 +623,23 @@ function used, and whether the write succeeded:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/save_output.html">save_output</a></span><span class="op">(</span></span>
 <span>  <span class="va">results</span>,</span>
-<span>  <span class="fu">here</span><span class="fu">::</span><span class="fu"><a href="https://here.r-lib.org/reference/here.html" class="external-link">here</a></span><span class="op">(</span><span class="st">"output"</span>, <span class="st">"results.rds"</span><span class="op">)</span>,</span>
+<span>  <span class="st">"output/results.rds"</span>,</span>
 <span>  .f <span class="op">=</span> <span class="va">saveRDS</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>The path is built with <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>, which starts at the
+<p>The path is relative, and toolero reads a relative path from the
 project root (the folder holding the <code>.here</code> file
-<code><a href="../reference/init_project.html">init_project()</a></code> writes) rather than at wherever the code
+<code><a href="../reference/init_project.html">init_project()</a></code> writes) rather than from wherever the code
 happens to be running. That matters as soon as a document lives in
 <code>reports/</code>: rendering runs its code with
-<code>reports/</code> as the working directory, so a bare
-<code>"output/results.rds"</code> would land in
-<code>reports/output/</code>. On a cluster, where there is no project
-root to find, <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code> uses the job’s working
-directory, which is exactly where the results folder is.
-<code><a href="../reference/save_output.html">save_output()</a></code> records the path relative to the project
-root, as <code>output/results.rds</code>.</p>
+<code>reports/</code> as the working directory, so reading
+<code>"output/results.rds"</code> from there would put the file in
+<code>reports/output/</code>. On a cluster the root is the job’s scratch
+directory, which is exactly where the results folder is. In other words,
+you do not need to build the path with <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>,
+although it keeps working. The same rule applies to every toolero
+function that takes a path, and <code><a href="../reference/project-paths.html">?"project-paths"</a></code> states it
+once. <code><a href="../reference/save_output.html">save_output()</a></code> records the path relative to the
+project root, as <code>output/results.rds</code>.</p>
 <p>At the end of the run, <code><a href="../reference/generate_manifest.html">generate_manifest()</a></code> reads that
 accumulator, collapses it to one row per output file, and writes the
 <em>output record</em>, <code>output/project-manifest.json</code> – a
@@ -752,11 +754,13 @@ to the first command line argument, and <code>interactive</code> and
 <code>input_file</code> can call <code><a href="../reference/resolve_input_path.html">resolve_input_path()</a></code> with
 no arguments at all.</p>
 <p>In the interactive and Quarto contexts, a relative path is read from
-the project root, like <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>, so
+the project root, as it is everywhere in toolero, so
 <code>input_file: data-raw/sample.csv</code> works for a document in
 <code>reports/</code> as well as for one at the root. The
 <code>rscript</code> branch is left as it is, since on a cluster the
-path arrives as an argument that already points at the file.</p>
+path arrives as an argument that already points at the file. Run
+<code>Rscript</code> from the project root, or pass an absolute
+path.</p>
 <p>This pattern is built into the template scaffolded by
 <code><a href="../reference/create_qmd.html">create_qmd()</a></code>, so you get it for free without having to
 write it yourself. See <code><a href="../articles/detect-execution-context.html">vignette("detect-execution-context")</a></code>

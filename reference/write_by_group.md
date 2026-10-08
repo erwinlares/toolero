@@ -34,7 +34,8 @@ write_by_group(
 - output_dir:
 
   A string or `NULL`. Path to the directory where output files will be
-  written. Created if it does not exist. If `NULL`, resolved from
+  written. A relative path is written under the project root (see the
+  Paths section). Created if it does not exist. If `NULL`, resolved from
   `config`'s `split_dir` convention when `config` is supplied; otherwise
   the user must supply a path explicitly.
 
@@ -122,11 +123,13 @@ writes, which records outputs from a computation that already has.
 
 The schema is one column per grouping variable, holding the raw
 unsanitized value, followed by `group_value`, `n_rows`, and `file_path`.
-Grouping on one column therefore produces a job manifest whose first
-column repeats `group_value` exactly. That redundancy is deliberate: one
-schema with a varying column count is easier to read, validate and rely
-on than two schemas selected by how many columns you happened to group
-on.
+`file_path` is relative to the project root when the file is inside the
+project (`"data/jobs/adelie.csv"`), and the absolute path otherwise, so
+the manifest means the same thing wherever it is read from. Grouping on
+one column therefore produces a job manifest whose first column repeats
+`group_value` exactly. That redundancy is deliberate: one schema with a
+varying column count is easier to read, validate and rely on than two
+schemas selected by how many columns you happened to group on.
 
 `group_value` is a human-readable composite of the raw values joined by
 `" | "`, so `"Adelie | male"` for two columns and simply `"Adelie"` for
@@ -171,6 +174,69 @@ gives for a bad `config`, rather than silently falling back to a
 built-in default – a config you asked for and didn't get should never
 look identical to not asking.
 
+## Paths
+
+A relative path is read from the project root, not from the working
+directory. So `save_output(fit, "output/fit.rds", saveRDS)` writes into
+the project's own `output/` folder whether you call it from the project
+root, from a document under `reports/`, or from a job on an HTCondor
+execute node. You never need to wrap a path in
+[`here::here()`](https://here.r-lib.org/reference/here.html). Doing so
+still works, because
+[`here::here()`](https://here.r-lib.org/reference/here.html) returns an
+absolute path and absolute paths are used as given.
+
+The project root is found afresh on every call, in this order:
+
+1.  The job's scratch directory, when `_CONDOR_SCRATCH_DIR` names one.
+    HTCondor sets that variable itself, inside every job.
+
+2.  The nearest folder above the working directory that carries a
+    project marker: the `.here` file
+    [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+    writes, an `.Rproj` file, a package `DESCRIPTION`, or a version
+    control folder such as `.git`.
+
+3.  The working directory, when neither of the above applies.
+
+Absolute paths (including those starting with `~`, or a drive letter on
+Windows) and URLs such as `https://` or `s3://` are used as given. `..`
+and `./` are not interpreted, so `"../data/x.csv"` means the folder
+above the root; write an absolute path to leave the project. A bare
+`"."` means the root itself.
+
+Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.
+
+A few arguments are deliberately left alone:
+
+- [`init_project()`](https://erwinlares.github.io/toolero/reference/init_project.md)
+  reads `path`, `config` and `use_rprofile` from the working directory,
+  because the project does not exist yet and so has no root.
+
+- Under `Rscript`,
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+  reads the command line argument as given. Run `Rscript` from the
+  project root or pass an absolute path.
+
+- Arguments passed on through `...` to another function reach it
+  untouched.
+
+- Where a default is "beside the input"
+  ([`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+  and
+  [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)),
+  the output follows wherever the input was read from.
+
+Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node `~` and `$HOME` cannot
+be trusted (`$HOME` can be the submit node's path), so prefer relative
+paths in job scripts.
+
 ## See also
 
 [`run_by_group()`](https://erwinlares.github.io/toolero/reference/run_by_group.md),
@@ -186,21 +252,21 @@ data <- data.frame(
   mass    = c(3750, 3800, 5000)
 )
 write_by_group(data, group_col = "species", output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpLziJOC/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpLziJOC/gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/Rtmp6kXUCf/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/Rtmp6kXUCf/gentoo.csv
 
 # Same but also write a job manifest
 write_by_group(data, group_col = "species",
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpLziJOC/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpLziJOC/gentoo.csv
-#> ✔ Manifest written to /tmp/RtmpLziJOC/manifest.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/Rtmp6kXUCf/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/Rtmp6kXUCf/gentoo.csv
+#> ✔ Manifest written to /tmp/Rtmp6kXUCf/manifest.csv
 
 # Namespace the filenames -- adelie.csv becomes penguins-adelie.csv
 write_by_group(data, group_col = "species", prefix = "penguins",
                output_dir = tempdir())
-#> ✔ Written "Adelie" (2 rows) to /tmp/RtmpLziJOC/penguins-adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to /tmp/RtmpLziJOC/penguins-gentoo.csv
+#> ✔ Written "Adelie" (2 rows) to /tmp/Rtmp6kXUCf/penguins-adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/Rtmp6kXUCf/penguins-gentoo.csv
 
 # Group by more than one column
 data2 <- data.frame(
@@ -210,10 +276,10 @@ data2 <- data.frame(
 )
 write_by_group(data2, group_col = c("species", "sex"),
                output_dir = tempdir(), manifest = TRUE)
-#> ✔ Written "Adelie | male" (1 rows) to /tmp/RtmpLziJOC/adelie--male.csv
-#> ✔ Written "Adelie | female" (1 rows) to /tmp/RtmpLziJOC/adelie--female.csv
-#> ✔ Written "Gentoo | male" (1 rows) to /tmp/RtmpLziJOC/gentoo--male.csv
-#> ✔ Manifest written to /tmp/RtmpLziJOC/manifest.csv
+#> ✔ Written "Adelie | male" (1 rows) to /tmp/Rtmp6kXUCf/adelie--male.csv
+#> ✔ Written "Adelie | female" (1 rows) to /tmp/Rtmp6kXUCf/adelie--female.csv
+#> ✔ Written "Gentoo | male" (1 rows) to /tmp/Rtmp6kXUCf/gentoo--male.csv
+#> ✔ Manifest written to /tmp/Rtmp6kXUCf/manifest.csv
 
 # Let a project's own _toolero.yml supply output_dir via split_dir.
 # generate_project_config() writes the default conventions, including
@@ -223,11 +289,11 @@ write_by_group(data2, group_col = c("species", "sex"),
 config_dir <- tempfile()
 dir.create(config_dir)
 generate_project_config("_toolero.yml", path = config_dir)
-#> ✔ Created /tmp/RtmpLziJOC/file1af677842ef0/_toolero.yml
-#> ℹ Edit /tmp/RtmpLziJOC/file1af677842ef0/_toolero.yml to define your custom
+#> ✔ Created /tmp/Rtmp6kXUCf/file19e73a6f775a/_toolero.yml
+#> ℹ Edit /tmp/Rtmp6kXUCf/file19e73a6f775a/_toolero.yml to define your custom
 #>   folder structure,
 #>   then pass it to `init_project()` via `config =
-#>   "/tmp/RtmpLziJOC/file1af677842ef0/_toolero.yml"`.
+#>   "/tmp/Rtmp6kXUCf/file19e73a6f775a/_toolero.yml"`.
 #> ℹ For easy reuse across projects, consider moving this file to /home/runner.
 withr::with_dir(config_dir, {
   write_by_group(
@@ -237,8 +303,8 @@ withr::with_dir(config_dir, {
   )
 })
 #> Using split_dir ("data/jobs") from
-#> /tmp/RtmpLziJOC/file1af677842ef0/_toolero.yml.
-#> ✔ Written "Adelie" (2 rows) to data/jobs/adelie.csv
-#> ✔ Written "Gentoo" (1 rows) to data/jobs/gentoo.csv
+#> /tmp/Rtmp6kXUCf/file19e73a6f775a/_toolero.yml.
+#> ✔ Written "Adelie" (2 rows) to /tmp/Rtmp6kXUCf/file19e73a6f775a/data/jobs/adelie.csv
+#> ✔ Written "Gentoo" (1 rows) to /tmp/Rtmp6kXUCf/file19e73a6f775a/data/jobs/gentoo.csv
 # }
 ```

@@ -58,13 +58,15 @@ file regardless of whether it was created with <code><a href="create_qmd.html">c
 
 
 <dl><dt id="arg-input">input<a class="anchor" aria-label="anchor" href="#arg-input"></a></dt>
-<dd><p>A character string with the path to the <code>.qmd</code> file.</p></dd>
+<dd><p>A character string with the path to the <code>.qmd</code> file. A
+relative path is read from the project root (see the Paths section).</p></dd>
 
 
 <dt id="arg-output">output<a class="anchor" aria-label="anchor" href="#arg-output"></a></dt>
-<dd><p>A character string with the path to the output <code>.R</code> file.
-If <code>NULL</code> (the default), the output file is written to the same directory
-as <code>input</code> with the <code>.qmd</code> extension replaced by <code>.R</code>.</p></dd>
+<dd><p>A character string with the path to the output <code>.R</code> file; a
+relative path is written under the project root. If <code>NULL</code> (the
+default), the output file is written to the same directory as <code>input</code>
+with the <code>.qmd</code> extension replaced by <code>.R</code>.</p></dd>
 
 
 <dt id="arg-documentation">documentation<a class="anchor" aria-label="anchor" href="#arg-documentation"></a></dt>
@@ -90,6 +92,51 @@ exist, and the creation is reported. <code><a href="https://rdrr.io/pkg/knitr/ma
 itself, so writing a derived script into <code>R/</code> from a project that was
 not created by <code><a href="init_project.html">init_project()</a></code> would otherwise fail.</p>
     </div>
+    <div class="section level2">
+    <h2 id="paths">Paths<a class="anchor" aria-label="anchor" href="#paths"></a></h2>
+
+
+<p>A relative path is read from the project root, not from the working
+directory. So <code>save_output(fit, "output/fit.rds", saveRDS)</code> writes into
+the project's own <code>output/</code> folder whether you call it from the project
+root, from a document under <code>reports/</code>, or from a job on an HTCondor
+execute node. You never need to wrap a path in <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>. Doing so
+still works, because <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code> returns an absolute path and
+absolute paths are used as given.</p>
+<p>The project root is found afresh on every call, in this order:</p><ol><li><p>The job's scratch directory, when <code>_CONDOR_SCRATCH_DIR</code> names one.
+HTCondor sets that variable itself, inside every job.</p></li>
+<li><p>The nearest folder above the working directory that carries a
+project marker: the <code>.here</code> file <code><a href="init_project.html">init_project()</a></code> writes, an <code>.Rproj</code>
+file, a package <code>DESCRIPTION</code>, or a version control folder such as
+<code>.git</code>.</p></li>
+<li><p>The working directory, when neither of the above applies.</p></li>
+</ol><p>Absolute paths (including those starting with <code>~</code>, or a drive letter
+on Windows) and URLs such as <code>https://</code> or <code>s3://</code> are used as given.
+<code>..</code> and <code>./</code> are not interpreted, so <code>"../data/x.csv"</code> means the folder
+above the root; write an absolute path to leave the project. A bare
+<code>"."</code> means the root itself.</p>
+<p>Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.</p>
+<p>A few arguments are deliberately left alone:</p><ul><li><p><code><a href="init_project.html">init_project()</a></code> reads <code>path</code>, <code>config</code> and <code>use_rprofile</code> from the
+working directory, because the project does not exist yet and so has
+no root.</p></li>
+<li><p>Under <code>Rscript</code>, <code><a href="resolve_input_path.html">resolve_input_path()</a></code> reads the command line
+argument as given. Run <code>Rscript</code> from the project root or pass an
+absolute path.</p></li>
+<li><p>Arguments passed on through <code>...</code> to another function reach it
+untouched.</p></li>
+<li><p>Where a default is "beside the input" (<code>qmd_to_r()</code> and
+<code><a href="generate_kb_xml.html">generate_kb_xml()</a></code>), the output follows wherever the input was read
+from.</p></li>
+</ul><p>Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node <code>~</code> and <code>$HOME</code> cannot
+be trusted (<code>$HOME</code> can be the submit node's path), so prefer relative
+paths in job scripts.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -108,17 +155,17 @@ not created by <code><a href="init_project.html">init_project()</a></code> would
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Default output path: same directory, .R extension</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af613f6bb3b.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af613f6bb3b.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e73b4f53c2.qmd</span> to <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e73b4f53c2.R</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Explicit output path. R/ is where toolero expects derived scripts;</span></span></span>
 <span class="r-in"><span><span class="co"># the directory is created if it does not exist yet.</span></span></span>
 <span class="r-in"><span><span class="va">out</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".R"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span>, output <span class="op">=</span> <span class="va">out</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af613f6bb3b.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af66cdba3f.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e73b4f53c2.qmd</span> to <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e727998e52.R</span>.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Strip all documentation</span></span></span>
 <span class="r-in"><span><span class="fu">qmd_to_r</span><span class="op">(</span>input <span class="op">=</span> <span class="va">qmd</span>, output <span class="op">=</span> <span class="va">out</span>, documentation <span class="op">=</span> <span class="fl">0L</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af613f6bb3b.qmd</span> to <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af66cdba3f.R</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Extracted R code from <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e73b4f53c2.qmd</span> to <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e727998e52.R</span>.</span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

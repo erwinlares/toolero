@@ -73,13 +73,14 @@ changing it means those tools will not find the file automatically.</p></dd>
 
 <dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
 <dd><p>Character. Directory to write the file into. Defaults to
-<code>"."</code> (the current working directory), matching the rest of the
-family's project-scaffolding functions.</p></dd>
+<code>"."</code>, the project root. A relative path is read from the project root
+(see the Paths section).</p></dd>
 
 
 <dt id="arg-profile">profile<a class="anchor" aria-label="anchor" href="#arg-profile"></a></dt>
-<dd><p>Character or <code>NULL</code>. Path to a profile file, typically
-one written by <code><a href="generate_profile.html">generate_profile()</a></code>. When supplied, every entry in the
+<dd><p>Character or <code>NULL</code>. Path to a profile file (a relative
+path is read from the project root), typically one written by
+<code><a href="generate_profile.html">generate_profile()</a></code>. When supplied, every entry in the
 profile's <code>author:</code> block becomes an author entry in the generated
 file. When <code>NULL</code> (the default), a single generic placeholder author
 is written instead.</p></dd>
@@ -108,6 +109,51 @@ Review the generated file's <code>given-names</code>/<code>family-names</code> f
 relying on them, especially for a multi-word family name.</p>
     </div>
     <div class="section level2">
+    <h2 id="paths">Paths<a class="anchor" aria-label="anchor" href="#paths"></a></h2>
+
+
+<p>A relative path is read from the project root, not from the working
+directory. So <code>save_output(fit, "output/fit.rds", saveRDS)</code> writes into
+the project's own <code>output/</code> folder whether you call it from the project
+root, from a document under <code>reports/</code>, or from a job on an HTCondor
+execute node. You never need to wrap a path in <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code>. Doing so
+still works, because <code><a href="https://here.r-lib.org/reference/here.html" class="external-link">here::here()</a></code> returns an absolute path and
+absolute paths are used as given.</p>
+<p>The project root is found afresh on every call, in this order:</p><ol><li><p>The job's scratch directory, when <code>_CONDOR_SCRATCH_DIR</code> names one.
+HTCondor sets that variable itself, inside every job.</p></li>
+<li><p>The nearest folder above the working directory that carries a
+project marker: the <code>.here</code> file <code><a href="init_project.html">init_project()</a></code> writes, an <code>.Rproj</code>
+file, a package <code>DESCRIPTION</code>, or a version control folder such as
+<code>.git</code>.</p></li>
+<li><p>The working directory, when neither of the above applies.</p></li>
+</ol><p>Absolute paths (including those starting with <code>~</code>, or a drive letter
+on Windows) and URLs such as <code>https://</code> or <code>s3://</code> are used as given.
+<code>..</code> and <code>./</code> are not interpreted, so <code>"../data/x.csv"</code> means the folder
+above the root; write an absolute path to leave the project. A bare
+<code>"."</code> means the root itself.</p>
+<p>Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.</p>
+<p>A few arguments are deliberately left alone:</p><ul><li><p><code><a href="init_project.html">init_project()</a></code> reads <code>path</code>, <code>config</code> and <code>use_rprofile</code> from the
+working directory, because the project does not exist yet and so has
+no root.</p></li>
+<li><p>Under <code>Rscript</code>, <code><a href="resolve_input_path.html">resolve_input_path()</a></code> reads the command line
+argument as given. Run <code>Rscript</code> from the project root or pass an
+absolute path.</p></li>
+<li><p>Arguments passed on through <code>...</code> to another function reach it
+untouched.</p></li>
+<li><p>Where a default is "beside the input" (<code><a href="qmd_to_r.html">qmd_to_r()</a></code> and
+<code><a href="generate_kb_xml.html">generate_kb_xml()</a></code>), the output follows wherever the input was read
+from.</p></li>
+</ul><p>Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node <code>~</code> and <code>$HOME</code> cannot
+be trusted (<code>$HOME</code> can be the submit node's path), so prefer relative
+paths in job scripts.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="generate_profile.html">generate_profile()</a></code>, the function that writes the file this
 one can read from.</p></div>
@@ -117,8 +163,8 @@ one can read from.</p></div>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># \donttest{</span></span></span>
 <span class="r-in"><span><span class="fu">generate_citation</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote <span style="color: #0000BB;">/tmp/RtmpLziJOC/CITATION.cff</span>.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Wrote a placeholder author -- edit <span style="color: #0000BB;">/tmp/RtmpLziJOC/CITATION.cff</span> directly, or</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/CITATION.cff</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Wrote a placeholder author -- edit <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/CITATION.cff</span> directly, or</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   supply `profile`.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Fill in <span style="color: #00BB00;">title</span> and, when they're true of this project, the commented-out</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   fields.</span>
@@ -135,8 +181,8 @@ one can read from.</p></div>
 <span class="r-in"><span>  <span class="va">profile_file</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">generate_citation</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, profile <span class="op">=</span> <span class="va">profile_file</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote <span style="color: #0000BB;">/tmp/RtmpLziJOC/CITATION.cff</span>.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Author information came from <span style="color: #0000BB;">/tmp/RtmpLziJOC/file1af63161e3d1.yml</span> --</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Wrote <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/CITATION.cff</span>.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Author information came from <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/file19e74166a1.yml</span> --</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   double-check the given-names/family-names split.</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Fill in <span style="color: #00BB00;">title</span> and, when they're true of this project, the commented-out</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   fields.</span>

@@ -168,20 +168,14 @@ understands what it is holding.
 ## The `.here` marker
 
 `init_project()` also writes an empty `.here` file at the project root.
-It marks the root for
-[`here::here()`](https://here.r-lib.org/reference/here.html), which the
-documents
-[`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)
-scaffolds use to build paths, and for toolero's own functions that take
-paths from the project root
-([`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md),
-[`save_output()`](https://erwinlares.github.io/toolero/reference/save_output.md),
-[`generate_manifest()`](https://erwinlares.github.io/toolero/reference/generate_manifest.md)).
-An `.Rproj` file or a `.git` folder would serve too, but a project
-created outside RStudio and without git has neither, so `.here`
-guarantees a marker. Commit it. It is never sent to an execute node, so
-there the job's scratch directory stands in for the root. An existing
-`.here` is left as it is.
+It marks the project root for toolero's own functions, which read a
+relative path from there (see the Paths section), and for
+[`here::here()`](https://here.r-lib.org/reference/here.html) in any code
+of yours that still calls it. An `.Rproj` file or a `.git` folder would
+serve too, but a project created outside RStudio and without git has
+neither, so `.here` guarantees a marker. Commit it. It is not needed on
+an execute node, where toolero takes the job's scratch directory as the
+root. An existing `.here` is left as it is.
 
 ## Empty folders and git
 
@@ -323,6 +317,68 @@ directory. A character path is written into the guard exactly as given,
 so the same portability holds as long as the path itself is written
 portably (`~`-relative, say, rather than an absolute path tied to one
 machine).
+
+## Paths
+
+A relative path is read from the project root, not from the working
+directory. So `save_output(fit, "output/fit.rds", saveRDS)` writes into
+the project's own `output/` folder whether you call it from the project
+root, from a document under `reports/`, or from a job on an HTCondor
+execute node. You never need to wrap a path in
+[`here::here()`](https://here.r-lib.org/reference/here.html). Doing so
+still works, because
+[`here::here()`](https://here.r-lib.org/reference/here.html) returns an
+absolute path and absolute paths are used as given.
+
+The project root is found afresh on every call, in this order:
+
+1.  The job's scratch directory, when `_CONDOR_SCRATCH_DIR` names one.
+    HTCondor sets that variable itself, inside every job.
+
+2.  The nearest folder above the working directory that carries a
+    project marker: the `.here` file `init_project()` writes, an
+    `.Rproj` file, a package `DESCRIPTION`, or a version control folder
+    such as `.git`.
+
+3.  The working directory, when neither of the above applies.
+
+Absolute paths (including those starting with `~`, or a drive letter on
+Windows) and URLs such as `https://` or `s3://` are used as given. `..`
+and `./` are not interpreted, so `"../data/x.csv"` means the folder
+above the root; write an absolute path to leave the project. A bare
+`"."` means the root itself.
+
+Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.
+
+A few arguments are deliberately left alone:
+
+- `init_project()` reads `path`, `config` and `use_rprofile` from the
+  working directory, because the project does not exist yet and so has
+  no root.
+
+- Under `Rscript`,
+  [`resolve_input_path()`](https://erwinlares.github.io/toolero/reference/resolve_input_path.md)
+  reads the command line argument as given. Run `Rscript` from the
+  project root or pass an absolute path.
+
+- Arguments passed on through `...` to another function reach it
+  untouched.
+
+- Where a default is "beside the input"
+  ([`qmd_to_r()`](https://erwinlares.github.io/toolero/reference/qmd_to_r.md)
+  and
+  [`generate_kb_xml()`](https://erwinlares.github.io/toolero/reference/generate_kb_xml.md)),
+  the output follows wherever the input was read from.
+
+Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node `~` and `$HOME` cannot
+be trusted (`$HOME` can be the submit node's path), so prefer relative
+paths in job scripts.
 
 ## See also
 
