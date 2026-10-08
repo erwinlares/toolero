@@ -62,6 +62,8 @@ generate_kb_xml <- function(
         output_dir = NULL) {
 
     # -- 1. Validate html_path --------------------------------------------------
+    html_path <- .resolve_input_from_project_root(html_path)
+
     if (!fs::file_exists(html_path)) {
         cli::cli_abort("HTML file {.path {html_path}} does not exist.")
     }
@@ -70,6 +72,8 @@ generate_kb_xml <- function(
     if (is.null(qmd_path)) {
         qmd_path <- fs::path_ext_set(html_path, "qmd")
     }
+
+    qmd_path <- .resolve_input_from_project_root(qmd_path)
 
     if (!fs::file_exists(qmd_path)) {
         cli::cli_abort(

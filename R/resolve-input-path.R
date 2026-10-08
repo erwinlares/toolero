@@ -148,7 +148,7 @@ resolve_input_path <- function(interactive = NULL,
 
     rooted <- !identical(context, "rscript") && .is_relative_local_path(path)
     if (rooted) {
-        path <- .root_input_path(path)
+        path <- .resolve_input_from_project_root(path)
     }
 
     if (isTRUE(must_exist) && !fs::file_exists(path)) {
@@ -165,25 +165,6 @@ resolve_input_path <- function(interactive = NULL,
     }
 
     path
-}
-
-
-# -- Helper: read a relative input path from the project root -----------------
-#
-# The root-joined path wins whenever it exists, and also when neither
-# exists, so the error message names the path the rule points at. The one
-# exception keeps documents written before the rule working: a path that
-# exists relative to the working directory, and not from the root, is used
-# as it is.
-
-.root_input_path <- function(path) {
-    from_root <- as.character(fs::path(.project_root(), path))
-
-    if (!fs::file_exists(from_root) && fs::file_exists(path)) {
-        return(path)
-    }
-
-    from_root
 }
 
 

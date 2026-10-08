@@ -183,6 +183,8 @@ generate_citation <- function(filename = "CITATION.cff",
         orcid = "0000-0000-0000-0000"
     ))
 
+    profile <- .resolve_input_from_project_root(profile)
+
     used_profile <- FALSE
 
     if (!is.null(profile)) {

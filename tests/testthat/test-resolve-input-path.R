@@ -347,11 +347,12 @@ test_that("a path written relative to the document still works", {
     root <- local_project_with_data()
     withr::local_dir(fs::path(root, "reports"))
 
-    expect_equal(
-        resolve_input_path(interactive = "../data-raw/sample.csv",
-                           context = "interactive"),
-        "../data-raw/sample.csv"
+    expect_message(
+        out <- resolve_input_path(interactive = "../data-raw/sample.csv",
+                                  context = "interactive"),
+        "working directory"
     )
+    expect_equal(out, "../data-raw/sample.csv")
 })
 
 test_that("a URL is never joined to the project root", {

@@ -414,6 +414,8 @@ run_by_group <- function(manifest = NULL,
         }
 
         if (is.character(manifest)) {
+            manifest <- .resolve_input_from_project_root(manifest)
+
             if (!file.exists(manifest)) {
                 cli::cli_abort(
                     "Job manifest {.path {manifest}} does not exist."
@@ -443,7 +445,11 @@ run_by_group <- function(manifest = NULL,
             cli::cli_abort("Job manifest contains no rows.")
         }
 
-        file_paths  <- manifest_df[["file_path"]]
+        # Each entry is read from the project root when it is relative: that
+        # is how write_by_group() records it.
+        file_paths  <- .resolve_input_from_project_root(
+            as.character(manifest_df[["file_path"]])
+        )
         group_names <- manifest_df[["group_value"]]
 
         missing_files <- file_paths[!file.exists(file_paths)]

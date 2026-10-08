@@ -51,7 +51,7 @@ test_that("write_by_group() writes a relative output_dir under the project root"
     expect_false(fs::dir_exists(fs::path(root, "reports", "data")))
 })
 
-test_that("write_by_group() records the resolved paths in the manifest", {
+test_that("write_by_group() records manifest paths relative to the project root", {
     root <- local_project()
     withr::local_dir(fs::path(root, "reports"))
     data <- tibble::tibble(g = c("a", "b"), v = 1:2)
@@ -64,10 +64,20 @@ test_that("write_by_group() records the resolved paths in the manifest", {
         fs::path(root, "data", "jobs", "manifest.csv"),
         show_col_types = FALSE
     )
-    expect_equal(
-        sort(manifest$file_path),
-        sort(as.character(fs::path(root, "data", "jobs", c("a.csv", "b.csv"))))
+    expect_equal(sort(manifest$file_path), c("data/jobs/a.csv", "data/jobs/b.csv"))
+})
+
+test_that("write_by_group() records an absolute manifest path for a folder outside the project", {
+    root    <- local_project()
+    outside <- withr::local_tempdir()
+    data    <- tibble::tibble(g = c("a", "b"), v = 1:2)
+
+    suppressMessages(
+        write_by_group(data, "g", output_dir = outside, manifest = TRUE)
     )
+
+    manifest <- readr::read_csv(fs::path(outside, "manifest.csv"), show_col_types = FALSE)
+    expect_true(all(fs::is_absolute_path(manifest$file_path)))
 })
 
 test_that("write_by_group() reads a relative split_dir convention from the config's folder", {

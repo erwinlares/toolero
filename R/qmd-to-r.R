@@ -71,6 +71,8 @@ qmd_to_r <- function(
         )
     }
 
+    input <- .resolve_input_from_project_root(input)
+
     if (!fs::file_exists(input)) {
         cli::cli_abort(
             "File {.path {input}} does not exist."

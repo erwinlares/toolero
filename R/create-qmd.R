@@ -379,7 +379,7 @@ create_qmd <- function(
         if (isTRUE(use_style)) {
             style_dir <- fs::path(path, "assets")
         } else if (is.character(use_style)) {
-            style_dir <- use_style
+            style_dir <- .resolve_input_from_project_root(use_style)
         } else {
             cli::cli_abort(
                 "{.arg use_style} must be {.code FALSE}, {.code TRUE}, or a
@@ -461,6 +461,8 @@ create_qmd <- function(
     # still override either -- including purl itself, if the file really
     # does set that key.
     if (!is.null(header_defaults)) {
+        header_defaults <- .resolve_input_from_project_root(header_defaults)
+
         if (!fs::file_exists(header_defaults)) {
             cli::cli_abort(
                 "header_defaults file {.path {header_defaults}} does not exist."

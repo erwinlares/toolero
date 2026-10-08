@@ -138,6 +138,10 @@ check_project <- function(path   = ".",
     }
 
     # -- 1. Validate path --------------------------------------------------
+    # A relative path is read from the project root, so the default "."
+    # audits the project, not the folder the caller happens to be in.
+    path <- .resolve_input_from_project_root(path)
+
     if (!fs::dir_exists(path)) {
         cli::cli_abort("Directory {.path {path}} does not exist.")
     }
@@ -156,6 +160,7 @@ check_project <- function(path   = ".",
     if (!is.null(config)) {
         # An explicit config is the caller naming a file, so a malformed one
         # is an error rather than a finding.
+        config        <- .resolve_input_from_project_root(config)
         resolved      <- .read_config_file(config, arg = "config")
         folder_source <- "config"
 

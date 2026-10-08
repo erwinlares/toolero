@@ -835,6 +835,7 @@
     }
 
     if (!is.null(config)) {
+        config   <- .resolve_input_from_project_root(config)
         resolved <- .read_config_file(config, arg = "config")
         dir      <- resolved$conventions$output_dir
         cli::cli_inform(

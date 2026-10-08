@@ -178,6 +178,7 @@ write_by_group <- function(
 
     if (is.null(output_dir) && !is.null(config)) {
         from_config <- TRUE
+        config       <- .resolve_input_from_project_root(config)
         resolved     <- .read_config_file(config, arg = "config")
         output_dir   <- resolved$conventions$split_dir
         cli::cli_inform("Using {.field split_dir} ({.val {output_dir}}) from {.path {config}}.")
@@ -336,6 +337,12 @@ write_by_group <- function(
     row_index <- row_index[order(vapply(row_index, min, integer(1L)))]
 
     # -- 9. Write each group to CSV, assembling manifest rows ----------------------
+    # The manifest records where each file is relative to the project root
+    # when it is inside the project, and the absolute path when it is not,
+    # so the manifest means the same thing wherever it is read from.
+    # run_by_group() reads each entry from the root.
+    project_root <- .project_root()
+
     manifest_rows <- purrr::map(names(row_index), function(sanitized_key) {
         rows      <- row_index[[sanitized_key]]
         subset    <- data[rows, , drop = FALSE]
@@ -364,7 +371,7 @@ write_by_group <- function(
 
         row_data$group_value <- composite_raw[[first_row]]
         row_data$n_rows      <- nrow(subset)
-        row_data$file_path   <- as.character(file_path)
+        row_data$file_path   <- as.character(.path_from_root(file_path, project_root))
 
         tibble::as_tibble(row_data)
     })

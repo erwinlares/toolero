@@ -62,6 +62,9 @@ read_clean_csv <- function(
         ...) {
 
     # -- 1. Validate path -------------------------------------------------------
+    # A relative path is read from the project root, wherever the code runs.
+    path <- .resolve_input_from_project_root(path)
+
     if (!fs::file_exists(path)) {
         cli::cli_abort(
             "File {.path {path}} does not exist."

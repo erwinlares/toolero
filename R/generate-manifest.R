@@ -309,6 +309,7 @@ generate_manifest <- function(output_dir = NULL,
                               git_root = ".") {
 
     output_dir <- .resolve_output_dir(output_dir, config)
+    git_root   <- .resolve_input_from_project_root(git_root)
 
     if (!rlang::is_string(output_dir)) {
         cli::cli_abort(c(

@@ -115,6 +115,12 @@ read_output_records <- function(path = NULL,
         ))
     }
 
+    # Labels in the source column keep the strings the caller typed, not the
+    # resolved paths, so the table never carries a home directory the caller
+    # did not write.
+    typed <- unname(as.character(path))
+    path  <- .resolve_input_from_project_root(path)
+
     absent <- path[!fs::file_exists(path)]
     if (length(absent) > 0L) {
         cli::cli_abort(c(
@@ -126,10 +132,10 @@ read_output_records <- function(path = NULL,
     sources <- names(path)
     paths   <- unname(as.character(path))
     if (is.null(sources)) {
-        sources <- paths
+        sources <- typed
     }
     unnamed <- is.na(sources) | !nzchar(sources)
-    sources[unnamed] <- paths[unnamed]
+    sources[unnamed] <- typed[unnamed]
 
     rows <- Map(
         function(p, s) .read_output_source(p, s, filename),
