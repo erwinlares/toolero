@@ -1,3 +1,78 @@
+# toolero (development version)
+
+## Breaking changes
+
+* A relative path given to a toolero function is now read from the project
+  root, not from the working directory. Called from the project root, or with
+  an absolute path, nothing changes. Called from anywhere else, such as a
+  document under `reports/`, a relative path now means the same file it
+  would mean from the root. For instance,
+  `save_output(fit, "figures/fit.rds", saveRDS)` used to write
+  `reports/figures/fit.rds` when it ran in a document under `reports/`, and
+  it now writes `figures/fit.rds` at the project root. The rule applies to
+  `save_output()` (including an explicit `output_dir`), `write_clean_csv()`,
+  `read_clean_csv()`, `write_by_group()`, `run_by_group()`,
+  `generate_manifest()`, `read_output_records()`, `qmd_to_r()`,
+  `generate_kb_xml()`, `arborize()`, `create_qmd()`, `generate_citation()`,
+  `generate_license()`, `generate_data_doc()`, `generate_project_config()`,
+  `generate_profile()` and `check_project()`, and to every `config`
+  argument. The default `path = "."` of the functions that take one now means
+  the project root, so `generate_license()` called from `reports/` writes
+  `LICENSE` at the root. Wrapping a path in `here::here()` still works,
+  because `here::here()` returns an absolute path and absolute paths are used
+  as given. `..` and `./` are not interpreted, so an absolute path is the way
+  to leave the project.
+
+* Reading is forgiving. A relative path that does not exist at the project
+  root but does exist relative to the working directory is still read from
+  there, and a message names both locations. This keeps documents written
+  before the rule working, and it may stop working in a future version.
+  Writing never guesses: a relative path is always written under the root.
+
+* The `file_path` column of the job manifest that `write_by_group()` writes
+  (`manifest = TRUE`) is now relative to the project root when the file is
+  inside the project (`data/jobs/adelie.csv`), and the absolute path
+  otherwise. `run_by_group()` reads each entry from the root, so a manifest
+  means the same thing wherever it is read from. A manifest written by an
+  earlier version holds paths relative to the working directory at the time,
+  and still works through the fallback above.
+
+* `init_project()` is the one function that keeps reading `path`, `config`
+  and `use_rprofile` from the working directory, because the project it
+  creates does not exist yet and so has no root. Under `Rscript`,
+  `resolve_input_path()` also leaves the command line argument as given.
+  Run `Rscript` from the project root, or pass an absolute path.
+
+## New features
+
+* The project root is found in a new order, on every call: the job's scratch
+  directory when HTCondor names one in `_CONDOR_SCRATCH_DIR`, then the
+  nearest folder above the working directory with a project marker (`.here`,
+  an `.Rproj` file, a package `DESCRIPTION`, a version control folder), then
+  the working directory. On an execute node the root is therefore the
+  scratch directory without any marker file having to be transferred.
+
+* `write_clean_csv()` creates the folder of its `path` when it does not
+  exist, as `save_output()` already did, and returns the resolved path.
+
+* `read_output_records()` labels each folder in the `source` column with the
+  string you typed, not the resolved path, so the table never carries a home
+  directory you did not write. A named vector keeps its names as labels.
+
+* A new help topic, `?"project-paths"`, states the path rule once. The help
+  page of every function that takes a path shows it in a "Paths" section.
+
+## Minor changes
+
+* The example document that `create_qmd()` scaffolds no longer calls
+  `here::here()`. It writes its table with `write_clean_csv()` and its plot
+  through `save_output()`, so both land in the project's `output/` folder
+  wherever the document sits.
+
+* The test suite now builds its temporary projects with a shared
+  `local_project()` helper, unsets `_CONDOR_SCRATCH_DIR` for the whole run,
+  and fails the test that writes into the package source tree.
+
 # toolero 0.6.0
 
 ## Breaking changes

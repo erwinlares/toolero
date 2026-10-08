@@ -9,7 +9,9 @@ write_clean_csv(data, path, overwrite = FALSE, ...)
 \arguments{
 \item{data}{A data frame or tibble to write.}
 
-\item{path}{A character string with the path to the output CSV file.}
+\item{path}{A character string with the path to the output CSV file. A
+relative path is written under the project root (see the Paths
+section), and its folder is created if it does not exist.}
 
 \item{overwrite}{Logical. If \code{FALSE} (the default), errors if the file
 already exists. Set to \code{TRUE} to overwrite an existing file.}
@@ -18,7 +20,8 @@ already exists. Set to \code{TRUE} to overwrite an existing file.}
 \code{append}, \code{col_names}, or \code{quote}.}
 }
 \value{
-Invisibly returns \code{path}.
+Invisibly returns \code{path}, resolved from the project root when it
+was relative.
 }
 \description{
 \code{write_clean_csv()} writes a data frame to a CSV file using
@@ -32,6 +35,61 @@ If column names are not already clean, \code{write_clean_csv()} applies
 \code{janitor::clean_names()} before writing and emits a warning listing
 the affected columns.
 }
+\section{Paths}{
+
+A relative path is read from the project root, not from the working
+directory. So \code{save_output(fit, "output/fit.rds", saveRDS)} writes into
+the project's own \verb{output/} folder whether you call it from the project
+root, from a document under \verb{reports/}, or from a job on an HTCondor
+execute node. You never need to wrap a path in \code{here::here()}. Doing so
+still works, because \code{here::here()} returns an absolute path and
+absolute paths are used as given.
+
+The project root is found afresh on every call, in this order:
+\enumerate{
+\item The job's scratch directory, when \verb{_CONDOR_SCRATCH_DIR} names one.
+HTCondor sets that variable itself, inside every job.
+\item The nearest folder above the working directory that carries a
+project marker: the \code{.here} file \code{\link[=init_project]{init_project()}} writes, an \code{.Rproj}
+file, a package \code{DESCRIPTION}, or a version control folder such as
+\code{.git}.
+\item The working directory, when neither of the above applies.
+}
+
+Absolute paths (including those starting with \code{~}, or a drive letter
+on Windows) and URLs such as \verb{https://} or \verb{s3://} are used as given.
+\code{..} and \verb{./} are not interpreted, so \code{"../data/x.csv"} means the folder
+above the root; write an absolute path to leave the project. A bare
+\code{"."} means the root itself.
+
+Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.
+
+A few arguments are deliberately left alone:
+\itemize{
+\item \code{\link[=init_project]{init_project()}} reads \code{path}, \code{config} and \code{use_rprofile} from the
+working directory, because the project does not exist yet and so has
+no root.
+\item Under \code{Rscript}, \code{\link[=resolve_input_path]{resolve_input_path()}} reads the command line
+argument as given. Run \code{Rscript} from the project root or pass an
+absolute path.
+\item Arguments passed on through \code{...} to another function reach it
+untouched.
+\item Where a default is "beside the input" (\code{\link[=qmd_to_r]{qmd_to_r()}} and
+\code{\link[=generate_kb_xml]{generate_kb_xml()}}), the output follows wherever the input was read
+from.
+}
+
+Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node \code{~} and \verb{$HOME} cannot
+be trusted (\verb{$HOME} can be the submit node's path), so prefer relative
+paths in job scripts.
+}
+
 \examples{
 \donttest{
 sample_path <- system.file("templates", "sample.csv", package = "toolero")

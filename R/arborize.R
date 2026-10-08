@@ -175,8 +175,9 @@
 #' @param tree A character string. For `tree_notation = "simple"`, a
 #'   bracket notation string e.g. `"[S [NP] [VP]]"`. For
 #'   `tree_notation = "structured"`, a lingotree `tree()` call string.
-#' @param output A character string. Path to the output PNG file.
-#'   Defaults to `"syntactic-tree.png"` in the current working directory.
+#' @param output A character string. Path to the output PNG file. A relative
+#'   path is written under the project root (see the Paths section).
+#'   Defaults to `"syntactic-tree.png"` at the project root.
 #' @param dpi A numeric value. Resolution of the output PNG in dots per
 #'   inch. Defaults to `300`. Use `600` for print-quality output.
 #' @param tree_notation A character string. One of `"simple"` (default)
@@ -227,6 +228,8 @@
 #' syntree Typst package (v0.2.1): \url{https://typst.app/universe/package/syntree}
 #'
 #' lingotree Typst package (v1.0.0): \url{https://typst.app/universe/package/lingotree}
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 #'

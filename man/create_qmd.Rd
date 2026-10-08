@@ -23,9 +23,11 @@ created if it does not exist. See the section on documents in
 subfolders below.}
 
 \item{path}{A string. Path to the directory where the document will be
-created. Defaults to \code{"."} (the current working directory).}
+created. A relative path is read from the project root (see the Paths
+section). Defaults to \code{"."}, the project root.}
 
-\item{header_defaults}{A string or \code{NULL}. Path to a YAML file supplying
+\item{header_defaults}{A string or \code{NULL}. Path to a YAML file (a relative
+path is read from the project root) supplying
 values to pre-populate the document header -- typically a profile
 written by \code{\link[=generate_profile]{generate_profile()}}, but any YAML file following the same
 shape works. If \code{NULL} (the default), the template is copied as-is
@@ -121,7 +123,8 @@ block contains only standard Quarto options.
 \item \code{TRUE}: shorthand for \code{"assets/"}. Looks in \verb{path/assets/} for
 \code{styles.css}, \code{header.html}, and \code{footer.html} by name, and wires
 up whichever of these are present.
-\item A directory path (e.g. \code{"my-branding/"}): looks in the given
+\item A directory path (e.g. \code{"my-branding/"}, read from the project root
+when relative): looks in the given
 directory for the same three standardized filenames. The caller is
 responsible for ensuring the directory contains the files it needs
 under these exact names; \code{create_qmd()} does not rename or infer
@@ -213,7 +216,7 @@ placeholder logo, \code{R/purl.R}, and \verb{_quarto.yml} still go to the projec
 root. Paths in the document follow two rules:
 \itemize{
 \item \strong{Code paths start at the project root.} The example template writes
-its results with \code{here::here("output", ...)}, and its
+its results to \code{"output/..."} through toolero functions, and its
 \code{params: input_file: "data-raw/sample.csv"} is read from the root by
 \code{\link[=resolve_input_path]{resolve_input_path()}}, so the same code works at the root, in
 \verb{reports/}, and on an HTCondor execute node.
@@ -234,6 +237,61 @@ plus the keys they asked for.
 Note: \code{filename} has no default value and must always be supplied
 explicitly. Use \code{tempdir()} for temporary output during testing or
 exploration.
+}
+
+\section{Paths}{
+
+A relative path is read from the project root, not from the working
+directory. So \code{save_output(fit, "output/fit.rds", saveRDS)} writes into
+the project's own \verb{output/} folder whether you call it from the project
+root, from a document under \verb{reports/}, or from a job on an HTCondor
+execute node. You never need to wrap a path in \code{here::here()}. Doing so
+still works, because \code{here::here()} returns an absolute path and
+absolute paths are used as given.
+
+The project root is found afresh on every call, in this order:
+\enumerate{
+\item The job's scratch directory, when \verb{_CONDOR_SCRATCH_DIR} names one.
+HTCondor sets that variable itself, inside every job.
+\item The nearest folder above the working directory that carries a
+project marker: the \code{.here} file \code{\link[=init_project]{init_project()}} writes, an \code{.Rproj}
+file, a package \code{DESCRIPTION}, or a version control folder such as
+\code{.git}.
+\item The working directory, when neither of the above applies.
+}
+
+Absolute paths (including those starting with \code{~}, or a drive letter
+on Windows) and URLs such as \verb{https://} or \verb{s3://} are used as given.
+\code{..} and \verb{./} are not interpreted, so \code{"../data/x.csv"} means the folder
+above the root; write an absolute path to leave the project. A bare
+\code{"."} means the root itself.
+
+Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.
+
+A few arguments are deliberately left alone:
+\itemize{
+\item \code{\link[=init_project]{init_project()}} reads \code{path}, \code{config} and \code{use_rprofile} from the
+working directory, because the project does not exist yet and so has
+no root.
+\item Under \code{Rscript}, \code{\link[=resolve_input_path]{resolve_input_path()}} reads the command line
+argument as given. Run \code{Rscript} from the project root or pass an
+absolute path.
+\item Arguments passed on through \code{...} to another function reach it
+untouched.
+\item Where a default is "beside the input" (\code{\link[=qmd_to_r]{qmd_to_r()}} and
+\code{\link[=generate_kb_xml]{generate_kb_xml()}}), the output follows wherever the input was read
+from.
+}
+
+Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node \code{~} and \verb{$HOME} cannot
+be trusted (\verb{$HOME} can be the submit node's path), so prefer relative
+paths in job scripts.
 }
 
 \examples{

@@ -12,8 +12,10 @@
 #'
 #' @param manifest A character string, data frame, or `NULL`. If a
 #'   string, the path to a job manifest (`manifest.csv`) produced by
-#'   `write_by_group(manifest = TRUE)`. Must contain a `group_value`
-#'   and a `file_path` column. If a data frame, used directly. If
+#'   `write_by_group(manifest = TRUE)`; a relative path is read from the
+#'   project root (see the Paths section). Must contain a `group_value`
+#'   and a `file_path` column, and a relative `file_path` is read from the
+#'   project root too. If a data frame, used directly. If
 #'   `groups` is supplied, `manifest` is ignored with a warning and
 #'   may be omitted entirely.
 #' @param .f A function to apply to each subset. Must accept a data
@@ -192,6 +194,8 @@
 #'
 #' @importFrom rlang :=
 #' @importFrom parallelly availableCores
+#' @inheritSection project-paths Paths
+#'
 #' @export
 #'
 #' @examples

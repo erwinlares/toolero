@@ -100,10 +100,11 @@
 #'   `"CITATION.cff"`, the name tools that read this format expect;
 #'   changing it means those tools will not find the file automatically.
 #' @param path Character. Directory to write the file into. Defaults to
-#'   `"."` (the current working directory), matching the rest of the
-#'   family's project-scaffolding functions.
-#' @param profile Character or `NULL`. Path to a profile file, typically
-#'   one written by [generate_profile()]. When supplied, every entry in the
+#'   `"."`, the project root. A relative path is read from the project root
+#'   (see the Paths section).
+#' @param profile Character or `NULL`. Path to a profile file (a relative
+#'   path is read from the project root), typically one written by
+#'   [generate_profile()]. When supplied, every entry in the
 #'   profile's `author:` block becomes an author entry in the generated
 #'   file. When `NULL` (the default), a single generic placeholder author
 #'   is written instead.
@@ -145,6 +146,8 @@
 #' )
 #' generate_citation(path = tempdir(), profile = profile_file, overwrite = TRUE)
 #' }
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 generate_citation <- function(filename = "CITATION.cff",

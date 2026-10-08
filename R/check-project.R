@@ -7,8 +7,9 @@
 #' both for projects initialized with `init_project()` and for existing
 #' projects that were created independently.
 #'
-#' @param path Character. Path to the project directory. Defaults to `"."`
-#'   (the current working directory).
+#' @param path Character. Path to the project directory. A relative path is
+#'   read from the project root (see the Paths section). Defaults to `"."`,
+#'   the project root, so calling it from a subfolder audits the project.
 #' @param config Character or `NULL`. Path to a YAML configuration file
 #'   produced by [generate_project_config()]. When supplied, the `folders:`
 #'   list in the file replaces the standard toolero folder set for the folder
@@ -119,6 +120,8 @@
 #' project_dir <- withr::local_tempdir()
 #' out <- check_project(path = project_dir)
 #' }
+#' @inheritSection project-paths Paths
+#'
 #' @export
 check_project <- function(path   = ".",
                           config = NULL,

@@ -166,13 +166,13 @@
 #' output record, `project-manifest.json`.
 #'
 #' @param object The object to save.
-#' @param file_path Character. A single destination path for `object`. Its
-#'   parent directory is created if it does not already exist, and the
-#'   creation is reported. Build it with `here::here()`
-#'   (`here::here("output", "fit.rds")`) so it points at the project's
-#'   `output/` folder wherever the code runs. It is recorded in the
-#'   accumulator relative to the project root (`"output/fit.rds"`) when it
-#'   lies inside the project, and as given otherwise.
+#' @param file_path Character. A single destination path for `object`. A
+#'   relative path is written under the project root (see the Paths
+#'   section), so `"output/fit.rds"` lands in the project's own `output/`
+#'   folder wherever the code runs. Its parent directory is created if it
+#'   does not already exist, and the creation is reported. It is recorded
+#'   in the accumulator relative to the project root (`"output/fit.rds"`)
+#'   when it lies inside the project, and as the absolute path otherwise.
 #' @param .f A function used to perform the save, called as
 #'   `.f(object, file_path, ...)`. Supply the function itself (for example
 #'   `saveRDS`, `ggplot2::ggsave`), not a call and not a string. Avoid
@@ -188,15 +188,12 @@
 #' @param note Character or `NULL`. An optional free-text note recorded
 #'   alongside this row.
 #' @param output_dir Character or `NULL`. Directory containing (or to
-#'   contain) the accumulator. An explicit value is used exactly as given.
-#'   If `NULL` (the default), resolved from `config`'s `output_dir`
+#'   contain) the accumulator. An explicit relative value is read from the
+#'   project root (see the Paths section); an absolute one is used as
+#'   given. If `NULL` (the default), resolved from `config`'s `output_dir`
 #'   convention when `config` is supplied, or `"output"` otherwise, and in
-#'   either case taken from the project root rather than the working
-#'   directory: the folder holding `config`, or the nearest folder above
-#'   the working directory that carries a project marker (the `.here` file
-#'   [init_project()] writes, an `.Rproj` file, or a `.git` folder). With
-#'   no marker at all, as on an HTCondor execute node, the working
-#'   directory is the root.
+#'   either case taken from the project root: relative to the folder
+#'   holding `config`, or to the project root.
 #' @param config Character or `NULL`. Path to a project configuration file
 #'   (typically a project's own `_toolero.yml`, as written by
 #'   [init_project()]). Only consulted when `output_dir` is not supplied;
@@ -223,10 +220,9 @@
 #' relies on this when keeping the latest row per `file_path`.
 #'
 #' @section Project conventions:
-#' Paths in analysis code start at the project root, the same rule
-#' `here::here()` follows, so the accumulator for a document under
-#' `reports/` lands in the project's own `output/` rather than in
-#' `reports/output/`. `config` is opt-in: without it, `output_dir`
+#' The accumulator for a document under `reports/` lands in the project's
+#' own `output/` rather than in `reports/output/`, because paths start at
+#' the project root. `config` is opt-in: without it, `output_dir`
 #' defaults to `output/` under the project root. When `config` is
 #' supplied but cannot be read, this aborts with the same message
 #' [init_project()] gives for a bad `config`, rather than silently falling
@@ -244,6 +240,8 @@
 #'   note = "Unmodified example data.",
 #'   output_dir = output_dir
 #' )
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 save_output <- function(object,

@@ -171,24 +171,29 @@ p_plot
 ```{r}
 #| label: save-results
 
-# here::here() builds paths from the project root, so results land in the
-# project's own output/ folder wherever this document sits and whether it
-# is rendered or run chunk by chunk. On a cluster via submitr there is no
-# project root to find, so here::here() uses the job's working directory,
-# and the executable script (.sh) packages that output/ folder into a
-# tarball for transfer.
-
-output_dir <- here::here("output")
-dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+# toolero reads a relative path from the project root, so "output/" is the
+# project's own output folder wherever this document sits and whether it
+# is rendered or run chunk by chunk. On a cluster via submitr the root is
+# the job's scratch directory, so the same code writes there, and the
+# executable script (.sh) packages that output/ folder into a tarball for
+# transfer.
 
 write_clean_csv(
   p_stats,
-  file.path(output_dir, "results.csv"),
+  "output/results.csv",
   overwrite = TRUE
 )
 
-ggplot2::ggsave(
-  filename = file.path(output_dir, "plot.png"),
-  plot     = p_plot
+# ggplot2::ggsave() is not a toolero function, so given a relative path it
+# would write from the folder this document sits in. save_output() hands
+# the function a path that has already been resolved from the project root.
+# manifest = FALSE keeps this to saving the file; leave it off to also
+# record what was saved.
+
+save_output(
+  p_plot,
+  "output/plot.png",
+  .f = function(plot, file) ggplot2::ggsave(filename = file, plot = plot),
+  manifest = FALSE
 )
 ```

@@ -4,10 +4,12 @@
 #' to a standalone `.R` script using `knitr::purl()`. It works on any `.qmd`
 #' file regardless of whether it was created with `create_qmd()`.
 #'
-#' @param input A character string with the path to the `.qmd` file.
-#' @param output A character string with the path to the output `.R` file.
-#'   If `NULL` (the default), the output file is written to the same directory
-#'   as `input` with the `.qmd` extension replaced by `.R`.
+#' @param input A character string with the path to the `.qmd` file. A
+#'   relative path is read from the project root (see the Paths section).
+#' @param output A character string with the path to the output `.R` file; a
+#'   relative path is written under the project root. If `NULL` (the
+#'   default), the output file is written to the same directory as `input`
+#'   with the `.qmd` extension replaced by `.R`.
 #' @param documentation An integer controlling how much documentation is
 #'   included in the extracted script. Passed to `knitr::purl()`:
 #'   `0` strips all documentation; `1` (the default) includes chunk labels
@@ -22,6 +24,8 @@
 #' exist, and the creation is reported. `knitr::purl()` does not do this
 #' itself, so writing a derived script into `R/` from a project that was
 #' not created by [init_project()] would otherwise fail.
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 #'

@@ -33,16 +33,13 @@
 #'
 #' @section Relative paths start at the project root:
 #' In the `interactive` and `quarto` contexts, a relative path such as
-#' `"data-raw/sample.csv"` is read from the project root, the same rule
-#' `here::here()` follows, not from the working directory. So a document
-#' under `reports/` can declare `input_file: data-raw/sample.csv` in its
-#' header and find the file whether it is rendered (Quarto runs the code
-#' in `reports/`) or run chunk by chunk in RStudio. The root is the
-#' nearest folder above the working directory carrying a project marker:
-#' the `.here` file [init_project()] writes, an `.Rproj` file, or a `.git`
-#' folder. For documents written before this rule, a path that exists
-#' relative to the working directory but not from the root is still used
-#' as it is.
+#' `"data-raw/sample.csv"` is read from the project root, not from the
+#' working directory. So a document under `reports/` can declare
+#' `input_file: data-raw/sample.csv` in its header and find the file
+#' whether it is rendered (Quarto runs the code in `reports/`) or run chunk
+#' by chunk in RStudio. How the root is found, and the fallback for
+#' documents written before this rule, are described in the Paths section
+#' below.
 #'
 #' The `rscript` context is left alone. On an HTCondor execute node the
 #' path arrives as a command line argument that already points at the file:
@@ -74,6 +71,8 @@
 #'   `params$input_file` is `NULL` if the block exists without that key.
 #' - In any context, the resolved path may simply not be there, which is
 #'   most often a working directory that is not what the author assumed.
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 #'

@@ -11,13 +11,18 @@
 #' the affected columns.
 #'
 #' @param data A data frame or tibble to write.
-#' @param path A character string with the path to the output CSV file.
+#' @param path A character string with the path to the output CSV file. A
+#'   relative path is written under the project root (see the Paths
+#'   section), and its folder is created if it does not exist.
 #' @param overwrite Logical. If `FALSE` (the default), errors if the file
 #'   already exists. Set to `TRUE` to overwrite an existing file.
 #' @param ... Additional arguments passed to `readr::write_csv()`, such as
 #'   `append`, `col_names`, or `quote`.
 #'
-#' @return Invisibly returns `path`.
+#' @return Invisibly returns `path`, resolved from the project root when it
+#'   was relative.
+#' @inheritSection project-paths Paths
+#'
 #' @export
 #'
 #' @examples
@@ -66,6 +71,11 @@ write_clean_csv <- function(
             "{.path {path}} already exists. Use {.code overwrite = TRUE} to replace it."
         )
     }
+
+    # The folder is created if it is missing, as save_output() does, so a
+    # path such as "output/results.csv" works in a project with no output/
+    # yet.
+    .ensure_directory(path)
 
     # -- 4. Check and clean column names ----------------------------------------
     original_names <- names(data)

@@ -76,21 +76,73 @@ most often a working directory that is not what the author assumed.
 \section{Relative paths start at the project root}{
 
 In the \code{interactive} and \code{quarto} contexts, a relative path such as
-\code{"data-raw/sample.csv"} is read from the project root, the same rule
-\code{here::here()} follows, not from the working directory. So a document
-under \verb{reports/} can declare \code{input_file: data-raw/sample.csv} in its
-header and find the file whether it is rendered (Quarto runs the code
-in \verb{reports/}) or run chunk by chunk in RStudio. The root is the
-nearest folder above the working directory carrying a project marker:
-the \code{.here} file \code{\link[=init_project]{init_project()}} writes, an \code{.Rproj} file, or a \code{.git}
-folder. For documents written before this rule, a path that exists
-relative to the working directory but not from the root is still used
-as it is.
+\code{"data-raw/sample.csv"} is read from the project root, not from the
+working directory. So a document under \verb{reports/} can declare
+\code{input_file: data-raw/sample.csv} in its header and find the file
+whether it is rendered (Quarto runs the code in \verb{reports/}) or run chunk
+by chunk in RStudio. How the root is found, and the fallback for
+documents written before this rule, are described in the Paths section
+below.
 
 The \code{rscript} context is left alone. On an HTCondor execute node the
 path arrives as a command line argument that already points at the file:
 an absolute path to data baked into the image, or a bare subset file
 name in the job's scratch directory.
+}
+
+\section{Paths}{
+
+A relative path is read from the project root, not from the working
+directory. So \code{save_output(fit, "output/fit.rds", saveRDS)} writes into
+the project's own \verb{output/} folder whether you call it from the project
+root, from a document under \verb{reports/}, or from a job on an HTCondor
+execute node. You never need to wrap a path in \code{here::here()}. Doing so
+still works, because \code{here::here()} returns an absolute path and
+absolute paths are used as given.
+
+The project root is found afresh on every call, in this order:
+\enumerate{
+\item The job's scratch directory, when \verb{_CONDOR_SCRATCH_DIR} names one.
+HTCondor sets that variable itself, inside every job.
+\item The nearest folder above the working directory that carries a
+project marker: the \code{.here} file \code{\link[=init_project]{init_project()}} writes, an \code{.Rproj}
+file, a package \code{DESCRIPTION}, or a version control folder such as
+\code{.git}.
+\item The working directory, when neither of the above applies.
+}
+
+Absolute paths (including those starting with \code{~}, or a drive letter
+on Windows) and URLs such as \verb{https://} or \verb{s3://} are used as given.
+\code{..} and \verb{./} are not interpreted, so \code{"../data/x.csv"} means the folder
+above the root; write an absolute path to leave the project. A bare
+\code{"."} means the root itself.
+
+Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.
+
+A few arguments are deliberately left alone:
+\itemize{
+\item \code{\link[=init_project]{init_project()}} reads \code{path}, \code{config} and \code{use_rprofile} from the
+working directory, because the project does not exist yet and so has
+no root.
+\item Under \code{Rscript}, \code{\link[=resolve_input_path]{resolve_input_path()}} reads the command line
+argument as given. Run \code{Rscript} from the project root or pass an
+absolute path.
+\item Arguments passed on through \code{...} to another function reach it
+untouched.
+\item Where a default is "beside the input" (\code{\link[=qmd_to_r]{qmd_to_r()}} and
+\code{\link[=generate_kb_xml]{generate_kb_xml()}}), the output follows wherever the input was read
+from.
+}
+
+Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node \code{~} and \verb{$HOME} cannot
+be trusted (\verb{$HOME} can be the submit node's path), so prefer relative
+paths in job scripts.
 }
 
 \examples{

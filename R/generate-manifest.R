@@ -185,12 +185,12 @@
 #' artifact the project produced.
 #'
 #' @param output_dir Character or `NULL`. Directory containing
-#'   `accumulator.csv` and receiving the output record. An explicit value is
-#'   used exactly as given. If `NULL` (the default), resolved from
+#'   `accumulator.csv` and receiving the output record. An explicit relative
+#'   value is read from the project root (see the Paths section); an
+#'   absolute one is used as given. If `NULL` (the default), resolved from
 #'   `config`'s `output_dir` convention when `config` is supplied, or
-#'   `"output"` otherwise, taken from the project root rather than the
-#'   working directory, exactly as [save_output()] resolves it, so the two
-#'   always meet at the same accumulator.
+#'   `"output"` otherwise, exactly as [save_output()] resolves it, so the
+#'   two always meet at the same accumulator.
 #' @param filename Character. Name of the output record file. Defaults to
 #'   `"project-manifest.json"`.
 #' @param overwrite Logical. When `FALSE` (default), an existing output record
@@ -200,8 +200,9 @@
 #'   [init_project()]). Only consulted when `output_dir` is not supplied;
 #'   an explicit `output_dir` always wins. Defaults to `NULL`.
 #' @param git_root Character. Directory to check for a git commit to record
-#'   in the output record (see the Provenance section below). Defaults to
-#'   `"."`.
+#'   in the output record (see the Provenance section below). A relative
+#'   path is read from the project root. Defaults to `"."`, the project
+#'   root.
 #'
 #' @return The path to the output record, invisibly.
 #'
@@ -300,6 +301,8 @@
 #' )
 #'
 #' generate_manifest(output_dir = output_dir)
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 generate_manifest <- function(output_dir = NULL,

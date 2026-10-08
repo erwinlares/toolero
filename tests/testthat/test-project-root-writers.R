@@ -18,6 +18,15 @@ test_that("write_clean_csv() writes a relative path under the project root", {
     expect_false(fs::file_exists(fs::path(root, "reports", "data", "out.csv")))
 })
 
+test_that("write_clean_csv() creates a missing folder", {
+    root <- local_project()
+    withr::local_dir(fs::path(root, "reports"))
+
+    suppressMessages(write_clean_csv(data.frame(a = 1), "output/results.csv"))
+
+    expect_true(fs::file_exists(fs::path(root, "output", "results.csv")))
+})
+
 test_that("write_clean_csv() returns the resolved path", {
     root <- local_project(subdirs = c("reports", "data"))
     withr::local_dir(fs::path(root, "reports"))
@@ -224,4 +233,16 @@ test_that("a path argument outside any project falls back to the working directo
     suppressMessages(generate_license(holder = "Jane Researcher"))
 
     expect_true(fs::file_exists(fs::path(dir, "LICENSE")))
+})
+
+# -- the example template ---------------------------------------------------------
+
+test_that("the example template reads and writes through toolero, not here::here()", {
+    template <- paste(
+        readLines(.package_template("example.qmd")),
+        collapse = "\n"
+    )
+
+    expect_false(grepl("here::here", template, fixed = TRUE))
+    expect_true(grepl("output/results.csv", template, fixed = TRUE))
 })

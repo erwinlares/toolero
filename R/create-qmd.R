@@ -11,8 +11,10 @@
 #'   created if it does not exist. See the section on documents in
 #'   subfolders below.
 #' @param path A string. Path to the directory where the document will be
-#'   created. Defaults to `"."` (the current working directory).
-#' @param header_defaults A string or `NULL`. Path to a YAML file supplying
+#'   created. A relative path is read from the project root (see the Paths
+#'   section). Defaults to `"."`, the project root.
+#' @param header_defaults A string or `NULL`. Path to a YAML file (a relative
+#'   path is read from the project root) supplying
 #'   values to pre-populate the document header -- typically a profile
 #'   written by [generate_profile()], but any YAML file following the same
 #'   shape works. If `NULL` (the default), the template is copied as-is
@@ -102,7 +104,8 @@
 #'   - `TRUE`: shorthand for `"assets/"`. Looks in `path/assets/` for
 #'     `styles.css`, `header.html`, and `footer.html` by name, and wires
 #'     up whichever of these are present.
-#'   - A directory path (e.g. `"my-branding/"`): looks in the given
+#'   - A directory path (e.g. `"my-branding/"`, read from the project root
+#'     when relative): looks in the given
 #'     directory for the same three standardized filenames. The caller is
 #'     responsible for ensuring the directory contains the files it needs
 #'     under these exact names; `create_qmd()` does not rename or infer
@@ -183,7 +186,7 @@
 #' root. Paths in the document follow two rules:
 #'
 #' - **Code paths start at the project root.** The example template writes
-#'   its results with `here::here("output", ...)`, and its
+#'   its results to `"output/..."` through toolero functions, and its
 #'   `params: input_file: "data-raw/sample.csv"` is read from the root by
 #'   [resolve_input_path()], so the same code works at the root, in
 #'   `reports/`, and on an HTCondor execute node.
@@ -203,6 +206,8 @@
 #' Note: `filename` has no default value and must always be supplied
 #' explicitly. Use `tempdir()` for temporary output during testing or
 #' exploration.
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 #'

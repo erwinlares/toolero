@@ -19,9 +19,10 @@
 #'
 #' @param path Character vector or `NULL`. Output folders, each holding a
 #'   `project-manifest.json`, an `accumulator.csv`, or both; or paths to
-#'   output record files themselves. A named vector labels each folder's
+#'   output record files themselves; relative paths are read from the
+#'   project root (see the Paths section). A named vector labels each folder's
 #'   rows in the `source` column with its name; an unnamed one (or an
-#'   element with an empty name) uses the path as given. If `NULL` (the
+#'   element with an empty name) uses the path as you typed it. If `NULL` (the
 #'   default), reads the project's own output folder, resolved exactly as
 #'   [save_output()] and [generate_manifest()] resolve it.
 #' @param filename Character. Name of the output record within each folder.
@@ -90,6 +91,8 @@
 #' jobs <- jobs[!is.na(jobs$output_dir), ]
 #' records <- read_output_records(stats::setNames(jobs$output_dir, jobs$group_id))
 #' }
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 read_output_records <- function(path = NULL,

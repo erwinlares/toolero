@@ -1500,13 +1500,16 @@ test_that("the input path in a subfolder document stays relative to the project 
   expect_equal(parsed[["params"]][["input_file"]], "data-raw/sample.csv")
 })
 
-test_that("the example template writes its results with here::here()", {
+test_that("the example template writes its results through toolero, from the project root", {
   tmp <- withr::local_tempdir()
 
   create_qmd(path = tmp, filename = "analysis.qmd")
 
   qmd_content <- readr::read_file(fs::path(tmp, "analysis.qmd"))
-  expect_true(grepl('here::here("output")', qmd_content, fixed = TRUE))
+  expect_false(grepl("here::here", qmd_content, fixed = TRUE))
+  expect_true(grepl('"output/results.csv"', qmd_content, fixed = TRUE))
+  expect_true(grepl('save_output(', qmd_content, fixed = TRUE))
+  expect_true(grepl('"output/plot.png"', qmd_content, fixed = TRUE))
 })
 
 test_that("style paths in a subfolder document are relative to the document", {

@@ -6,15 +6,17 @@
 #' are self-contained, extracts the HTML body, and wraps it in the KB XML
 #' structure along with metadata drawn from the document's YAML header.
 #'
-#' @param html_path A string. Path to the rendered HTML file. Used to infer
+#' @param html_path A string. Path to the rendered HTML file; a relative path
+#'   is read from the project root. Used to infer
 #'   the output filename and, if `qmd_path` is `NULL`, the location of the
 #'   source `.qmd`.
-#' @param qmd_path A string or `NULL`. Path to the source `.qmd` file. If
+#' @param qmd_path A string or `NULL`. Path to the source `.qmd` file (a
+#'   relative path is read from the project root). If
 #'   `NULL` (the default), inferred by replacing the `.html` extension of
 #'   `html_path` with `.qmd`.
 #' @param output_dir A string or `NULL`. Directory where the `.xml` file
-#'   will be written. If `NULL` (the default), written to the same directory
-#'   as `html_path`.
+#'   will be written; a relative path is read from the project root. If
+#'   `NULL` (the default), written to the same directory as `html_path`.
 #'
 #' @return Invisibly returns the path to the written `.xml` file.
 #'
@@ -41,6 +43,8 @@
 #'
 #' When importing the resulting XML into the KB, check the
 #' \emph{Decode HTML entity in body content} option.
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 #'

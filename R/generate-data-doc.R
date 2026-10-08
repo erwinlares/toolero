@@ -16,13 +16,16 @@
 #'   doc describes, e.g. `"survey_responses.csv"`. Used to name the output
 #'   file (the extension is replaced with `.md`) and to fill in the doc's
 #'   title; must be supplied, since there is no reasonable default.
-#' @param path A character string. Directory in which to write the file.
-#'   Defaults to `"data"`.
+#' @param path A character string. Directory in which to write the file. A
+#'   relative path is read from the project root (see the Paths section).
+#'   Defaults to `"data"`, the project's `data/` folder.
 #' @param overwrite Logical. If `TRUE`, overwrites an existing doc at the
 #'   same location. Defaults to `FALSE`.
 #'
 #' @return Invisibly returns the full path to the written file.
 #' @seealso [init_project()], [generate_license()], [generate_citation()]
+#' @inheritSection project-paths Paths
+#'
 #' @export
 #'
 #' @examples

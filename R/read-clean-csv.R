@@ -5,7 +5,8 @@
 #' `readr::read_csv()`, `janitor::clean_names()`, and `tidyr::drop_na()` into a
 #' single, reproducibility-friendly step.
 #'
-#' @param path A character string with the path to the CSV file.
+#' @param path A character string with the path to the CSV file. A relative
+#'   path is read from the project root (see the Paths section).
 #' @param na A character vector of strings to treat as missing values. Passed
 #'   directly to `readr::read_csv()`. Defaults to `c("", "NA")`, which matches
 #'   `readr`'s own default behavior.
@@ -24,6 +25,8 @@
 #'   `col_types`, `skip`, or `locale`.
 #'
 #' @return A tibble with cleaned column names.
+#' @inheritSection project-paths Paths
+#'
 #' @export
 #'
 #' @examples

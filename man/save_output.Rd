@@ -18,13 +18,13 @@ save_output(
 \arguments{
 \item{object}{The object to save.}
 
-\item{file_path}{Character. A single destination path for \code{object}. Its
-parent directory is created if it does not already exist, and the
-creation is reported. Build it with \code{here::here()}
-(\code{here::here("output", "fit.rds")}) so it points at the project's
-\verb{output/} folder wherever the code runs. It is recorded in the
-accumulator relative to the project root (\code{"output/fit.rds"}) when it
-lies inside the project, and as given otherwise.}
+\item{file_path}{Character. A single destination path for \code{object}. A
+relative path is written under the project root (see the Paths
+section), so \code{"output/fit.rds"} lands in the project's own \verb{output/}
+folder wherever the code runs. Its parent directory is created if it
+does not already exist, and the creation is reported. It is recorded
+in the accumulator relative to the project root (\code{"output/fit.rds"})
+when it lies inside the project, and as the absolute path otherwise.}
 
 \item{.f}{A function used to perform the save, called as
 \code{.f(object, file_path, ...)}. Supply the function itself (for example
@@ -45,15 +45,12 @@ nothing is recorded.}
 alongside this row.}
 
 \item{output_dir}{Character or \code{NULL}. Directory containing (or to
-contain) the accumulator. An explicit value is used exactly as given.
-If \code{NULL} (the default), resolved from \code{config}'s \code{output_dir}
+contain) the accumulator. An explicit relative value is read from the
+project root (see the Paths section); an absolute one is used as
+given. If \code{NULL} (the default), resolved from \code{config}'s \code{output_dir}
 convention when \code{config} is supplied, or \code{"output"} otherwise, and in
-either case taken from the project root rather than the working
-directory: the folder holding \code{config}, or the nearest folder above
-the working directory that carries a project marker (the \code{.here} file
-\code{\link[=init_project]{init_project()}} writes, an \code{.Rproj} file, or a \code{.git} folder). With
-no marker at all, as on an HTCondor execute node, the working
-directory is the root.}
+either case taken from the project root: relative to the folder
+holding \code{config}, or to the project root.}
 
 \item{config}{Character or \code{NULL}. Path to a project configuration file
 (typically a project's own \verb{_toolero.yml}, as written by
@@ -92,14 +89,68 @@ relies on this when keeping the latest row per \code{file_path}.
 }
 \section{Project conventions}{
 
-Paths in analysis code start at the project root, the same rule
-\code{here::here()} follows, so the accumulator for a document under
-\verb{reports/} lands in the project's own \verb{output/} rather than in
-\verb{reports/output/}. \code{config} is opt-in: without it, \code{output_dir}
+The accumulator for a document under \verb{reports/} lands in the project's
+own \verb{output/} rather than in \verb{reports/output/}, because paths start at
+the project root. \code{config} is opt-in: without it, \code{output_dir}
 defaults to \verb{output/} under the project root. When \code{config} is
 supplied but cannot be read, this aborts with the same message
 \code{\link[=init_project]{init_project()}} gives for a bad \code{config}, rather than silently falling
 back to \code{"output"}.
+}
+
+\section{Paths}{
+
+A relative path is read from the project root, not from the working
+directory. So \code{save_output(fit, "output/fit.rds", saveRDS)} writes into
+the project's own \verb{output/} folder whether you call it from the project
+root, from a document under \verb{reports/}, or from a job on an HTCondor
+execute node. You never need to wrap a path in \code{here::here()}. Doing so
+still works, because \code{here::here()} returns an absolute path and
+absolute paths are used as given.
+
+The project root is found afresh on every call, in this order:
+\enumerate{
+\item The job's scratch directory, when \verb{_CONDOR_SCRATCH_DIR} names one.
+HTCondor sets that variable itself, inside every job.
+\item The nearest folder above the working directory that carries a
+project marker: the \code{.here} file \code{\link[=init_project]{init_project()}} writes, an \code{.Rproj}
+file, a package \code{DESCRIPTION}, or a version control folder such as
+\code{.git}.
+\item The working directory, when neither of the above applies.
+}
+
+Absolute paths (including those starting with \code{~}, or a drive letter
+on Windows) and URLs such as \verb{https://} or \verb{s3://} are used as given.
+\code{..} and \verb{./} are not interpreted, so \code{"../data/x.csv"} means the folder
+above the root; write an absolute path to leave the project. A bare
+\code{"."} means the root itself.
+
+Functions that read are forgiving about older code. A relative path that
+does not exist at the project root but does exist relative to the
+working directory is read from there, and a message says so. Functions
+that write never guess: a relative path is always written under the
+root.
+
+A few arguments are deliberately left alone:
+\itemize{
+\item \code{\link[=init_project]{init_project()}} reads \code{path}, \code{config} and \code{use_rprofile} from the
+working directory, because the project does not exist yet and so has
+no root.
+\item Under \code{Rscript}, \code{\link[=resolve_input_path]{resolve_input_path()}} reads the command line
+argument as given. Run \code{Rscript} from the project root or pass an
+absolute path.
+\item Arguments passed on through \code{...} to another function reach it
+untouched.
+\item Where a default is "beside the input" (\code{\link[=qmd_to_r]{qmd_to_r()}} and
+\code{\link[=generate_kb_xml]{generate_kb_xml()}}), the output follows wherever the input was read
+from.
+}
+
+Two limits are worth knowing. A project nested inside another project is
+not supported: the nearest marker wins, which can surprise you when you
+work from the outer one. And on an execute node \code{~} and \verb{$HOME} cannot
+be trusted (\verb{$HOME} can be the submit node's path), so prefer relative
+paths in job scripts.
 }
 
 \examples{

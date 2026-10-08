@@ -244,6 +244,49 @@ and scalable computing when needed.
 
 ---
 
+## Paths start at the project root
+
+Most of the confusion about file paths in R comes from the working
+directory, which depends on how the code is run. A chunk run by hand in
+RStudio, a document rendered by Quarto from `reports/`, and a script
+dispatched to a cluster each start somewhere different, so a path such as
+`"output/results.csv"` can name three different files. toolero removes that
+ambiguity with one rule: a relative path given to any toolero function is
+read from the project root, not from the working directory.
+
+In practice, `save_output(fit, "output/fit.rds", saveRDS)` writes into the
+project's own `output/` folder whether you call it from the project root,
+from a document under `reports/`, or from a job on an HTCondor execute
+node. You do not need to wrap the path in `here::here()`, although doing so
+still works, because `here::here()` returns an absolute path and absolute
+paths are used as given. So are paths starting with `~` and URLs.
+
+The root is found afresh on every call, in this order. First comes the
+job's scratch directory, when HTCondor names one in `_CONDOR_SCRATCH_DIR`
+(HTCondor sets that variable itself, inside every job). Next comes the
+nearest folder above the working directory that carries a project marker:
+the `.here` file `init_project()` writes, an `.Rproj` file, a package
+`DESCRIPTION`, or a version control folder such as `.git`. If neither
+applies, the working directory is the root.
+
+Reading is forgiving. A relative path that does not exist at the root but
+does exist relative to the working directory is read from there, and a
+message names both locations, so documents written before this rule keep
+working. Writing never guesses, since a file written in the wrong place is
+harder to notice than one that cannot be found.
+
+A few things are left alone on purpose. `init_project()` reads its `path`,
+`config` and `use_rprofile` from the working directory, because the project
+does not exist yet. Under `Rscript`, `resolve_input_path()` takes the
+command line argument as given, so run `Rscript` from the project root or
+pass an absolute path. Arguments passed on through `...` reach the other
+function untouched. There are also two limits to keep in mind. A project
+nested inside another project is not supported, since the nearest marker
+wins, and on an execute node `~` and `$HOME` cannot be trusted, so relative
+paths are the safer choice in job scripts. The same rule is written out once in
+`?"project-paths"`, and every function that takes a path shows it in a
+"Paths" section of its help page.
+
 ## Core workflow functions
 
 ### `init_project()`
@@ -307,11 +350,11 @@ from the defaults all produce the same shape of file and nobody has to replay
 anything to learn what the project looks like. Commit it.
 
 `init_project()` also writes an empty `.here` file at the project root.
-Commit that too. It marks the root for `here::here()`, which scaffolded
-documents use to build their paths (see `save_output()` below), and for
-toolero's own functions that read paths from the root. An `.Rproj` file or
-a `.git` folder would do the same job, but a project created outside
-RStudio and without git has neither.
+Commit that too. It marks the project root for toolero's own functions,
+which read a relative path from there (see "Paths start at the project
+root" above), and for `here::here()` in any code of yours that still calls
+it. An `.Rproj` file or a `.git` folder would do the same job, but a
+project created outside RStudio and without git has neither.
 
 Neither file is there only for the benefit of `containr` or `submitr`, and
 a project that never leaves your laptop still needs both. `toolero` itself
@@ -512,7 +555,8 @@ you asked for.
 **Arguments:**
 
 - `filename` -- name of the `.qmd` file. Must be supplied explicitly.
-- `path` -- directory where the document is created. Defaults to `"."`.
+- `path` -- directory where the document is created. A relative path is
+  read from the project root. Defaults to `"."`, the project root.
 - `header_defaults` -- path to a YAML file for pre-populating the header.
   The merge is applied key by key rather than as a wholesale replacement:
   when a top-level key holds a mapping (a nested set of `key: value` pairs,
@@ -612,7 +656,7 @@ create_qmd(path = "my-project", filename = "reports/analysis.qmd",
 The folder is created if needed; the sample data, the logo, `R/purl.R`, and
 `_quarto.yml` still go to the project root. Code in the document keeps
 paths that start at the project root, `data-raw/sample.csv` in `params:`
-and `here::here("output")` for results, so it runs unchanged at the root, in
+and `output/results.csv` for results, so it runs unchanged at the root, in
 `reports/`, and on a cluster. Header paths are the exception, because Quarto
 resolves them relative to the document: `use_style` writes
 `css: ../assets/styles.css` for a document in `reports/`, and adds the
@@ -941,7 +985,7 @@ nothing else does.
 # Save a model and record it
 save_output(
   model,
-  here::here("output", "model.rds"),
+  "output/model.rds",
   .f   = saveRDS,
   note = "Final model, trained on full dataset."
 )
@@ -952,7 +996,7 @@ save_output(
 # write.csv(), write_clean_csv() -- can be passed directly.
 save_output(
   my_plot,
-  here::here("output", "figures", "coefficients.png"),
+  "output/figures/coefficients.png",
   .f     = \(object, file_path, ...) ggplot2::ggsave(file_path, object, ...),
   width  = 8,
   height = 5
@@ -962,17 +1006,22 @@ save_output(
 generate_manifest()
 ```
 
-Paths in analysis code start at the project root, so build them with
-`here::here()` rather than writing `"output/model.rds"`. A document under
-`reports/` runs with `reports/` as its working directory when rendered, and
-a bare `"output/..."` would put its results in `reports/output/`.
-`here::here()` finds the project root from wherever the code runs, and on
-a cluster, where there is no project root to find, it uses the job's
-working directory, which is where the results folder is. `save_output()`
-and `generate_manifest()` follow the same rule for their own default:
+A document under `reports/` runs with `reports/` as its working
+directory when rendered, which is why a bare `"output/model.rds"` used to
+put its results in `reports/output/`. toolero now reads that relative path
+from the project root instead, so you write `"output/model.rds"` and leave
+`here::here()` out. On a cluster the root is the job's scratch directory,
+which is where the results folder is. `save_output()` and
+`generate_manifest()` follow the same rule for their own default:
 `output_dir` is `output/` under the project root. And `save_output()`
 records each `file_path` relative to the project root (`output/model.rds`),
 so the output record never carries your home directory.
+
+This is also the reason to save through `save_output()` when the writer is
+not a toolero function. `saveRDS()` and `ggsave()` do not know about the
+project root, so given `"output/model.rds"` they would read it from the
+working directory. `save_output()` hands the writer a path that has already
+been resolved, as the call to `ggsave()` above shows.
 
 `save_output()` calls the writer as `.f(object, file_path, ...)`, so a
 writer whose own signature puts the destination first needs a wrapper, as
@@ -995,7 +1044,7 @@ config's `output_dir` convention) when not supplied directly. An explicit
 `output_dir` still wins, and a project without a config behaves exactly as
 before.
 
-`generate_manifest()` also accepts a `git_root` argument (default `"."`)
+`generate_manifest()` also accepts a `git_root` argument (default `"."`, the project root)
 and records a `commit` field in the output record -- the git commit checked
 out in `git_root` at the moment the record was written, recorded once at the
 top level alongside `execution_context` and `generated_at`. This is the one
@@ -1018,7 +1067,7 @@ real time, the recommended pattern is:
 tryCatch(
   {
     # ... analysis code ...
-    save_output(results, here::here("output", "results.rds"), .f = saveRDS)
+    save_output(results, "output/results.rds", .f = saveRDS)
   },
   finally = try(generate_manifest(), silent = TRUE)
 )
@@ -1185,7 +1234,8 @@ generate_citation(profile = "~/toolero-profile.yml")
 **Arguments:**
 
 - `filename` -- name of the file to write. Defaults to `"CITATION.cff"`.
-- `path` -- directory where the file is written. Defaults to `"."`.
+- `path` -- directory where the file is written. A relative path is read
+  from the project root. Defaults to `"."`, the project root.
 - `profile` -- optional path to a profile written by `generate_profile()`
   (or any YAML file with the same `author:` shape). When supplied, each
   author entry's `name` is split into `given-names`/`family-names`, and

@@ -21,8 +21,9 @@
 #'   guessing it wrong is worse than asking.
 #' @param year A character string. The copyright year. Defaults to the
 #'   current year.
-#' @param path A character string. Directory in which to write the file.
-#'   Defaults to `"."` (the current working directory).
+#' @param path A character string. Directory in which to write the file. A
+#'   relative path is read from the project root (see the Paths section).
+#'   Defaults to `"."`, the project root.
 #' @param overwrite Logical. If `TRUE`, overwrites an existing `LICENSE`
 #'   file at the same location. Defaults to `FALSE`.
 #'
@@ -37,6 +38,8 @@
 #'
 #' @return Invisibly returns the full path to the written file.
 #' @seealso [init_project()], [generate_data_doc()]
+#' @inheritSection project-paths Paths
+#'
 #' @export
 #'
 #' @examples

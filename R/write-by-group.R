@@ -10,7 +10,8 @@
 #'   the combinations of values actually present in the data (not the full
 #'   cross-product of possible values).
 #' @param output_dir A string or `NULL`. Path to the directory where output
-#'   files will be written. Created if it does not exist. If `NULL`, resolved
+#'   files will be written. A relative path is written under the project
+#'   root (see the Paths section). Created if it does not exist. If `NULL`, resolved
 #'   from `config`'s `split_dir` convention when `config` is supplied;
 #'   otherwise the user must supply a path explicitly.
 #' @param manifest A logical. Whether to write a `manifest.csv` file to
@@ -77,6 +78,9 @@
 #'
 #' The schema is one column per grouping variable, holding the raw
 #' unsanitized value, followed by `group_value`, `n_rows`, and `file_path`.
+#' `file_path` is relative to the project root when the file is inside the
+#' project (`"data/jobs/adelie.csv"`), and the absolute path otherwise, so
+#' the manifest means the same thing wherever it is read from.
 #' Grouping on one column therefore produces a job manifest whose first column
 #' repeats `group_value` exactly. That redundancy is deliberate: one schema
 #' with a varying column count is easier to read, validate and rely on than
@@ -119,6 +123,8 @@
 #' asked for and didn't get should never look identical to not asking.
 #'
 #' @seealso [run_by_group()], the apply half of this pair.
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 #'

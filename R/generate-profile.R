@@ -19,7 +19,9 @@
 #'   [generate_project_config()], this file's whole purpose is being
 #'   reusable across every project rather than tied to one, so it belongs
 #'   somewhere that outlives any single project directory. Pass `path = "."`
-#'   if you'd rather keep a copy inside a specific project instead.
+#'   if you'd rather keep a copy at the root of a specific project instead.
+#'   A relative path is read from the project root (see the Paths
+#'   section).
 #' @param overwrite Logical. When `FALSE` (default), an existing file at
 #'   the destination is an error rather than being replaced.
 #'
@@ -57,6 +59,8 @@
 #' \donttest{
 #' generate_profile("my-profile.yml", path = tempdir())
 #' }
+#'
+#' @inheritSection project-paths Paths
 #'
 #' @export
 generate_profile <- function(filename, path = fs::path_home(), overwrite = FALSE) {

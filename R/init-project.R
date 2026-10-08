@@ -102,14 +102,14 @@
 #'
 #' @section The `.here` marker:
 #' `init_project()` also writes an empty `.here` file at the project root.
-#' It marks the root for `here::here()`, which the documents
-#' [create_qmd()] scaffolds use to build paths, and for toolero's own
-#' functions that take paths from the project root ([resolve_input_path()],
-#' [save_output()], [generate_manifest()]). An `.Rproj` file or a `.git`
-#' folder would serve too, but a project created outside RStudio and
-#' without git has neither, so `.here` guarantees a marker. Commit it. It
-#' is never sent to an execute node, so there the job's scratch directory
-#' stands in for the root. An existing `.here` is left as it is.
+#' It marks the project root for toolero's own functions, which read a
+#' relative path from there (see the Paths section), and for
+#' `here::here()` in any code of yours that still calls it. An `.Rproj`
+#' file or a `.git` folder would serve too, but a project created outside
+#' RStudio and without git has neither, so `.here` guarantees a marker.
+#' Commit it. It is not needed on an execute node, where toolero takes the
+#' job's scratch directory as the root. An existing `.here` is left as it
+#' is.
 #'
 #' @section Empty folders and git:
 #' Each folder `init_project()` creates that is still empty when the call
@@ -241,6 +241,8 @@
 #' @importFrom lifecycle deprecated is_present deprecate_warn
 #' @return Called for its side effects. Invisibly returns `path`.
 #' @seealso [check_project()], [generate_project_config()]
+#' @inheritSection project-paths Paths
+#'
 #' @export
 #'
 #' @examples
@@ -782,8 +784,9 @@ init_project <- function(path,
 #'
 #' @param filename A character string. Name of the YAML file to create
 #'   (e.g., `"linguistics-project.yml"`). Must be supplied explicitly.
-#' @param path A character string. Directory in which to write the file.
-#'   Defaults to `"."` (the current working directory). Consider using
+#' @param path A character string. Directory in which to write the file. A
+#'   relative path is read from the project root (see the Paths section).
+#'   Defaults to `"."`, the project root. Consider using
 #'   `"~"` (your home directory) so the file is easy to reference in
 #'   future `init_project()` calls regardless of which project is active.
 #' @param overwrite Logical. If `TRUE`, overwrites an existing file at the
@@ -791,6 +794,8 @@ init_project <- function(path,
 #'
 #' @return Invisibly returns the full path to the written file.
 #' @seealso [init_project()], [check_project()]
+#' @inheritSection project-paths Paths
+#'
 #' @export
 #'
 #' @examples
