@@ -86,6 +86,12 @@
 #' Every `.qmd` under `path` whose header declares `purl: true` (see
 #' [create_qmd()]'s `use_purl` argument) gets its own row, comparing it
 #' against the `.R` script `R/purl.R` is expected to have derived from it.
+#' In an ordinary project that script is flat, `reports/analysis.qmd` to
+#' `R/analysis.R`. In a Quarto website or book (`project: type:` in
+#' `_quarto.yml`) it mirrors the document's path, `posts/one/index.qmd` to
+#' `R/posts/one/index.R`. A script found at the other layout's path, which
+#' happens when `R/purl.R` is an older copy, is reported with the path it
+#' was found at and how to refresh the hook.
 #' Missing entirely, or older than the `.qmd` it was purled from, is
 #' reported as `"warn"`: the `.qmd` is the source of truth, so an `R/`
 #' script older than the document it came from means an edit was made and
@@ -446,16 +452,45 @@ check_project <- function(path   = ".",
     # tracked document's status individually rather than one aggregate
     # verdict. Documents never opted into purl (no header, or purl: false)
     # produce no row at all -- nothing to check.
-    purled_qmds <- .find_purled_qmds(path, folder_list)
+    purled_qmds  <- .find_purled_qmds(path, folder_list)
+    purl_layout  <- .purl_layout(path)
+    other_layout <- if (identical(purl_layout, "mirror")) "flat" else "mirror"
 
     for (i in seq_along(purled_qmds)) {
         qmd_path <- purled_qmds[[i]]
         rel_qmd  <- fs::path_rel(qmd_path, start = path)
-        r_path   <- .purl_output_path(qmd_path, path)
+        r_path   <- .purl_output_path(qmd_path, path, purl_layout)
+        r_other  <- .purl_output_path(qmd_path, path, other_layout)
 
         key <- paste0("purl_", i)
 
-        if (!fs::file_exists(r_path)) {
+        if (!fs::file_exists(r_path) &&
+            !identical(as.character(r_other), as.character(r_path)) &&
+            fs::file_exists(r_other)) {
+            results[[key]] <- .check_result(
+                check   = paste0("purl: ", rel_qmd),
+                status  = "warn",
+                message = .cli_escape(paste0(
+                    "this project's layout expects ",
+                    fs::path_rel(r_path, start = path), ", but the script is at ",
+                    fs::path_rel(r_other, start = path), " -- R/purl.R is probably ",
+                    "an older copy. Refresh it with file.copy(system.file(\"templates\", ",
+                    "\"purl.R\", package = \"toolero\"), \"R/purl.R\", overwrite = TRUE), ",
+                    "render again, and delete the old script"
+                ))
+            )
+        } else if (.purl_claimed_by_other(r_path, rel_qmd, path)) {
+            results[[key]] <- .check_result(
+                check   = paste0("purl: ", rel_qmd),
+                status  = "warn",
+                message = .cli_escape(paste0(
+                    fs::path_rel(r_path, start = path), " was generated from ",
+                    .purl_source_of(r_path), ", not from ", rel_qmd,
+                    " -- two documents share a filename, so only one can have ",
+                    "its script here. Rename one of them"
+                ))
+            )
+        } else if (!fs::file_exists(r_path)) {
             results[[key]] <- .check_result(
                 check   = paste0("purl: ", rel_qmd),
                 status  = "warn",
@@ -661,26 +696,131 @@ check_project <- function(path   = ".",
     unname(candidates[is_purled])
 }
 
+#' Which document does a purled script say it came from?
+#'
+#' Internal helper used by [check_project()]. Reads the first line of a
+#' script written by `R/purl.R`, which names its source document, and
+#' returns that name. `NA` when the file does not exist, and `""` when it
+#' exists but carries no such line (a hand-written script, or one written
+#' by an older `R/purl.R`).
+#'
+#' @param r_path Character. Path to a script.
+#'
+#' @return A single string, or `NA_character_`.
+#'
+#' @keywords internal
+.purl_source_of <- function(r_path) {
+    if (!fs::file_exists(r_path)) {
+        return(NA_character_)
+    }
+
+    first <- tryCatch(
+        readLines(r_path, n = 1L, warn = FALSE),
+        error = function(cnd) character()
+    )
+
+    if (length(first) == 0L) {
+        return("")
+    }
+
+    found <- regmatches(
+        first,
+        regexec("^# Generated from (.+) by R/purl[.]R[.]", first)
+    )[[1L]]
+
+    if (length(found) == 2L) found[[2L]] else ""
+}
+
+#' Does a purled script belong to a different, still-existing document?
+#'
+#' Internal helper used by [check_project()]. `TRUE` when the script at
+#' `r_path` names a source document other than `rel_qmd` and that document
+#' still exists under `path`. A script that names a document that has since
+#' moved or been deleted is stale rather than contested, so it returns
+#' `FALSE`, as it does for a script with no such line.
+#'
+#' @param r_path Character. Path to the expected script.
+#' @param rel_qmd Character. The document, relative to the project root.
+#' @param path Character. Path to the project directory.
+#'
+#' @return A single logical.
+#'
+#' @keywords internal
+.purl_claimed_by_other <- function(r_path, rel_qmd, path) {
+    source_doc <- .purl_source_of(r_path)
+
+    if (is.na(source_doc) || !nzchar(source_doc)) {
+        return(FALSE)
+    }
+
+    !identical(source_doc, as.character(rel_qmd)) &&
+        fs::file_exists(fs::path(path, source_doc))
+}
+
+#' Which layout does the purl hook use in this project?
+#'
+#' Internal helper used by [check_project()]. Mirrors the decision
+#' `R/purl.R` makes for itself: `"mirror"` when `_quarto.yml` declares
+#' `project: type:` as `website` or `book`, and `"flat"` otherwise,
+#' including when there is no `_quarto.yml`, no `type:`, or a file that
+#' cannot be parsed.
+#'
+#' @param path Character. Path to the project root.
+#'
+#' @return `"mirror"` or `"flat"`.
+#'
+#' @keywords internal
+.purl_layout <- function(path) {
+    candidates <- fs::path(path, c("_quarto.yml", "_quarto.yaml"))
+    candidates <- candidates[fs::file_exists(candidates)]
+
+    if (length(candidates) == 0L) {
+        return("flat")
+    }
+
+    config <- tryCatch(yaml::read_yaml(candidates[[1L]]), error = function(cnd) NULL)
+
+    if (!is.list(config)) {
+        return("flat")
+    }
+
+    type <- config[["project"]][["type"]]
+
+    if (is.character(type) && length(type) == 1L && type %in% c("website", "book")) {
+        "mirror"
+    } else {
+        "flat"
+    }
+}
+
 #' Expected purl output path for a .qmd
 #'
-#' Internal helper used by [check_project()]. Mirrors the convention
-#' `R/purl.R` itself follows: a document's derived script lives under `R/`
-#' at the same path, relative to the project root, that the document itself
-#' occupies, so two documents sharing a filename in different directories
-#' (e.g. a directory-per-post convention using `index.qmd`) map to
-#' different output paths.
+#' Internal helper used by [check_project()]. Follows the convention
+#' `R/purl.R` itself follows. In an ordinary project a document's derived
+#' script is flat, `R/<name>.R`. In a website or book it lives under `R/`
+#' at the same path, relative to the project root, that the document
+#' itself occupies, so two documents sharing a filename in different
+#' directories (e.g. a directory-per-post convention using `index.qmd`) map
+#' to different output paths.
 #'
 #' @param qmd_path Character. Full path to a `.qmd` file.
 #' @param path Character. Path to the project root.
+#' @param layout `"flat"` or `"mirror"`. Defaults to the layout the project
+#'   itself uses, see `.purl_layout()`.
 #'
 #' @return A single character string: the full path where the purled `.R`
 #'   script is expected.
 #'
 #' @keywords internal
-.purl_output_path <- function(qmd_path, path) {
+.purl_output_path <- function(qmd_path, path, layout = .purl_layout(path)) {
     rel_qmd <- fs::path_rel(qmd_path, start = path)
     rel_r   <- fs::path_ext_set(rel_qmd, "R")
-    fs::path(path, "R", rel_r)
+
+    if (identical(layout, "mirror")) {
+        fs::path(path, "R", rel_r)
+    } else {
+        fs::path(path, "R", fs::path_file(rel_r))
+    }
 }
 
 #' Does a .renvignore exclude Quarto documents?

@@ -41,6 +41,17 @@ make_qmd_no_purl_key <- function(path, body = "1 + 1") {
     readr::write_file(content, path)
 }
 
+# Helper: write a _quarto.yml declaring a project type (or none, when
+# `type` is NULL).
+make_quarto_yml <- function(dir, type = "website", file = "_quarto.yml") {
+    content <- if (is.null(type)) {
+        "project:\n  output-dir: _out\n"
+    } else {
+        sprintf("project:\n  type: %s\n", type)
+    }
+    readr::write_file(content, fs::path(dir, file))
+}
+
 # -- .qmd_wants_purl() ----------------------------------------------------------
 
 test_that(".qmd_wants_purl() returns TRUE when purl: true is present", {
@@ -171,6 +182,7 @@ test_that("re-sourcing purl.R overwrites the previously purled .R file", {
 
 test_that("strips the output-dir prefix so a nested website output path maps to its source .qmd", {
     tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, "website")
     fs::dir_create(fs::path(tmp, "posts", "hello"))
     make_purlable_qmd(fs::path(tmp, "posts", "hello", "index.qmd"), purl = TRUE)
 
@@ -185,6 +197,7 @@ test_that("strips the output-dir prefix so a nested website output path maps to 
 
 test_that("website render with output-dir only purls the pages listed as rendered, not the whole site", {
     tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, "website")
     fs::dir_create(fs::path(tmp, "posts", "one"))
     fs::dir_create(fs::path(tmp, "posts", "two"))
     make_purlable_qmd(fs::path(tmp, "posts", "one", "index.qmd"), purl = TRUE)
@@ -201,14 +214,15 @@ test_that("website render with output-dir only purls the pages listed as rendere
     expect_false(fs::file_exists(fs::path(tmp, "R", "posts", "two", "index.R")))
 })
 
-# -- Path mirroring: same-basename collision across directories -----------------
-# The bug this whole change exists to fix: a directory-per-post convention
-# (posts/<slug>/index.qmd) means many documents legitimately share the
-# filename "index.qmd". Flattening output to R/<basename>.R would have
-# every one of them silently overwrite the last one purled.
+# -- Website and book projects: path mirroring -----------------------------------
+# The bug this exists to fix in website projects: a directory-per-post
+# convention (posts/<slug>/index.qmd) means many documents legitimately
+# share the filename "index.qmd". Flattening output to R/<basename>.R
+# would have every one of them silently overwrite the last one purled.
 
 test_that("two documents with the same basename in different directories purl to distinct, correctly nested outputs", {
     tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, "website")
     fs::dir_create(fs::path(tmp, "posts", "2026-08-04-giscus"))
     fs::dir_create(fs::path(tmp, "posts", "2026-09-01-toolero"))
     make_purlable_qmd(
@@ -248,6 +262,7 @@ test_that("two documents with the same basename in different directories purl to
 
 test_that("path mirroring also applies to the fallback (no QUARTO_PROJECT_OUTPUT_FILES) branch", {
     tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, "website")
     fs::dir_create(fs::path(tmp, "posts", "one"))
     make_purlable_qmd(fs::path(tmp, "posts", "one", "index.qmd"), purl = TRUE)
 
@@ -300,4 +315,241 @@ test_that("does not create R/ on an empty project with no .qmd files at all", {
 
     expect_no_error(source_purl(tmp))
     expect_false(fs::dir_exists(fs::path(tmp, "R")))
+})
+
+# -- Layout: flat by default, mirrored for website and book ----------------------
+
+test_that("a project with no _quarto.yml purls a nested document flat, to R/<name>.R", {
+    tmp <- withr::local_tempdir()
+    fs::dir_create(fs::path(tmp, "reports"))
+    make_purlable_qmd(fs::path(tmp, "reports", "analysis.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "reports/analysis.html")
+
+    expect_true(fs::file_exists(fs::path(tmp, "R", "analysis.R")))
+    expect_false(fs::dir_exists(fs::path(tmp, "R", "reports")))
+})
+
+test_that("a _quarto.yml with no project type purls flat", {
+    tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, type = NULL)
+    fs::dir_create(fs::path(tmp, "reports"))
+    make_purlable_qmd(fs::path(tmp, "reports", "analysis.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "reports/analysis.html")
+
+    expect_true(fs::file_exists(fs::path(tmp, "R", "analysis.R")))
+})
+
+test_that("a project of type default purls flat", {
+    tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, type = "default")
+    fs::dir_create(fs::path(tmp, "reports"))
+    make_purlable_qmd(fs::path(tmp, "reports", "analysis.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "reports/analysis.html")
+
+    expect_true(fs::file_exists(fs::path(tmp, "R", "analysis.R")))
+})
+
+test_that("a project of type manuscript purls flat", {
+    tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, type = "manuscript")
+    fs::dir_create(fs::path(tmp, "reports"))
+    make_purlable_qmd(fs::path(tmp, "reports", "analysis.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "reports/analysis.html")
+
+    expect_true(fs::file_exists(fs::path(tmp, "R", "analysis.R")))
+})
+
+test_that("a project of type book mirrors the document's path under R/", {
+    tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, type = "book")
+    fs::dir_create(fs::path(tmp, "chapters"))
+    make_purlable_qmd(fs::path(tmp, "chapters", "intro.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "chapters/intro.html")
+
+    expect_true(fs::file_exists(fs::path(tmp, "R", "chapters", "intro.R")))
+})
+
+test_that("_quarto.yaml (the alternative extension) is read too", {
+    tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, type = "website", file = "_quarto.yaml")
+    fs::dir_create(fs::path(tmp, "posts", "one"))
+    make_purlable_qmd(fs::path(tmp, "posts", "one", "index.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "posts/one/index.html")
+
+    expect_true(fs::file_exists(fs::path(tmp, "R", "posts", "one", "index.R")))
+})
+
+test_that("an unparseable _quarto.yml falls back to the flat layout", {
+    tmp <- withr::local_tempdir()
+    readr::write_file("project: [unclosed\n  type: website\n", fs::path(tmp, "_quarto.yml"))
+    fs::dir_create(fs::path(tmp, "posts", "one"))
+    make_purlable_qmd(fs::path(tmp, "posts", "one", "index.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "posts/one/index.html")
+
+    expect_true(fs::file_exists(fs::path(tmp, "R", "index.R")))
+})
+
+test_that(".purl_layout() reports flat or mirror for each project type", {
+    tmp <- withr::local_tempdir()
+    env <- source_purl(tmp)
+    withr::local_dir(tmp)  # source_purl() restores the working directory on exit
+
+    expect_identical(env$.purl_layout(), "flat")
+
+    make_quarto_yml(tmp, "website")
+    expect_identical(env$.purl_layout(), "mirror")
+
+    make_quarto_yml(tmp, "book")
+    expect_identical(env$.purl_layout(), "mirror")
+
+    make_quarto_yml(tmp, "manuscript")
+    expect_identical(env$.purl_layout(), "flat")
+
+    make_quarto_yml(tmp, type = NULL)
+    expect_identical(env$.purl_layout(), "flat")
+})
+
+# -- The "Generated from" marker -------------------------------------------------
+
+test_that("the first line of a purled script names the document it came from", {
+    tmp <- withr::local_tempdir()
+    fs::dir_create(fs::path(tmp, "reports"))
+    make_purlable_qmd(fs::path(tmp, "reports", "analysis.qmd"), purl = TRUE, body = "x <- 1")
+
+    source_purl(tmp, output_files = "reports/analysis.html")
+
+    lines <- readLines(fs::path(tmp, "R", "analysis.R"), warn = FALSE)
+    expect_match(lines[[1L]], "^# Generated from reports/analysis.qmd by R/purl.R. ")
+    expect_true(any(grepl("x <- 1", lines, fixed = TRUE)))
+})
+
+test_that("a mirrored script also starts with the marker", {
+    tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, "website")
+    fs::dir_create(fs::path(tmp, "posts", "one"))
+    make_purlable_qmd(fs::path(tmp, "posts", "one", "index.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "posts/one/index.html")
+
+    lines <- readLines(fs::path(tmp, "R", "posts", "one", "index.R"), warn = FALSE)
+    expect_match(lines[[1L]], "^# Generated from posts/one/index.qmd by R/purl.R. ")
+})
+
+test_that("re-rendering does not stack markers on top of each other", {
+    tmp <- withr::local_tempdir()
+    make_purlable_qmd(fs::path(tmp, "a.qmd"), purl = TRUE)
+
+    source_purl(tmp, output_files = "a.html")
+    source_purl(tmp, output_files = "a.html")
+
+    lines <- readLines(fs::path(tmp, "R", "a.R"), warn = FALSE)
+    expect_equal(sum(grepl("^# Generated from ", lines)), 1L)
+})
+
+# -- Flat layout: never overwrite a file the hook did not write ------------------
+
+test_that("refuses to overwrite a hand-written R/<name>.R, warns, and leaves it untouched", {
+    tmp <- withr::local_tempdir()
+    fs::dir_create(fs::path(tmp, "R"))
+    readr::write_file("my_helper <- function() 1\n", fs::path(tmp, "R", "a.R"))
+    make_purlable_qmd(fs::path(tmp, "a.qmd"), purl = TRUE, body = "x <- 1")
+
+    expect_warning(
+        source_purl(tmp, output_files = "a.html"),
+        "Not purling"
+    )
+
+    expect_identical(
+        readr::read_file(fs::path(tmp, "R", "a.R")),
+        "my_helper <- function() 1\n"
+    )
+})
+
+test_that("refuses to let a second document with the same filename overwrite the first", {
+    tmp <- withr::local_tempdir()
+    fs::dir_create(fs::path(tmp, "one"))
+    fs::dir_create(fs::path(tmp, "two"))
+    make_purlable_qmd(fs::path(tmp, "one", "report.qmd"), purl = TRUE, body = "first_flag <- TRUE")
+    make_purlable_qmd(fs::path(tmp, "two", "report.qmd"), purl = TRUE, body = "second_flag <- TRUE")
+
+    source_purl(tmp, output_files = "one/report.html")
+
+    expect_warning(
+        source_purl(tmp, output_files = "two/report.html"),
+        "Not purling"
+    )
+
+    r_content <- readr::read_file(fs::path(tmp, "R", "report.R"))
+    expect_true(grepl("first_flag", r_content, fixed = TRUE))
+    expect_false(grepl("second_flag", r_content, fixed = TRUE))
+})
+
+test_that("a refused document does not stop the other documents in the same render", {
+    tmp <- withr::local_tempdir()
+    fs::dir_create(fs::path(tmp, "R"))
+    readr::write_file("mine <- 1\n", fs::path(tmp, "R", "a.R"))
+    make_purlable_qmd(fs::path(tmp, "a.qmd"), purl = TRUE)
+    make_purlable_qmd(fs::path(tmp, "b.qmd"), purl = TRUE)
+
+    expect_warning(
+        source_purl(tmp, output_files = "a.html\nb.html"),
+        "Not purling"
+    )
+
+    expect_true(fs::file_exists(fs::path(tmp, "R", "b.R")))
+})
+
+test_that("a script generated from a document that has since moved is replaced, with a message", {
+    tmp <- withr::local_tempdir()
+    fs::dir_create(fs::path(tmp, "reports"))
+    make_purlable_qmd(fs::path(tmp, "analysis.qmd"), purl = TRUE, body = "old_flag <- TRUE")
+    source_purl(tmp, output_files = "analysis.html")
+
+    # The document moves into reports/; the old location is gone.
+    fs::file_move(fs::path(tmp, "analysis.qmd"), fs::path(tmp, "reports", "analysis.qmd"))
+    make_purlable_qmd(fs::path(tmp, "reports", "analysis.qmd"), purl = TRUE, body = "new_flag <- TRUE")
+
+    expect_message(
+        source_purl(tmp, output_files = "reports/analysis.html"),
+        "no longer exists"
+    )
+
+    lines <- readLines(fs::path(tmp, "R", "analysis.R"), warn = FALSE)
+    expect_match(lines[[1L]], "^# Generated from reports/analysis.qmd by R/purl.R. ")
+    expect_true(any(grepl("new_flag", lines, fixed = TRUE)))
+    expect_false(any(grepl("old_flag", lines, fixed = TRUE)))
+})
+
+test_that("a script written before the marker existed is treated as hand-written in the flat layout", {
+    tmp <- withr::local_tempdir()
+    fs::dir_create(fs::path(tmp, "R"))
+    readr::write_file("x <- 1\n", fs::path(tmp, "R", "analysis.R"))
+    make_purlable_qmd(fs::path(tmp, "analysis.qmd"), purl = TRUE, body = "x <- 2")
+
+    expect_warning(
+        source_purl(tmp, output_files = "analysis.html"),
+        "looks hand-written"
+    )
+})
+
+test_that("a mirrored script that predates the marker is overwritten", {
+    tmp <- withr::local_tempdir()
+    make_quarto_yml(tmp, "website")
+    fs::dir_create(fs::path(tmp, "posts", "one"))
+    fs::dir_create(fs::path(tmp, "R", "posts", "one"))
+    readr::write_file("old_flag <- TRUE\n", fs::path(tmp, "R", "posts", "one", "index.R"))
+    make_purlable_qmd(fs::path(tmp, "posts", "one", "index.qmd"), purl = TRUE, body = "new_flag <- TRUE")
+
+    expect_no_warning(source_purl(tmp, output_files = "posts/one/index.html"))
+
+    r_content <- readr::read_file(fs::path(tmp, "R", "posts", "one", "index.R"))
+    expect_true(grepl("new_flag", r_content, fixed = TRUE))
+    expect_false(grepl("old_flag", r_content, fixed = TRUE))
 })

@@ -100,6 +100,12 @@ the observation worth printing.
 Every \code{.qmd} under \code{path} whose header declares \code{purl: true} (see
 \code{\link[=create_qmd]{create_qmd()}}'s \code{use_purl} argument) gets its own row, comparing it
 against the \code{.R} script \code{R/purl.R} is expected to have derived from it.
+In an ordinary project that script is flat, \code{reports/analysis.qmd} to
+\code{R/analysis.R}. In a Quarto website or book (\verb{project: type:} in
+\verb{_quarto.yml}) it mirrors the document's path, \code{posts/one/index.qmd} to
+\code{R/posts/one/index.R}. A script found at the other layout's path, which
+happens when \code{R/purl.R} is an older copy, is reported with the path it
+was found at and how to refresh the hook.
 Missing entirely, or older than the \code{.qmd} it was purled from, is
 reported as \code{"warn"}: the \code{.qmd} is the source of truth, so an \verb{R/}
 script older than the document it came from means an edit was made and

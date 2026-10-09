@@ -63,9 +63,7 @@ and declares \verb{project: type:} as \code{website}, \code{book}, or
 wired automatically. A \code{cli_warn()} explains why, reports whether
 \code{R/purl.R} was created or was already present, and names the
 \verb{post-render:} entry to add by hand. This guard exists
-because \code{R/purl.R} purls each document to a path mirroring its
-source location under \verb{R/} -- safe within a single project, but
-the interesting failure mode it's protecting against is deciding
+because the failure mode it's protecting against is deciding
 \emph{whether} to opt a multi-document project in at all, since a
 website or book renders many documents on every full build and
 the person scaffolding one \code{.qmd} may not be thinking about the
@@ -89,10 +87,20 @@ should be skipped rather than merely lacking an opinion.
 \code{purl: true}, so turning this on for one document inside a larger
 project -- a Quarto website, a book -- does not cause every other
 \code{.qmd} in that project to be purled whenever the project renders in
-full. Output paths under \verb{R/} mirror each source document's path
-relative to the project root, so two documents that happen to share
-a filename in different directories (e.g. a directory-per-post
-convention using \code{index.qmd}) do not overwrite each other's output.}
+full.
+
+Where the script lands under \verb{R/} depends on the project. In an
+ordinary project it is flat: \code{reports/analysis.qmd} purls to
+\code{R/analysis.R}. In a Quarto website or book (\verb{project: type:} in
+\verb{_quarto.yml}) the script mirrors the document's path relative to the
+project root, so two documents that happen to share a filename in
+different directories (e.g. a directory-per-post convention using
+\code{index.qmd}) do not overwrite each other's output. Every script
+starts with a line naming the document it was generated from. In the
+flat layout the hook leaves alone an existing \verb{R/<name>.R} that does
+not carry that line for this document, and warns instead, so a
+hand-written script, or one generated from a different document with
+the same filename, is never overwritten.}
 
 \item{include_examples}{Logical. If \code{TRUE} (the default), copies a sample
 dataset (\code{sample.csv}) into \verb{data-raw/} and uses a template \code{.qmd}

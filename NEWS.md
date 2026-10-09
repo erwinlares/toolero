@@ -43,6 +43,34 @@
   `resolve_input_path()` also leaves the command line argument as given.
   Run `Rscript` from the project root, or pass an absolute path.
 
+* The post-render purl hook now writes a flat script, `R/<name>.R`, in an
+  ordinary project: `reports/analysis.qmd` purls to `R/analysis.R`. Before,
+  it mirrored the document's path, so the same document purled to
+  `R/reports/analysis.R`. The mirrored layout is kept for Quarto websites
+  and books (`project: type: website` or `book`), where documents
+  routinely share a filename such as `index.qmd`. Manuscript projects,
+  projects without a `_quarto.yml` and projects without a `type:` are flat.
+  A project scaffolded by an earlier version keeps its old `R/purl.R`, which
+  still mirrors. To switch it, run
+  `file.copy(system.file("templates", "purl.R", package = "toolero"),
+  "R/purl.R", overwrite = TRUE)`, render again, and delete the script left
+  at the old path. `check_project()` points this out when it finds the
+  script at the other layout's path.
+
+* Every script the purl hook writes now starts with a line that names the
+  document it came from. In the flat layout the hook never overwrites an
+  `R/<name>.R` that lacks a matching line: it warns and skips that
+  document, so a hand-written script, or one generated from a different
+  document with the same filename, is not replaced. Delete the file, or
+  rename one of the two documents, to let the hook write it. A script whose
+  named document has since been moved or deleted is replaced, with a
+  message. A script written by an earlier version has no such line, so a
+  document at the project root (`analysis.qmd` to `R/analysis.R`, the same
+  path in both layouts) is skipped with a warning the first time it is
+  rendered with the new hook; delete that one script and render again.
+  `check_project()` also reports a script that names a different document
+  that still exists.
+
 ## New features
 
 * The project root is found in a new order, on every call: the job's scratch

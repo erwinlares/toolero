@@ -47,9 +47,7 @@
 #'     wired automatically. A `cli_warn()` explains why, reports whether
 #'     `R/purl.R` was created or was already present, and names the
 #'     `post-render:` entry to add by hand. This guard exists
-#'     because `R/purl.R` purls each document to a path mirroring its
-#'     source location under `R/` -- safe within a single project, but
-#'     the interesting failure mode it's protecting against is deciding
+#'     because the failure mode it's protecting against is deciding
 #'     *whether* to opt a multi-document project in at all, since a
 #'     website or book renders many documents on every full build and
 #'     the person scaffolding one `.qmd` may not be thinking about the
@@ -72,10 +70,20 @@
 #'   `purl: true`, so turning this on for one document inside a larger
 #'   project -- a Quarto website, a book -- does not cause every other
 #'   `.qmd` in that project to be purled whenever the project renders in
-#'   full. Output paths under `R/` mirror each source document's path
-#'   relative to the project root, so two documents that happen to share
-#'   a filename in different directories (e.g. a directory-per-post
-#'   convention using `index.qmd`) do not overwrite each other's output.
+#'   full.
+#'
+#'   Where the script lands under `R/` depends on the project. In an
+#'   ordinary project it is flat: `reports/analysis.qmd` purls to
+#'   `R/analysis.R`. In a Quarto website or book (`project: type:` in
+#'   `_quarto.yml`) the script mirrors the document's path relative to the
+#'   project root, so two documents that happen to share a filename in
+#'   different directories (e.g. a directory-per-post convention using
+#'   `index.qmd`) do not overwrite each other's output. Every script
+#'   starts with a line naming the document it was generated from. In the
+#'   flat layout the hook leaves alone an existing `R/<name>.R` that does
+#'   not carry that line for this document, and warns instead, so a
+#'   hand-written script, or one generated from a different document with
+#'   the same filename, is never overwritten.
 #'
 #' @param include_examples Logical. If `TRUE` (the default), copies a sample
 #'   dataset (`sample.csv`) into `data-raw/` and uses a template `.qmd`
@@ -557,11 +565,9 @@ create_qmd <- function(
 
             cli::cli_warn(c(
                 "!" = "{.path {quarto_yml_dst}} is a {.val {project_type}} project -- skipping automatic post-render wiring.",
-                "i" = "This project likely renders many documents at once,
-                       and {.file R/purl.R} purls each one to a path
-                       mirroring its own location under {.path R/}. Wiring
-                       the hook automatically would opt the whole project
-                       in without anyone deciding that on purpose.",
+                "i" = "This project likely renders many documents at once.
+                       Wiring the hook automatically would opt the whole
+                       project in without anyone deciding that on purpose.",
                 "i" = purl_note,
                 "i" = "To enable it yourself, add
                        {.code post-render: R/purl.R} under the

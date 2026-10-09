@@ -4,23 +4,27 @@
 \alias{.purl_output_path}
 \title{Expected purl output path for a .qmd}
 \usage{
-.purl_output_path(qmd_path, path)
+.purl_output_path(qmd_path, path, layout = .purl_layout(path))
 }
 \arguments{
 \item{qmd_path}{Character. Full path to a \code{.qmd} file.}
 
 \item{path}{Character. Path to the project root.}
+
+\item{layout}{\code{"flat"} or \code{"mirror"}. Defaults to the layout the project
+itself uses, see \code{.purl_layout()}.}
 }
 \value{
 A single character string: the full path where the purled \code{.R}
 script is expected.
 }
 \description{
-Internal helper used by \code{\link[=check_project]{check_project()}}. Mirrors the convention
-\code{R/purl.R} itself follows: a document's derived script lives under \verb{R/}
-at the same path, relative to the project root, that the document itself
-occupies, so two documents sharing a filename in different directories
-(e.g. a directory-per-post convention using \code{index.qmd}) map to
-different output paths.
+Internal helper used by \code{\link[=check_project]{check_project()}}. Follows the convention
+\code{R/purl.R} itself follows. In an ordinary project a document's derived
+script is flat, \verb{R/<name>.R}. In a website or book it lives under \verb{R/}
+at the same path, relative to the project root, that the document
+itself occupies, so two documents sharing a filename in different
+directories (e.g. a directory-per-post convention using \code{index.qmd}) map
+to different output paths.
 }
 \keyword{internal}

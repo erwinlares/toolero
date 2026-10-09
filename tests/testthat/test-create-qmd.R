@@ -552,9 +552,10 @@ test_that("merges the hook regardless of overwrite = FALSE, for a non-guarded pr
 })
 
 # -- use_purl: guard skips _quarto.yml wiring for website/book/manuscript -------
-# R/purl.R mirrors each purled document's path under R/, which resolves
-# the same-basename collision within a single project -- but a website,
-# book, or manuscript project renders many documents on every full build,
+# R/purl.R purls each document to a flat R/<name>.R (mirrored under R/ for
+# a website or book), and refuses to overwrite a script it did not write --
+# but a website, book, or manuscript project renders many documents on every
+# full build,
 # and the person scaffolding one .qmd may not be thinking about the
 # others. The guard skips automatic wiring for these three project types
 # and explains how to opt in by hand.

@@ -988,9 +988,28 @@ test_that("passes when the derived script is up to date", {
     expect_match(row$message, "up to date")
 })
 
-test_that("a purled .qmd nested in a declared folder maps to R/ at the same relative path", {
+test_that("a purled .qmd nested in a declared folder maps to a flat R/<name>.R in an ordinary project", {
     root    <- withr::local_tempdir()
     project <- make_project(root)
+
+    rel_qmd  <- fs::path("reports", "monthly.qmd")
+    qmd_path <- write_purled_qmd(project, rel_qmd)
+    r_path   <- fs::path(project, "R", "monthly.R")
+    fs::dir_create(fs::path_dir(r_path))
+    writeLines("1 + 1", r_path)
+    touch_after(r_path, qmd_path)
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == paste0("purl: ", rel_qmd), ]
+    expect_equal(nrow(row), 1L)
+    expect_equal(row$status, "pass")
+})
+
+test_that("a purled .qmd in a website project maps to R/ at the same relative path", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    writeLines(c("project:", "  type: website"), fs::path(project, "_quarto.yml"))
 
     rel_qmd  <- fs::path("reports", "monthly.qmd")
     qmd_path <- write_purled_qmd(project, rel_qmd)
@@ -1004,6 +1023,110 @@ test_that("a purled .qmd nested in a declared folder maps to R/ at the same rela
     row <- result[result$check == paste0("purl: ", rel_qmd), ]
     expect_equal(nrow(row), 1L)
     expect_equal(row$status, "pass")
+})
+
+test_that("warns, with refresh instructions, when an ordinary project's script sits at the mirrored path", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    rel_qmd  <- fs::path("reports", "monthly.qmd")
+    qmd_path <- write_purled_qmd(project, rel_qmd)
+    r_old    <- fs::path(project, "R", "reports", "monthly.R")
+    fs::dir_create(fs::path_dir(r_old))
+    writeLines("1 + 1", r_old)
+    touch_after(r_old, qmd_path)
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == paste0("purl: ", rel_qmd), ]
+    expect_equal(nrow(row), 1L)
+    expect_equal(row$status, "warn")
+    expect_match(row$message, "older copy", fixed = TRUE)
+    expect_match(row$message, "file.copy", fixed = TRUE)
+})
+
+test_that("warns when a website project's script sits at the flat path", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    writeLines(c("project:", "  type: website"), fs::path(project, "_quarto.yml"))
+
+    rel_qmd  <- fs::path("reports", "monthly.qmd")
+    qmd_path <- write_purled_qmd(project, rel_qmd)
+    r_flat   <- fs::path(project, "R", "monthly.R")
+    fs::dir_create(fs::path_dir(r_flat))
+    writeLines("1 + 1", r_flat)
+    touch_after(r_flat, qmd_path)
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == paste0("purl: ", rel_qmd), ]
+    expect_equal(row$status, "warn")
+    expect_match(row$message, "older copy", fixed = TRUE)
+})
+
+test_that("warns when the script at the expected path was generated from a different document", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    # Both folders are declared folders in make_project(), which is where
+    # check_project() looks for purled documents.
+    write_purled_qmd(project, "reports/report.qmd")
+    qmd_two <- write_purled_qmd(project, "scripts/report.qmd")
+    fs::dir_create(fs::path(project, "R"))
+    r_path <- fs::path(project, "R", "report.R")
+    writeLines(c("# Generated from reports/report.qmd by R/purl.R. Edit that document.", "1 + 1"), r_path)
+    touch_after(r_path, qmd_two)
+
+    result <- check_project(path = project)
+
+    row_two <- result[result$check == "purl: scripts/report.qmd", ]
+    expect_equal(nrow(row_two), 1L)
+    expect_equal(row_two$status, "warn")
+    expect_match(row_two$message, "generated from reports/report.qmd", fixed = TRUE)
+
+    row_one <- result[result$check == "purl: reports/report.qmd", ]
+    expect_equal(row_one$status, "pass")
+})
+
+test_that("a script whose named document no longer exists is not reported as claimed by another", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    qmd_path <- write_purled_qmd(project, "reports/report.qmd")
+    fs::dir_create(fs::path(project, "R"))
+    r_path <- fs::path(project, "R", "report.R")
+    writeLines(c("# Generated from old/report.qmd by R/purl.R. Edit that document.", "1 + 1"), r_path)
+    touch_after(r_path, qmd_path)
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == "purl: reports/report.qmd", ]
+    expect_equal(row$status, "pass")
+})
+
+test_that(".purl_source_of() reads the marker, and distinguishes absent from unmarked", {
+    tmp <- withr::local_tempdir()
+
+    expect_true(is.na(.purl_source_of(fs::path(tmp, "missing.R"))))
+
+    unmarked <- fs::path(tmp, "unmarked.R")
+    writeLines("x <- 1", unmarked)
+    expect_identical(.purl_source_of(unmarked), "")
+
+    marked <- fs::path(tmp, "marked.R")
+    writeLines(c("# Generated from reports/a b.qmd by R/purl.R. Edit that document.", "x <- 1"), marked)
+    expect_identical(.purl_source_of(marked), "reports/a b.qmd")
+})
+
+test_that("a document at the project root has the same path in both layouts, so no layout warning", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+    write_purled_qmd(project, "analysis.qmd")
+
+    result <- check_project(path = project)
+
+    row <- result[result$check == "purl: analysis.qmd", ]
+    expect_match(row$message, "does not exist yet")
 })
 
 test_that("stale-purl scanning does not descend into renv/library", {
@@ -1033,12 +1156,58 @@ test_that(".find_purled_qmds() returns only documents stamped purl: true", {
     expect_equal(fs::path_file(found), "yes.qmd")
 })
 
-test_that(".purl_output_path() mirrors the .qmd's own relative path under R/", {
+test_that(".purl_output_path() is flat by default", {
+    project <- fs::path("tmp", "some-project")
+    qmd     <- fs::path(project, "reports", "analysis.qmd")
+
+    expect_equal(
+        .purl_output_path(qmd, project, layout = "flat"),
+        fs::path(project, "R", "analysis.R")
+    )
+})
+
+test_that(".purl_output_path() mirrors the .qmd's own relative path under R/ for the mirror layout", {
     project <- fs::path("tmp", "some-project")
     qmd     <- fs::path(project, "posts", "2026-08-04", "index.qmd")
 
     expect_equal(
-        .purl_output_path(qmd, project),
+        .purl_output_path(qmd, project, layout = "mirror"),
         fs::path(project, "R", "posts", "2026-08-04", "index.R")
     )
+})
+
+test_that(".purl_layout() is mirror for a website or book and flat for everything else", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    expect_identical(.purl_layout(project), "flat")
+
+    quarto_yml <- fs::path(project, "_quarto.yml")
+
+    writeLines(c("project:", "  type: website"), quarto_yml)
+    expect_identical(.purl_layout(project), "mirror")
+
+    writeLines(c("project:", "  type: book"), quarto_yml)
+    expect_identical(.purl_layout(project), "mirror")
+
+    writeLines(c("project:", "  type: manuscript"), quarto_yml)
+    expect_identical(.purl_layout(project), "flat")
+
+    writeLines(c("project:", "  type: default"), quarto_yml)
+    expect_identical(.purl_layout(project), "flat")
+
+    writeLines(c("project:", "  output-dir: _out"), quarto_yml)
+    expect_identical(.purl_layout(project), "flat")
+})
+
+test_that(".purl_layout() reads _quarto.yaml and treats an unparseable file as flat", {
+    root    <- withr::local_tempdir()
+    project <- make_project(root)
+
+    writeLines(c("project:", "  type: website"), fs::path(project, "_quarto.yaml"))
+    expect_identical(.purl_layout(project), "mirror")
+
+    unlink(fs::path(project, "_quarto.yaml"))
+    writeLines(c("project: [unclosed", "  type: website"), fs::path(project, "_quarto.yml"))
+    expect_identical(.purl_layout(project), "flat")
 })
