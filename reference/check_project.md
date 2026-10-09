@@ -113,13 +113,19 @@ so the pairing is what makes the observation worth printing.
 Every `.qmd` under `path` whose header declares `purl: true` (see
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)'s
 `use_purl` argument) gets its own row, comparing it against the `.R`
-script `R/purl.R` is expected to have derived from it. Missing entirely,
-or older than the `.qmd` it was purled from, is reported as `"warn"`:
-the `.qmd` is the source of truth, so an `R/` script older than the
-document it came from means an edit was made and not yet re-rendered,
-and a container or cluster job that bakes in the `.R` file would run the
-old analysis without any error to say so. Documents never opted into
-purl produce no row – nothing to check.
+script `R/purl.R` is expected to have derived from it. In an ordinary
+project that script is flat, `reports/analysis.qmd` to `R/analysis.R`.
+In a Quarto website or book (`project: type:` in `_quarto.yml`) it
+mirrors the document's path, `posts/one/index.qmd` to
+`R/posts/one/index.R`. A script found at the other layout's path, which
+happens when `R/purl.R` is an older copy, is reported with the path it
+was found at and how to refresh the hook. Missing entirely, or older
+than the `.qmd` it was purled from, is reported as `"warn"`: the `.qmd`
+is the source of truth, so an `R/` script older than the document it
+came from means an edit was made and not yet re-rendered, and a
+container or cluster job that bakes in the `.R` file would run the old
+analysis without any error to say so. Documents never opted into purl
+produce no row – nothing to check.
 
 ## Paths
 
@@ -216,7 +222,7 @@ check_project()
 # \donttest{
 project_dir <- withr::local_tempdir()
 check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/Rtmp6kXUCf/file19e74197b3b does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/RtmpVdwYt8/file1a893948d8cf does not exist.
 # }
 
 # Audit against a custom folder structure
@@ -224,19 +230,19 @@ check_project(path = project_dir)
 project_dir <- withr::local_tempdir()
 config_path <- file.path(tempdir(), "my-config.yml")
 generate_project_config("my-config.yml", path = tempdir())
-#> ✔ Created /tmp/Rtmp6kXUCf/my-config.yml
-#> ℹ Edit /tmp/Rtmp6kXUCf/my-config.yml to define your custom folder structure,
+#> ✔ Created /tmp/RtmpVdwYt8/my-config.yml
+#> ℹ Edit /tmp/RtmpVdwYt8/my-config.yml to define your custom folder structure,
 #>   then pass it to `init_project()` via `config =
-#>   "/tmp/Rtmp6kXUCf/my-config.yml"`.
+#>   "/tmp/RtmpVdwYt8/my-config.yml"`.
 #> ℹ For easy reuse across projects, consider moving this file to /home/runner.
 check_project(path = project_dir, config = config_path)
-#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/Rtmp6kXUCf/file19e74163a9da does not exist.
+#> Error in check_project(path = project_dir, config = config_path): Directory /tmp/RtmpVdwYt8/file1a8975b02909 does not exist.
 # }
 
 # Access results programmatically
 # \donttest{
 project_dir <- withr::local_tempdir()
 out <- check_project(path = project_dir)
-#> Error in check_project(path = project_dir): Directory /tmp/Rtmp6kXUCf/file19e72b2491b3 does not exist.
+#> Error in check_project(path = project_dir): Directory /tmp/RtmpVdwYt8/file1a89669176d3 does not exist.
 # }
 ```

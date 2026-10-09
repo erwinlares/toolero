@@ -361,7 +361,11 @@ Turning it on:
   `purl: false` when `use_purl = FALSE`, so a document can positively
   confirm it should be skipped rather than merely lacking an opinion).
 - Scaffolds `R/purl.R`, which purls every document in the project whose
-  own header carries `purl: true`.
+  own header carries `purl: true`. In an ordinary project the script is
+  written flat, so `reports/analysis.qmd` becomes `R/analysis.R`. In a
+  Quarto website or book it mirrors the document’s path under `R/`.
+  Every script starts with a line naming its source document, and the
+  hook will not overwrite an `R/` script that lacks that line.
 - Wires `R/purl.R` into `_quarto.yml`’s post-render hook, creating
   `_quarto.yml` from the package template if it does not exist yet, or
   merging the hook into an existing file’s `project:` block if it does –

@@ -67,7 +67,7 @@
 Lares</h4>
             
             <h4 data-toc-skip class="date">Created 2026-04-30 | Last
-updated 2026-10-08</h4>
+updated 2026-10-09</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/erwinlares/toolero/blob/main/vignettes/toolero-intro.Rmd" class="external-link"><code>vignettes/toolero-intro.Rmd</code></a></small>
       <div class="d-none name"><code>toolero-intro.Rmd</code></div>
@@ -390,7 +390,12 @@ extracts R code from the rendered document into a companion
 document can positively confirm it should be skipped rather than merely
 lacking an opinion).</li>
 <li>Scaffolds <code>R/purl.R</code>, which purls every document in the
-project whose own header carries <code>purl: true</code>.</li>
+project whose own header carries <code>purl: true</code>. In an ordinary
+project the script is written flat, so <code>reports/analysis.qmd</code>
+becomes <code>R/analysis.R</code>. In a Quarto website or book it
+mirrors the document’s path under <code>R/</code>. Every script starts
+with a line naming its source document, and the hook will not overwrite
+an <code>R/</code> script that lacks that line.</li>
 <li>Wires <code>R/purl.R</code> into <code>_quarto.yml</code>’s
 post-render hook, creating <code>_quarto.yml</code> from the package
 template if it does not exist yet, or merging the hook into an existing

@@ -123,9 +123,7 @@ and declares <code>project: type:</code> as <code>website</code>, <code>book</co
 wired automatically. A <code>cli_warn()</code> explains why, reports whether
 <code>R/purl.R</code> was created or was already present, and names the
 <code>post-render:</code> entry to add by hand. This guard exists
-because <code>R/purl.R</code> purls each document to a path mirroring its
-source location under <code>R/</code> – safe within a single project, but
-the interesting failure mode it's protecting against is deciding
+because the failure mode it's protecting against is deciding
 <em>whether</em> to opt a multi-document project in at all, since a
 website or book renders many documents on every full build and
 the person scaffolding one <code>.qmd</code> may not be thinking about the
@@ -146,10 +144,19 @@ should be skipped rather than merely lacking an opinion.</p>
 <code>purl: true</code>, so turning this on for one document inside a larger
 project – a Quarto website, a book – does not cause every other
 <code>.qmd</code> in that project to be purled whenever the project renders in
-full. Output paths under <code>R/</code> mirror each source document's path
-relative to the project root, so two documents that happen to share
-a filename in different directories (e.g. a directory-per-post
-convention using <code>index.qmd</code>) do not overwrite each other's output.</p></dd>
+full.</p>
+<p>Where the script lands under <code>R/</code> depends on the project. In an
+ordinary project it is flat: <code>reports/analysis.qmd</code> purls to
+<code>R/analysis.R</code>. In a Quarto website or book (<code>project: type:</code> in
+<code>_quarto.yml</code>) the script mirrors the document's path relative to the
+project root, so two documents that happen to share a filename in
+different directories (e.g. a directory-per-post convention using
+<code>index.qmd</code>) do not overwrite each other's output. Every script
+starts with a line naming the document it was generated from. In the
+flat layout the hook leaves alone an existing <code>R/&lt;name&gt;.R</code> that does
+not carry that line for this document, and warns instead, so a
+hand-written script, or one generated from a different document with
+the same filename, is never overwritten.</p></dd>
 
 
 <dt id="arg-include-examples">include_examples<a class="anchor" aria-label="anchor" href="#arg-include-examples"></a></dt>
@@ -339,34 +346,34 @@ paths in job scripts.</p>
 <span class="r-in"><span><span class="co"># Minimal blank document -- no examples, no styling, no purl</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
 <span class="r-in"><span>           include_examples <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/analysis.qmd</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Full worked example with sample data and placeholder logo</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
 <span class="r-in"><span>           overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/data-raw/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/assets/logo.png</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/data-raw/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/assets/logo.png</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/analysis.qmd</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Opt this document into purl: stamps purl: true and wires up</span></span></span>
 <span class="r-in"><span><span class="co"># R/purl.R + the _quarto.yml post-render hook (merged if the file</span></span></span>
 <span class="r-in"><span><span class="co"># already exists, e.g. inside a larger Quarto website project)</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
 <span class="r-in"><span>           overwrite <span class="op">=</span> <span class="cn">TRUE</span>, use_purl <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/data-raw/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Skipping <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/assets/logo.png</span> -- existing logo left in place.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/analysis.qmd</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/R/purl.R</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/_quarto.yml</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/data-raw/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Skipping <span style="color: #0000BB;">/tmp/RtmpVdwYt8/assets/logo.png</span> -- existing logo left in place.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/R/purl.R</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/_quarto.yml</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Blank document wired to branding assets (assumes assets/ exists,</span></span></span>
 <span class="r-in"><span><span class="co"># e.g. from init_project(branding = "uw-madison"))</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span>,</span></span>
 <span class="r-in"><span>           include_examples <span class="op">=</span> <span class="cn">FALSE</span>, use_style <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
 <span class="r-in"><span>           overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No <span style="color: #0000BB;">styles.css</span>, <span style="color: #0000BB;">header.html</span>, or <span style="color: #0000BB;">footer.html</span> found in <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/assets</span>.</span>
+<span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>No <span style="color: #0000BB;">styles.css</span>, <span style="color: #0000BB;">header.html</span>, or <span style="color: #0000BB;">footer.html</span> found in <span style="color: #0000BB;">/tmp/RtmpVdwYt8/assets</span>.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Skipping style injection.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/report.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/report.qmd</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Blank document with custom branding from a different directory</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"report.qmd"</span>,</span></span>
@@ -375,16 +382,16 @@ paths in job scripts.</p>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>Style directory <span style="color: #0000BB;">/home/runner/work/toolero/toolero/my-branding</span> does not exist.</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> Skipping style injection. Create the directory and add your branding assets, or</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> set `use_style = FALSE`.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/report.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/report.qmd</span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Pre-populated YAML header, typically from generate_profile()</span></span></span>
 <span class="r-in"><span><span class="va">profile_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".yml"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="st">"author:\n  - name: 'Your Name'"</span>, <span class="va">profile_file</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">create_qmd</span><span class="op">(</span>path <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, filename <span class="op">=</span> <span class="st">"analysis.qmd"</span>,</span></span>
 <span class="r-in"><span>           header_defaults <span class="op">=</span> <span class="va">profile_file</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/data-raw/sample.csv</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Skipping <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/assets/logo.png</span> -- existing logo left in place.</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/Rtmp6kXUCf/analysis.qmd</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/data-raw/sample.csv</span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Skipping <span style="color: #0000BB;">/tmp/RtmpVdwYt8/assets/logo.png</span> -- existing logo left in place.</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">✔</span> Created <span style="color: #0000BB;">/tmp/RtmpVdwYt8/analysis.qmd</span></span>
 <span class="r-in"><span><span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

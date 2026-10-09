@@ -546,13 +546,17 @@ also reports on stale purled scripts. Every `.qmd` whose header declares
 `purl: true` (see
 [`create_qmd()`](https://erwinlares.github.io/toolero/reference/create_qmd.md)’s
 `use_purl` argument below) gets its own row, comparing it against the
-`.R` script `R/purl.R` is expected to have derived from it. A script
-that is missing entirely, or older than the `.qmd` it was purled from,
-is a `"warn"`: the `.qmd` is the source of truth, so an out-of-date `R/`
-script means an edit was made and not yet re-rendered, and a container
-or cluster job that bakes in that script would run the old analysis
-without any error to say so. A document never opted into purl produces
-no row.
+`.R` script `R/purl.R` is expected to have derived from it. Where that
+script is expected depends on the project type (flat `R/<name>.R`, or
+mirrored under `R/` for a website or book). If the script is missing but
+one exists at the other layout’s path, which is what a project
+scaffolded with an older `R/purl.R` looks like, the row says so and
+shows how to refresh `R/purl.R`. A script that is missing entirely, or
+older than the `.qmd` it was purled from, is a `"warn"`: the `.qmd` is
+the source of truth, so an out-of-date `R/` script means an edit was
+made and not yet re-rendered, and a container or cluster job that bakes
+in that script would run the old analysis without any error to say so. A
+document never opted into purl produces no row.
 
 README detection is case-insensitive and extension-agnostic: any file
 whose stem matches `readme`, in any capitalization, counts regardless of
@@ -653,14 +657,23 @@ for.
     present, since whoever reads it is about to point a hook at that
     script and needs to know which copy is sitting there.
   - `R/purl.R` itself only purls documents whose own header carries
-    `purl: true`, and mirrors each document’s path under `R/` (so
-    `posts/2026-08-04-giscus/index.qmd` purls to
-    `R/posts/2026-08-04-giscus/index.R`, not a flattened `R/index.R`).
-    Together, this means turning `use_purl` on for one document inside a
-    larger project does not purl every other `.qmd` in it, and two
-    documents that happen to share a filename in different directories,
-    a directory-per-post convention for instance, do not overwrite each
-    other’s output.
+    `purl: true`, so turning `use_purl` on for one document inside a
+    larger project does not purl every other `.qmd` in it.
+  - Where the script lands depends on the kind of project. In an
+    ordinary project it is flat: `reports/analysis.qmd` purls to
+    `R/analysis.R`. In a Quarto website or book
+    (`project: type: website` or `book` in `_quarto.yml`), where
+    documents routinely share a filename, the script mirrors the
+    document’s path under `R/`, so `posts/2026-08-04-giscus/index.qmd`
+    purls to `R/posts/2026-08-04-giscus/index.R`, not a flattened
+    `R/index.R`. Manuscript projects, projects with no `_quarto.yml` and
+    projects with no `type:` are flat.
+  - Every purled script starts with a line naming the document it came
+    from. In the flat layout, `R/purl.R` uses that line to avoid
+    overwriting a file it did not write: if `R/analysis.R` already
+    exists and is hand-written, or was generated from a different
+    document with the same filename, the hook warns and skips that
+    document instead of replacing the file.
 - `include_examples` – if `TRUE` (default), copies a sample dataset into
   `data-raw/`, a placeholder logo into `assets/` (skipped if a logo
   already exists), and uses a worked example template. If `FALSE`,
